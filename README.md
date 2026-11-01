@@ -30,6 +30,8 @@ The sign-in page shows a **Local test account** form when running against the em
 
 ## Put it on your phones (free, about 15 minutes)
 
+The detailed walkthrough, with a message to send your partner, is in [docs/GO-LIVE.md](docs/GO-LIVE.md).
+
 Everything here runs on Firebase's free **Spark** plan. No credit card is needed.
 
 1. **Create a Firebase project** at <https://console.firebase.google.com>. Name it something like `fridgeboard-yourname`. Analytics isn't needed.
@@ -41,6 +43,7 @@ Everything here runs on Firebase's free **Spark** plan. No credit card is needed
    cp .env.example .env.local
    ```
    Fill in the values. Set `VITE_FIREBASE_AUTH_DOMAIN` to **`<project-id>.web.app`**, not the default `firebaseapp.com`. Sign-in then happens on the app's own domain, which iPhone home-screen apps need.
+   Then allow that address for Google sign-in: in [Google Cloud → Credentials](https://console.cloud.google.com/apis/credentials), open **Web client (auto created by Google Service)** and add `https://<project-id>.web.app/__/auth/handler` under **Authorized redirect URIs**.
 6. **Deploy:**
    ```bash
    npx firebase login
