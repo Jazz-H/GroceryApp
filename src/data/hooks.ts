@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { collection, doc, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { auth, db } from '../firebase';
-import type { ActivityEvent, Household, Item, Trip } from '../types';
-import { toActivity, toHousehold, toItem, toTrip } from './convert';
+import type { ActivityEvent, Household, Item, Receipt, Trip } from '../types';
+import { toActivity, toHousehold, toItem, toReceipt, toTrip } from './convert';
 
 export type Loadable<T> =
   { status: 'loading' } | { status: 'ready'; value: T } | { status: 'error'; error: Error };
@@ -49,13 +49,20 @@ export function useHousehold(hid: string): Loadable<Household> {
     let unsubscribe = () => {};
     let timer: ReturnType<typeof setTimeout> | undefined;
     let attempt = 0;
+    let shown = false;
     const listen = () => {
       unsubscribe = onSnapshot(
         doc(db, 'households', hid),
         { includeMetadataChanges: true },
         (snap) => {
           attempt = 0;
-          if (snap.exists()) setState({ status: 'ready', value: toHousehold(snap) });
+          if (snap.exists()) {
+            // Right after creating a household, wait until it's saved before showing the app,
+            // so the list, feed and trip listeners that start next aren't refused by the rules.
+            if (!shown && snap.metadata.hasPendingWrites) return;
+            shown = true;
+            setState({ status: 'ready', value: toHousehold(snap) });
+          }
           // A miss from the offline cache isn't final: wait for the server's answer.
           else if (!snap.metadata.fromCache)
             setState({ status: 'error', error: new Error('Household not found') });
@@ -114,6 +121,36 @@ export function useActiveTrips(hid: string): Trip[] {
     [hid],
   );
   return trips;
+}
+
+export function useReceipts(hid: string, max = 300): Receipt[] {
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  useEffect(
+    () =>
+      onSnapshot(
+        query(
+          collection(db, 'households', hid, 'receipts'),
+          orderBy('purchasedAt', 'desc'),
+          limit(max),
+        ),
+        (snap) => setReceipts(snap.docs.map(toReceipt)),
+      ),
+    [hid, max],
+  );
+  return receipts;
+}
+
+/** Remembered receipt matches: alias key → item id. */
+export function useAliases(hid: string): Map<string, string> {
+  const [aliases, setAliases] = useState<Map<string, string>>(() => new Map());
+  useEffect(
+    () =>
+      onSnapshot(collection(db, 'households', hid, 'aliases'), (snap) =>
+        setAliases(new Map(snap.docs.map((d) => [d.id, String(d.data().itemId ?? '')]))),
+      ),
+    [hid],
+  );
+  return aliases;
 }
 
 /** True while the browser reports no network. Writes still work and sync later. */

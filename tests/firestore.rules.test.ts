@@ -289,3 +289,74 @@ describe('push subscriptions', () => {
     );
   });
 });
+
+function receipt(by: string, paidBy = by) {
+  return {
+    store: 'ht',
+    purchasedAt: 1767000000000,
+    paidBy,
+    createdBy: by,
+    createdAt: serverTimestamp(),
+    subtotalCents: 399,
+    taxCents: 0,
+    savingsCents: 0,
+    totalCents: 399,
+    lines: [{ raw: 'MILK', name: 'Milk', qty: 1, cents: 399, itemId: 'milk' }],
+  };
+}
+
+describe('receipts', () => {
+  it('saves a receipt, its prices, a remembered match and the log entry in one batch', async () => {
+    const db = as('alex');
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'households', HID, 'receipts', 'r1'), receipt('alex'));
+    batch.update(doc(db, 'households', HID, 'items', 'milk'), {
+      'storeInfo.ht.price': { cents: 399, kind: 'paid', at: 1767000000000 },
+      status: 'checked',
+      checkedBy: 'alex',
+      updatedBy: 'alex',
+      updatedAt: serverTimestamp(),
+    });
+    batch.set(doc(db, 'households', HID, 'aliases', 'ht~milk'), {
+      itemId: 'milk',
+      store: 'ht',
+      raw: 'MILK',
+      by: 'alex',
+    });
+    batch.set(doc(db, 'households', HID, 'activity', 'e5'), {
+      actorId: 'alex',
+      type: 'receipt',
+      itemIds: ['milk'],
+      itemNames: ['Milk'],
+      batchId: 'b5',
+      store: 'ht',
+      detail: '$3.99',
+      at: serverTimestamp(),
+    });
+    await assertSucceeds(batch.commit());
+  });
+
+  it('blocks non-members and faked authors or payers', async () => {
+    await assertFails(setDoc(doc(as('sam'), 'households', HID, 'receipts', 'r2'), receipt('sam')));
+    await assertFails(setDoc(doc(as('alex'), 'households', HID, 'receipts', 'r3'), receipt('sam')));
+    await assertFails(
+      setDoc(doc(as('alex'), 'households', HID, 'receipts', 'r4'), receipt('alex', 'mallory')),
+    );
+    await assertFails(getDocs(collection(as('sam'), 'households', HID, 'receipts')));
+  });
+
+  it('lets members fix and delete receipts but keeps the author', async () => {
+    const ref = doc(as('alex'), 'households', HID, 'receipts', 'r5');
+    await assertSucceeds(setDoc(ref, receipt('alex')));
+    await assertSucceeds(updateDoc(ref, { totalCents: 450 }));
+    await assertFails(updateDoc(ref, { createdBy: 'sam' }));
+    await assertSucceeds(deleteDoc(ref));
+  });
+
+  it('keeps remembered matches private to the household', async () => {
+    await assertFails(
+      setDoc(doc(as('sam'), 'households', HID, 'aliases', 'ht~x'), { itemId: 'milk' }),
+    );
+    await assertFails(setDoc(doc(as('alex'), 'households', HID, 'aliases', 'ht~y'), { itemId: 3 }));
+  });
+});

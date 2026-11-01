@@ -8,18 +8,20 @@ import type { Household } from '../types';
 import { Feed } from './Feed';
 import { ListScreen } from './ListScreen';
 import { Settings } from './Settings';
+import { Spend } from './Spend';
 import { Avatar } from './ui';
 
-type Tab = 'list' | 'us' | 'settings';
+type Tab = 'list' | 'spend' | 'us' | 'settings';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'list', label: 'List' },
+  { id: 'spend', label: 'Spend' },
   { id: 'us', label: 'Us' },
   { id: 'settings', label: 'Settings' },
 ];
 
 function tabFromHash(): Tab {
   const h = location.hash.replace('#', '');
-  return h === 'us' || h === 'settings' ? h : 'list';
+  return h === 'us' || h === 'settings' || h === 'spend' ? h : 'list';
 }
 
 export function Shell({ user, household }: { user: User; household: Household }) {
@@ -96,6 +98,7 @@ export function Shell({ user, household }: { user: User; household: Household })
         {tab === 'list' && (
           <ListScreen user={user} household={household} items={items} trips={trips} />
         )}
+        {tab === 'spend' && <Spend household={household} uid={user.uid} items={items} />}
         {tab === 'us' && <Feed household={household} events={activity} />}
         {tab === 'settings' && <Settings user={user} household={household} />}
       </div>
@@ -132,6 +135,13 @@ function TabIcon({ id }: { id: Tab }) {
       <svg {...common}>
         <rect x="4" y="3" width="16" height="18" rx="2.5" />
         <path d="M8 8h8M8 12h8M8 16h5" />
+      </svg>
+    );
+  if (id === 'spend')
+    return (
+      <svg {...common}>
+        <path d="M6 3h12v18l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 21z" />
+        <path d="M9 8h6M9 12h6M9 16h3" />
       </svg>
     );
   if (id === 'us')

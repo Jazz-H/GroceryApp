@@ -41,7 +41,37 @@ export interface Item {
 }
 
 export type ActivityType =
-  'add' | 'edit' | 'check' | 'uncheck' | 'move' | 'delete' | 'trip_start' | 'trip_end';
+  'add' | 'edit' | 'check' | 'uncheck' | 'move' | 'delete' | 'trip_start' | 'trip_end' | 'receipt';
+
+/** Stores a receipt can come from. "other" covers anywhere not on the list (Costco, a farmers market). */
+export type ReceiptStore = StoreId | 'other';
+
+export interface ReceiptLine {
+  /** Text as printed, e.g. "HT ORG SPINACH 10Z". */
+  raw: string;
+  /** Readable name, e.g. "Organic spinach". */
+  name: string;
+  qty: number;
+  /** What the line cost in total, after its own discounts. */
+  cents: number;
+  /** The list item this line matched, if any. */
+  itemId: string | null;
+}
+
+export interface Receipt {
+  id: string;
+  store: ReceiptStore;
+  /** Purchase date, epoch ms at local noon. */
+  purchasedAt: number;
+  paidBy: string;
+  createdBy: string;
+  createdAt: number;
+  subtotalCents: number;
+  taxCents: number;
+  savingsCents: number;
+  totalCents: number;
+  lines: ReceiptLine[];
+}
 
 export interface ActivityEvent {
   id: string;
@@ -69,6 +99,8 @@ export interface Household {
   inviteCode: string;
   zip: string;
   zoneOrder: Partial<Record<StoreId, string[]>>;
+  /** Monthly grocery budget in cents, or null when none is set. */
+  budgetCents: number | null;
 }
 
 export type TripMode = 'together' | 'solo';

@@ -1,5 +1,5 @@
 import { Timestamp, type DocumentData, type DocumentSnapshot } from 'firebase/firestore';
-import type { ActivityEvent, Household, Item, Trip } from '../types';
+import type { ActivityEvent, Household, Item, Receipt, Trip } from '../types';
 import { isStoreId } from '../lib/stores';
 
 /** Firestore timestamps (including pending local ones) → epoch ms. */
@@ -60,6 +60,35 @@ export function toHousehold(snap: DocumentSnapshot): Household {
     inviteCode: String(d.inviteCode ?? ''),
     zip: String(d.zip ?? ''),
     zoneOrder: d.zoneOrder ?? {},
+    budgetCents: typeof d.budgetCents === 'number' && d.budgetCents > 0 ? d.budgetCents : null,
+  };
+}
+
+const RECEIPT_STORES = ['ht', 'target', 'amazon', 'other'];
+
+const int = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math.round(v) : 0);
+
+export function toReceipt(snap: DocumentSnapshot): Receipt {
+  const d = data(snap);
+  const lines = Array.isArray(d.lines) ? d.lines : [];
+  return {
+    id: snap.id,
+    store: RECEIPT_STORES.includes(d.store) ? d.store : 'other',
+    purchasedAt: ms(d.purchasedAt),
+    paidBy: String(d.paidBy ?? ''),
+    createdBy: String(d.createdBy ?? ''),
+    createdAt: ms(d.createdAt),
+    subtotalCents: int(d.subtotalCents),
+    taxCents: int(d.taxCents),
+    savingsCents: int(d.savingsCents),
+    totalCents: int(d.totalCents),
+    lines: lines.map((l: DocumentData) => ({
+      raw: String(l.raw ?? ''),
+      name: String(l.name ?? ''),
+      qty: int(l.qty) || 1,
+      cents: int(l.cents),
+      itemId: typeof l.itemId === 'string' ? l.itemId : null,
+    })),
   };
 }
 

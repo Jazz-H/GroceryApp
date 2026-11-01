@@ -11,4 +11,5 @@ interface ImportMetaEnv {
   readonly VITE_USE_EMULATORS?: string;
   readonly VITE_PUSH_URL?: string;
   readonly VITE_VAPID_PUBLIC_KEY?: string;
+  readonly VITE_GEMINI_MODEL?: string;
 }

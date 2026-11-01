@@ -89,6 +89,12 @@ export function describe(group: FeedGroup, member: Member | undefined): string {
         : `${who} started a solo trip to ${store}`;
     case 'trip_end':
       return `${who} finished at ${store}`;
+    case 'receipt': {
+      const where = store ? ` from ${store}` : '';
+      const total = group.detail ? `${group.detail} ` : '';
+      const matched = group.count ? ` · ${plural(group.count, 'item')} priced` : '';
+      return `${who} added a ${total}receipt${where}${matched}`;
+    }
   }
 }
 

@@ -106,7 +106,7 @@ service cloud.firestore {
         allow create: if isMember(hid)
           && request.resource.data.actorId == uid()
           && request.resource.data.at == request.time
-          && request.resource.data.type in ['add', 'edit', 'check', 'uncheck', 'move', 'delete', 'trip_start', 'trip_end']
+          && request.resource.data.type in ['add', 'edit', 'check', 'uncheck', 'move', 'delete', 'trip_start', 'trip_end', 'receipt']
           && request.resource.data.itemNames is list
           && request.resource.data.itemNames.size() <= 50;
         allow update, delete: if false;
@@ -137,6 +137,33 @@ service cloud.firestore {
         allow update: if isMember(hid)
           && request.resource.data.startedBy == resource.data.startedBy;
         allow delete: if false;
+      }
+
+      // ---- Receipts: any member can add, fix or remove them ----
+      match /receipts/{receiptId} {
+        function validReceipt(d) {
+          return d.store in ['ht', 'target', 'amazon', 'other']
+            && d.purchasedAt is number
+            && d.totalCents is int
+            && d.lines is list && d.lines.size() <= 150
+            && d.paidBy in household(hid).memberIds;
+        }
+
+        allow read: if isMember(hid);
+        allow create: if isMember(hid)
+          && validReceipt(request.resource.data)
+          && request.resource.data.createdBy == uid();
+        allow update: if isMember(hid)
+          && validReceipt(request.resource.data)
+          && request.resource.data.createdBy == resource.data.createdBy;
+        allow delete: if isMember(hid);
+      }
+
+      // ---- Remembered receipt matches ("HT ORG SPINACH" → Spinach) ----
+      match /aliases/{key} {
+        allow read: if isMember(hid);
+        allow write: if isMember(hid)
+          && (request.resource == null || request.resource.data.itemId is string);
       }
     }
   }
