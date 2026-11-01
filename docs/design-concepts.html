@@ -113,6 +113,61 @@ header{display:grid;gap:14px}
 .d .swipe{display:flex;justify-content:space-between;font-size:10px;font-weight:700;margin-top:4px}
 .d .swipe .l{color:var(--muted)} .d .swipe .r{color:var(--good)}
 
+/* Chosen: interactive Fridge Board+ */
+.chosen{display:grid;gap:24px;padding:28px;border:2px solid var(--marker-blue);border-radius:22px;background:var(--surface)}
+@media (max-width:520px){.chosen{padding:18px 14px}}
+.chosen-head{display:grid;gap:10px}
+.chosen .concept{grid-template-columns:340px minmax(0,1fr)}
+@media (max-width:760px){.chosen .concept{grid-template-columns:1fr}}
+.big-phone{width:340px}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible{outline:2px solid var(--marker-blue);outline-offset:2px}
+#proto .tab{border:0}
+.pillrow{display:flex;align-items:center;gap:6px;padding:0 12px 10px 16px}
+.pill-sort{display:inline-flex;align-items:center;gap:4px;padding:5px 9px;border-radius:999px;border:1.5px solid var(--line);font-size:11px;font-weight:700;white-space:nowrap;flex:none}
+.pill-sort[aria-pressed="true"]{background:var(--marker-blue);border-color:var(--marker-blue);color:#fff}
+.pill-div{width:1px;height:18px;background:var(--line);flex:none}
+.pill-stores{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;min-width:0}
+.pill-stores::-webkit-scrollbar{display:none}
+.spill{padding:5px 9px;border-radius:999px;background:var(--chip);font-size:11px;font-weight:700;white-space:nowrap;display:inline-flex;gap:5px;align-items:center}
+.spill .n{font-family:var(--mono);font-weight:500;font-size:10px;opacity:.7}
+.spill[aria-pressed="true"]{background:var(--screen-ink);color:var(--screen)}
+#proto .board{flex:1;margin:0 12px 8px;border:2px solid var(--line);border-radius:14px;padding:8px 10px 10px;overflow-y:auto;display:flex;flex-direction:column;gap:0;
+  background-image:repeating-linear-gradient(transparent 0 29px,var(--line) 29px 30px);background-attachment:local}
+.grp{font-family:var(--body);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:9px 0 2px;display:flex;justify-content:space-between}
+.grp.store{color:var(--screen-ink);font-size:10.5px;padding-top:12px}
+.it{display:flex;align-items:center;gap:7px;min-height:30px}
+.ck{width:16px;height:16px;border-radius:50%;border:2px solid currentColor;flex:none;opacity:.75;display:grid;place-items:center;font-size:10px;line-height:1}
+.it.done .ck{background:currentColor}
+.it.done .ck::after{content:"✓";color:var(--screen)}
+.nmb{font-family:var(--hand);font-size:16.5px;line-height:1.1;text-align:left;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:inherit}
+.it.done .nmb{text-decoration:line-through;opacity:.5}
+.it.y{color:var(--you)} .it.h{color:var(--her)}
+.meta{display:flex;gap:4px;align-items:center;flex:none;color:var(--screen-ink)}
+.mag{font-size:8.5px;font-weight:800;padding:1px 4px;border-radius:3px;background:var(--chip);color:var(--muted);letter-spacing:.04em}
+.ai{font-family:var(--mono);font-size:9.5px;padding:1px 5px;border-radius:4px;border:1px solid var(--line);color:var(--muted)}
+.pr{font-family:var(--mono);font-size:11px;font-variant-numeric:tabular-nums;min-width:38px;text-align:right}
+.pr.none{color:var(--muted)}
+.empty{font-family:var(--hand);color:var(--muted);font-size:15px;padding:14px 0}
+.totalbar{margin:0 12px 12px;padding:9px 13px;border-radius:13px;background:var(--screen-ink);color:var(--screen);display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:11.5px;gap:8px}
+.totalbar .mono{font-size:13px}
+.totalbar small{display:block;font-weight:400;opacity:.7;font-size:10px}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--screen);border-top:1px solid var(--line);border-radius:20px 20px 0 0;padding:8px 16px 16px;box-shadow:0 -12px 30px -14px rgba(0,0,0,.35);display:grid;gap:8px}
+.sheet[hidden]{display:none}
+.sheet-grab{width:36px;height:4px;border-radius:9px;background:var(--line);margin:0 auto 4px}
+.sheet-title{font-family:var(--hand);font-size:22px;line-height:1.1}
+.sheet-sub{font-size:10.5px;color:var(--muted)}
+.sheet-grid{display:grid;gap:8px}
+.srow{display:grid;grid-template-columns:62px 1fr 1fr;gap:6px;align-items:end}
+.srow .sname{font-weight:700;font-size:11px;padding-bottom:7px}
+.srow label{display:grid;gap:2px;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.srow input{width:100%;box-sizing:border-box;padding:6px 7px;border-radius:8px;border:1.5px solid var(--line);background:var(--chip);color:var(--screen-ink);font:500 12px var(--mono)}
+.srow .src{grid-column:2 / 4;font-size:9.5px;color:var(--muted);margin-top:-3px}
+.sheet-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+.btn{padding:7px 14px;border-radius:10px;background:var(--marker-blue);color:#fff;font-weight:700;font-size:12px}
+.btn.ghost{background:var(--chip);color:var(--screen-ink)}
+.howto{margin:0;padding-left:18px;display:grid;gap:8px;max-width:65ch}
+
 /* E: Spending */
 .e .big{display:grid;gap:2px}
 .e .big .mono{font-size:26px;font-weight:500}
@@ -156,6 +211,55 @@ footer{color:var(--muted);font-size:.85rem}
       <span>Example data only</span>
     </div>
   </header>
+
+  <section class="chosen" id="chosen">
+    <div class="chosen-head">
+      <span class="eyebrow">Chosen direction · A + B + C</span>
+      <h2>Fridge Board, with aisles and prices</h2>
+      <p class="lede">The whiteboard stays the main screen. Each item now also carries an aisle and a price for each store. Store pills open a sub-list for one store. The <b>Aisle order</b> pill re-sorts the board in the order you'll walk that store.</p>
+    </div>
+    <div class="concept">
+      <div class="phone big-phone">
+        <div class="screen" id="proto">
+          <div class="status"><span>9:41</span><span>●●● 5G</span></div>
+          <div class="appbar"><h4>The Fridge</h4><span class="muted"><span class="av y">A</span> <span class="av h">S</span></span></div>
+          <div class="tabs" role="tablist" aria-label="List">
+            <button class="tab on" data-list="grocery" role="tab" aria-selected="true">Grocery</button>
+            <button class="tab" data-list="nice" role="tab" aria-selected="false">Nice-to-have</button>
+          </div>
+          <div class="pillrow" aria-label="Store and sort">
+            <button class="pill-sort" id="sortPill" aria-pressed="true" title="Sort by aisle"><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M4 2v10M1.5 9.5 4 12l2.5-2.5M12 14V4M9.5 6.5 12 4l2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>Aisle order</button>
+            <span class="pill-div" aria-hidden="true"></span>
+            <div class="pill-stores" id="storePills"></div>
+          </div>
+          <div class="board" id="board" aria-live="polite"></div>
+          <div class="totalbar" id="totalbar"></div>
+          <div class="sheet" id="sheet" hidden>
+            <div class="sheet-grab" aria-hidden="true"></div>
+            <div class="sheet-title" id="sheetTitle"></div>
+            <div class="sheet-sub" id="sheetSub"></div>
+            <div class="sheet-grid" id="sheetGrid"></div>
+            <div class="sheet-actions"><button id="sheetCancel" class="btn ghost">Cancel</button><button id="sheetSave" class="btn">Save</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="notes">
+        <span class="tag">Interactive prototype · example data</span>
+        <h3>Try it</h3>
+        <ul class="howto">
+          <li><b>Store pills</b> (All · Harris Teeter · Target · Amazon) show one store's sub-list, with how many items are open in each. Each item can belong to more than one store.</li>
+          <li><b>Aisle order</b> sorts the board by where items are in the selected store, with aisle headers drawn on the board. Items without an aisle yet go in a <em>Not placed yet</em> group at the bottom. In <b>All</b>, the board groups by store first, then by aisle.</li>
+          <li><b>Tap an item's name</b> to edit its price and aisle for each store. Each price shows where it came from: <span class="mono">VIC</span> (Kroger API), <span class="mono">paid</span> (receipt), or <span class="mono">you</span> (typed in).</li>
+          <li><b>Tap the circle</b> to check an item off. Checked items stay crossed out in place, the way they would on a whiteboard.</li>
+          <li>The <b>total</b> at the bottom covers what's still open in the current view, and says how many items have no price.</li>
+        </ul>
+        <div class="pc">
+          <div><b>From A</b><ul><li>Handwritten board and marker colors</li><li>Store "magnets" on each item in All view</li></ul></div>
+          <div><b>From B + C</b><ul><li>Aisle per store, aisle-order sort</li><li>Price per store, running total</li></ul></div>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <section class="concepts">
 
@@ -376,3 +480,156 @@ footer{color:var(--muted);font-size:.85rem}
 
   <footer>Full plan: docs/discovery-plan.md in the GroceryApp repo. All names, prices and items above are example data.</footer>
 </div>
+
+<script>
+(() => {
+  // Example data only. In the app this comes from Firestore: items[].storeInfo[store] = { aisle, sortKey, price, kind }
+  const STORES = [
+    { id: 'ht', name: 'Harris Teeter', mag: 'HT' },
+    { id: 'tgt', name: 'Target', mag: 'TGT' },
+    { id: 'amz', name: 'Amazon', mag: 'AMZ' },
+  ];
+  // Named zones get a walking-order key (set once per store in Settings); numbered aisles sort by number.
+  const ZONES = { ht: { produce: 0, bakery: 1, deli: 2, dairy: 30, frozen: 40 } };
+  const items = [
+    { id: 1, name: 'Spinach, 10 oz', by: 'h', list: 'grocery', home: 'ht', s: { ht: { aisle: 'Produce', price: 3.49, kind: 'VIC' } } },
+    { id: 2, name: 'Bananas', by: 'h', list: 'grocery', home: 'ht', s: { ht: { aisle: 'Produce', price: null } } },
+    { id: 3, name: 'Sourdough loaf', by: 'y', list: 'grocery', home: 'ht', s: { ht: { aisle: 'Bakery', price: 4.99, kind: 'paid' } } },
+    { id: 4, name: 'Oat milk', by: 'h', list: 'grocery', home: 'ht', s: { ht: { aisle: '7', price: 3.99, kind: 'VIC' }, tgt: { aisle: '', price: 4.29, kind: 'paid' } } },
+    { id: 5, name: 'Pasta sauce', by: 'y', list: 'grocery', home: 'ht', done: true, s: { ht: { aisle: '4', price: 2.79, kind: 'VIC' } } },
+    { id: 6, name: 'Frozen pizza ×2', by: 'h', list: 'grocery', home: 'ht', s: { ht: { aisle: '12', price: 13.98, kind: 'VIC' } } },
+    { id: 7, name: 'Eggs, 2 doz', by: 'y', list: 'grocery', home: 'ht', s: { ht: { aisle: 'Dairy', price: 7.58, kind: 'VIC' }, tgt: { aisle: '', price: 6.98, kind: 'paid' } } },
+    { id: 8, name: 'Greek yogurt', by: 'y', list: 'grocery', home: 'ht', s: { ht: { aisle: '', price: 5.49, kind: 'you' } } },
+    { id: 9, name: 'Dish soap', by: 'y', list: 'grocery', home: 'tgt', s: { tgt: { aisle: 'G14', price: 3.59, kind: 'paid' } } },
+    { id: 10, name: 'Paper towels', by: 'y', list: 'grocery', home: 'tgt', done: true, s: { tgt: { aisle: 'G12', price: 12.99, kind: 'paid' } } },
+    { id: 11, name: 'Shampoo', by: 'h', list: 'grocery', home: 'tgt', s: { tgt: { aisle: 'C3', price: null } } },
+    { id: 12, name: 'Coffee filters', by: 'h', list: 'grocery', home: 'amz', s: { amz: { aisle: '', price: 2.49, kind: 'paid' } } },
+    { id: 13, name: 'AA batteries', by: 'y', list: 'grocery', home: 'amz', s: { amz: { aisle: '', price: 11.99, kind: 'you' }, tgt: { aisle: 'E8', price: 13.49, kind: 'you' } } },
+    { id: 14, name: 'Fancy hot sauce', by: 'y', list: 'nice', home: 'ht', s: { ht: { aisle: '5', price: 5.99, kind: 'VIC' } } },
+    { id: 15, name: 'New throw pillow', by: 'h', list: 'nice', home: 'tgt', s: { tgt: { aisle: 'H2', price: 24.99, kind: 'paid' } } },
+    { id: 16, name: 'Cold brew maker', by: 'h', list: 'nice', home: 'amz', s: { amz: { aisle: '', price: 21.95, kind: 'you' } } },
+  ];
+  const state = { list: 'grocery', store: 'ht', sort: true, editing: null };
+  const $ = (id) => document.getElementById(id);
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const money = (n) => '$' + n.toFixed(2);
+
+  function sortKey(storeId, aisle) {
+    if (!aisle) return Infinity;
+    const z = ZONES[storeId] && ZONES[storeId][aisle.toLowerCase()];
+    if (z !== undefined) return z;
+    const m = /^([A-Z]?)(\d+)/i.exec(aisle);
+    if (!m) return 500;
+    const letter = m[1] ? (m[1].toUpperCase().charCodeAt(0) - 64) * 100 : 0;
+    return letter + Number(m[2]);
+  }
+  const aisleLabel = (a) => (!a ? '' : /^\d+$/.test(a) ? 'Aisle ' + a : /^[A-Z]\d+$/i.test(a) ? 'Aisle ' + a.toUpperCase() : a);
+  const inView = (it) => it.list === state.list && (state.store === 'all' || it.s[state.store]);
+  const viewStore = (it) => (state.store === 'all' ? it.home : state.store);
+
+  function renderPills() {
+    const opts = [{ id: 'all', name: 'All' }, ...STORES];
+    $('storePills').innerHTML = opts.map((o) => {
+      const n = items.filter((it) => it.list === state.list && !it.done && (o.id === 'all' || it.s[o.id])).length;
+      return `<button class="spill" data-store="${o.id}" aria-pressed="${state.store === o.id}">${esc(o.name)}<span class="n">${n}</span></button>`;
+    }).join('');
+    $('sortPill').setAttribute('aria-pressed', String(state.sort));
+    document.querySelectorAll('#proto .tab').forEach((t) => {
+      const on = t.dataset.list === state.list;
+      t.classList.toggle('on', on);
+      t.setAttribute('aria-selected', String(on));
+    });
+  }
+
+  function row(it) {
+    const st = viewStore(it), info = it.s[st] || {};
+    const mag = state.store === 'all' ? `<span class="mag">${STORES.find((s) => s.id === st).mag}</span>` : '';
+    const ai = info.aisle && !(state.sort) ? `<span class="ai">${esc(info.aisle)}</span>` : '';
+    const pr = info.price != null ? `<span class="pr">${money(info.price)}</span>` : `<span class="pr none">$ –</span>`;
+    return `<div class="it ${it.by}${it.done ? ' done' : ''}">
+      <button class="ck" data-check="${it.id}" aria-label="${it.done ? 'Uncheck' : 'Check off'} ${esc(it.name)}"></button>
+      <button class="nmb" data-edit="${it.id}">${esc(it.name)}</button>
+      <span class="meta">${mag}${ai}${pr}</span></div>`;
+  }
+
+  function aisleGroups(storeId, list) {
+    const sorted = [...list].sort((a, b) => sortKey(storeId, a.s[storeId].aisle) - sortKey(storeId, b.s[storeId].aisle) || a.name.localeCompare(b.name));
+    let html = '', last = null;
+    for (const it of sorted) {
+      const label = aisleLabel(it.s[storeId].aisle) || 'Not placed yet';
+      if (label !== last) { html += `<div class="grp"><span>${esc(label)}</span></div>`; last = label; }
+      html += row(it);
+    }
+    return html;
+  }
+
+  function renderBoard() {
+    const list = items.filter(inView);
+    let html = '';
+    if (!list.length) html = `<div class="empty">Nothing here yet. Tap + to add.</div>`;
+    else if (!state.sort) html = list.map(row).join('');
+    else if (state.store !== 'all') html = aisleGroups(state.store, list);
+    else for (const s of STORES) {
+      const part = list.filter((it) => it.home === s.id);
+      if (!part.length) continue;
+      html += `<div class="grp store"><span>${esc(s.name)}</span></div>` + aisleGroups(s.id, part);
+    }
+    $('board').innerHTML = html;
+
+    const open = list.filter((it) => !it.done);
+    const priced = open.filter((it) => (it.s[viewStore(it)] || {}).price != null);
+    const sum = priced.reduce((t, it) => t + it.s[viewStore(it)].price, 0);
+    const missing = open.length - priced.length;
+    const where = state.store === 'all' ? 'all stores' : STORES.find((s) => s.id === state.store).name;
+    $('totalbar').innerHTML = `<span>Est. ${esc(where)}<small>${open.length} open${missing ? ` · ${missing} without a price` : ''}</small></span><span class="mono">${money(sum)}</span>`;
+  }
+
+  function openSheet(id) {
+    const it = items.find((x) => x.id === id);
+    state.editing = id;
+    $('sheetTitle').textContent = it.name;
+    $('sheetTitle').className = 'sheet-title ' + (it.by === 'y' ? 'it y' : 'it h');
+    $('sheetSub').textContent = `Added by ${it.by === 'y' ? 'Alex' : 'Sam'} · price and aisle for each store`;
+    const srcText = { VIC: 'VIC price · Kroger API, 5h ago', paid: 'Paid · from receipt, Oct 24', you: 'Typed in by you' };
+    $('sheetGrid').innerHTML = STORES.map((s) => {
+      const info = it.s[s.id] || {};
+      return `<div class="srow">
+        <span class="sname">${esc(s.name)}</span>
+        <label for="p-${s.id}">Price<input id="p-${s.id}" inputmode="decimal" placeholder="–" value="${info.price != null ? info.price.toFixed(2) : ''}"></label>
+        <label for="a-${s.id}">Aisle<input id="a-${s.id}" placeholder="${s.id === 'amz' ? 'n/a' : 'e.g. 7'}" value="${esc(info.aisle || '')}" ${s.id === 'amz' ? 'disabled' : ''}></label>
+        ${info.kind ? `<span class="src">${srcText[info.kind]}</span>` : ''}
+      </div>`;
+    }).join('');
+    $('sheet').hidden = false;
+    $('p-' + viewStore(it)).focus({ preventScroll: true });
+  }
+
+  function saveSheet() {
+    const it = items.find((x) => x.id === state.editing);
+    for (const s of STORES) {
+      const p = $('p-' + s.id).value.trim().replace('$', ''), a = $('a-' + s.id).value.trim();
+      if (!p && !a) { if (it.s[s.id] && Object.keys(it.s).length > 1) delete it.s[s.id]; continue; }
+      const prev = it.s[s.id] || {};
+      const price = p === '' || isNaN(Number(p)) ? null : Math.round(Number(p) * 100) / 100;
+      it.s[s.id] = { aisle: a, price, kind: price !== prev.price ? (price == null ? undefined : 'you') : prev.kind };
+    }
+    closeSheet(); render();
+  }
+  function closeSheet() { $('sheet').hidden = true; state.editing = null; }
+  function render() { renderPills(); renderBoard(); }
+
+  $('proto').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.store) { state.store = b.dataset.store; render(); }
+    else if (b.dataset.list) { state.list = b.dataset.list; render(); }
+    else if (b.id === 'sortPill') { state.sort = !state.sort; render(); }
+    else if (b.dataset.check) { const it = items.find((x) => x.id === Number(b.dataset.check)); it.done = !it.done; render(); }
+    else if (b.dataset.edit) openSheet(Number(b.dataset.edit));
+    else if (b.id === 'sheetSave') saveSheet();
+    else if (b.id === 'sheetCancel') closeSheet();
+  });
+  $('proto').addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('sheet').hidden) closeSheet(); if (e.key === 'Enter' && e.target.matches('.sheet input')) saveSheet(); });
+  render();
+})();
+</script>

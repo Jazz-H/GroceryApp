@@ -1,6 +1,6 @@
 # Fridgeboard: Discovery Plan
 
-> **Phase:** Discovery · **Revised:** 2026-11-01 (v2) · **Owners:** you + girlfriend (the only two users, and the product team)
+> **Phase:** Discovery · **Revised:** 2026-11-01 (v3: design direction chosen) · **Owners:** you + girlfriend (the only two users, and the product team)
 > **Working name:** Fridgeboard. Rename it whenever you like.
 
 **What changed in v2:** switched to an installable **PWA** (no app stores). **Google sign-in** through Firebase. A **$0 stack that needs no credit card**. A new **receipts and spending** feature. Store plans tailored to how you shop. Target pricing options researched.
@@ -60,7 +60,19 @@ The grocery list lives on a whiteboard on the fridge. That works at home and sto
 | R15 | Auto-categorize into aisles, plus staples / recurring items | Rules first, then learn from your edits |
 | R16 | Push notifications | Android Chrome: yes. iOS: only for the installed home-screen app on iOS 16.4+ |
 
-### 3.3 Out of scope for MVP
+### 3.3 Chosen design requirements (v3: Fridge Board + aisles + prices)
+
+These move into the **MVP**, because they define the main screen.
+
+| ID | Requirement | Notes |
+| --- | --- | --- |
+| R17 | **Fridge Board main screen**: handwritten-style items in each person's marker color, store "magnets" in All view, checked items stay crossed out in place | From concept A |
+| R18 | **Price and aisle per item, per store** | Edit sheet opened by tapping the item. Each price shows its source: VIC (Kroger API), paid (receipt), or typed in |
+| R19 | **Store sub-list pills**: All · Harris Teeter · Target · Amazon (+ Walmart if kept), each showing how many items are open | An item can belong to several stores. A store pill shows every item that has that store |
+| R20 | **Aisle order pill**: re-sorts the board by walking order for the selected store, with aisle headers | Items with no aisle go in a *Not placed yet* group at the bottom. In All view: grouped by store, then by aisle |
+| R21 | Running estimated total for the current view | Counts open items only. Says how many have no price |
+
+### 3.4 Out of scope for MVP
 
 Payments, checkout inside the app, coupon clipping, Apple Watch / Wear OS, native widgets (PWAs can't make them).
 
@@ -115,14 +127,19 @@ households/{hid}
   stores: { target: {storeId, mode:"pickup"}, harris_teeter: {krogerLocationId, mode:"in_store"},
             amazon: {mode:"delivery"}, walmart?: {...} }
   budget: { monthlyCents, alertAtPct: 80 }
+  zoneOrder: { harris_teeter: ["Produce", "Bakery", "Deli", ...numbered aisles..., "Frozen", "Dairy"] }  // walking order for named zones
 
 households/{hid}/items/{itemId}
   name, normalizedName, list: "grocery" | "nice_to_have"
   qty, unit, note, category, storeTags[], preferredStore
   status: "open" | "checked" | "ordered" | "deleted"        // "ordered" = in a Target pickup order
   productRefs: { target?: tcin, kroger?: productId, amazon?: asin, walmart?: itemId }
-  lastPaid: { [store]: { cents, at, receiptId } }           // from receipts
-  livePrice: { [store]: { regularCents, promoCents, fetchedAt, source } }
+  storeInfo: {                                               // one entry per store the item can be bought at
+    [store]: {
+      aisle: { label: "7" | "G14" | "Produce", sortKey: 7, source: "kroger" | "learned" | "manual" },
+      price: { cents, kind: "vic" | "regular" | "paid" | "manual", source, at, receiptId? }
+    }
+  }
   createdBy, createdAt, updatedBy, updatedAt
 
 households/{hid}/activity/{eventId}        // append-only
@@ -219,21 +236,38 @@ Receipts include the store location, the last 4 digits of your card, and sometim
 
 **Bottom line on Target:** there's no free, official way to get live Target prices. The best free option is "last paid" from your own pickup orders. You already get an itemized order in the Target app, and a screenshot of it gives exact prices including Circle discounts. After a month of orders, most of your regular items will have a real price. The app will show `Target · paid $3.49 on Oct 24` rather than pretending to have a live price.
 
-## 9. Design direction
+## 9. Design direction (decided in v3)
 
-The four concepts are in [`design-concepts.html`](design-concepts.html). Updated recommendation for how you shop:
+**Chosen: A + B + C combined, with A (Fridge Board) as the main screen.** An interactive prototype is at the top of [`design-concepts.html`](design-concepts.html).
 
-- **Home:** *Aisle Flow (B)* for Harris Teeter trips, with a **Target pickup** variant (checklist plus Open in Target buttons).
-- **Second tab:** *Together Feed (D)*, the activity log and Nice-to-have swipe deck.
-- **Third tab (new): Spending**, with receipts, monthly totals, and price history. It replaces the separate *Price Board (C)* screen, because prices now come mostly from receipts.
-- Per-person marker colors from *Fridge Board (A)* everywhere.
+**Main screen layout, top to bottom:**
+1. **Grocery / Nice-to-have** tabs.
+2. **Pill row**: an **Aisle order** toggle (sort icon), a divider, then **store pills**: All · Harris Teeter · Target · Amazon. Each store pill shows its open count, and the row scrolls sideways if more stores are added.
+3. **The board**: lined whiteboard. Items are handwritten in the marker color of whoever added them, followed by a store magnet (All view only), the aisle (when not sorted), and the price.
+4. **Total bar**: estimated total for the open items in view, plus how many have no price.
+5. **Tap an item** to open the edit sheet: price and aisle for each store, with each price's source shown.
+
+**How aisle sorting works**
+- **Sort key:** numbered aisles sort by number. Letter-prefixed aisles (Target's `G14` style) sort by letter, then number. Named zones (Produce, Bakery, Dairy, Frozen) use the `zoneOrder` you set once per store, matching how you walk your Harris Teeter.
+- **Where aisles come from:**
+  1. **Kroger API** (Harris Teeter). The Products API can return aisle locations for a given store. **Confirm in Spike 1.**
+  2. **Learned:** during a trip, the order you check items off is recorded. Items you always check off right after oat milk get placed next to it.
+  3. **Typed in** through the edit sheet. This always wins over the other two.
+- Items with no aisle go in a **Not placed yet** group at the bottom of the board, so they still get noticed.
+- In **All** view with Aisle order on, the board groups by store first, then by aisle.
+
+**Other screens**
+- **Us** tab: the activity feed from D, with the Nice-to-have swipe deck.
+- **Spending** tab: receipts, monthly totals, budget, and price history (§7).
+
+**Target note:** you use pickup at Target, so Target aisles matter less. The Target sub-list is mainly for building the pickup order and seeing prices. The aisle field is still there for times you go in.
 
 ## 10. Roadmap
 
 | Phase | Scope | Exit criteria |
 | --- | --- | --- |
 | **0. Discovery** (now) | This plan. **Spike 1:** Kroger API + Harris Teeter near 28262. **Spike 2:** Google sign-in in an installed iOS PWA. **Spike 3:** Gemini parsing on 5 real receipts (2 HT, 2 Target, 1 Amazon) | All three spikes have an answer |
-| **1. MVP** (~3–4 weekends) | R1–R9: PWA install, Google sign-in, household invite, two lists, store tags, sync, offline, activity log, trips | The whiteboard goes unused for 2 weeks |
+| **1. MVP** (~4–5 weekends) | R1–R9 + R17–R21: PWA install, Google sign-in, household invite, Fridge Board with store pills, aisle-order sort, typed-in prices and aisles, two lists, sync, offline, activity log, trips | The whiteboard goes unused for 2 weeks |
 | **2. Receipts and spending** | R10–R11: upload, parse, review, match, dashboard, budget | 90% of receipt lines parse without manual fixes |
 | **3. Store smarts** | R12–R16: Harris Teeter prices, Target pickup helper, Amazon cart link, categories, staples, push | Harris Teeter estimate within ~10% of the receipt |
 | **4. Delight** | Suggestions, barcode, Siri Shortcut / Assistant add, recipes | Adding an item takes under 3 seconds |
