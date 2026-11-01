@@ -1,0 +1,51 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Emulators",
+      "type": "npm",
+      "script": "emulators",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": { "regexp": "^x^" },
+        "background": {
+          "activesBegin": true,
+          "beginsPattern": "Starting emulators",
+          "endsPattern": "All emulators ready"
+        }
+      },
+      "presentation": { "group": "local" }
+    },
+    {
+      "label": "App (local)",
+      "type": "npm",
+      "script": "dev:local",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": { "regexp": "^x^" },
+        "background": { "activesBegin": true, "beginsPattern": "VITE", "endsPattern": "Local:" }
+      },
+      "presentation": { "group": "local" }
+    },
+    {
+      "label": "Run Fridgeboard locally",
+      "dependsOn": ["Emulators", "App (local)"],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    },
+    {
+      "label": "Tests",
+      "type": "npm",
+      "script": "test",
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Rule tests (emulator)",
+      "type": "npm",
+      "script": "test:rules",
+      "group": "test",
+      "problemMatcher": []
+    }
+  ]
+}

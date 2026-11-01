@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "toba.vsfire",
+    "vitest.explorer",
+    "github.copilot-chat"
+  ]
+}
