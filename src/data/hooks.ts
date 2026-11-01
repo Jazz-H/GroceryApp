@@ -85,12 +85,21 @@ export function useHousehold(hid: string): Loadable<Household> {
   return state;
 }
 
-export function useItems(hid: string): Item[] {
-  const [items, setItems] = useState<Item[]>([]);
+/** The household's items, or null until the first answer arrives (from the cache or server). */
+export function useItems(hid: string): Item[] | null {
+  const [items, setItems] = useState<Item[] | null>(null);
   useEffect(
     () =>
-      onSnapshot(query(collection(db, 'households', hid, 'items'), orderBy('createdAt')), (snap) =>
-        setItems(snap.docs.map(toItem)),
+      onSnapshot(
+        query(collection(db, 'households', hid, 'items'), orderBy('createdAt')),
+        // Needed so the server's "still empty" answer arrives even when nothing else changed.
+        { includeMetadataChanges: true },
+        (snap) => {
+          // An empty answer from a cold cache isn't "no items" yet: wait for the server.
+          if (snap.empty && snap.metadata.fromCache && navigator.onLine) return;
+          setItems(snap.docs.map(toItem));
+        },
+        () => setItems((current) => current ?? []),
       ),
     [hid],
   );

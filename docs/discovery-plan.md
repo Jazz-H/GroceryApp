@@ -1,4 +1,4 @@
-﻿# Fridgeboard: Discovery Plan
+# Fridgeboard: Discovery Plan
 
 > **Phase:** MVP in progress Â· **Revised:** 2026-11-01 (v4: Walmart dropped, Gemini chosen for receipts, MVP built) Â· **Owners:** you + girlfriend (the only two users, and the product team)
 > **Working name:** Fridgeboard. Rename it whenever you like.

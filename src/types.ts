@@ -41,7 +41,16 @@ export interface Item {
 }
 
 export type ActivityType =
-  'add' | 'edit' | 'check' | 'uncheck' | 'move' | 'delete' | 'trip_start' | 'trip_end' | 'receipt';
+  | 'add'
+  | 'edit'
+  | 'check'
+  | 'uncheck'
+  | 'move'
+  | 'delete'
+  | 'trip_start'
+  | 'trip_join'
+  | 'trip_end'
+  | 'receipt';
 
 /** Stores a receipt can come from. "other" covers anywhere not on the list (Costco, a farmers market). */
 export type ReceiptStore = StoreId | 'other';

@@ -54,6 +54,16 @@ export function ItemSheet({
       >,
   );
   const [error, setError] = useState<string | null>(null);
+  // An error is about what was on screen when Save was tapped. Any edit clears it.
+  const [errorFor, setErrorFor] = useState<unknown[]>([]);
+  const fields = [name, qty, note, list, main, drafts];
+  if (error && fields.some((f, i) => f !== errorFor[i])) {
+    setError(null);
+  }
+  const fail = (message: string) => {
+    setErrorFor(fields);
+    setError(message);
+  };
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -71,8 +81,8 @@ export function ItemSheet({
 
   async function save() {
     const stores = STORES.map((s) => s.id).filter((id) => drafts[id].on);
-    if (!stores.length) return setError('Pick at least one store.');
-    if (!name.trim()) return setError('The item needs a name.');
+    if (!stores.length) return fail('Pick at least one store.');
+    if (!name.trim()) return fail('The item needs a name.');
     const ordered: StoreId[] = stores.includes(main)
       ? [main, ...stores.filter((s) => s !== main)]
       : stores;
@@ -84,7 +94,7 @@ export function ItemSheet({
       if (d.price.trim()) {
         const cents = parsePrice(d.price);
         if (cents == null)
-          return setError(
+          return fail(
             `Check the ${STORES.find((s) => s.id === id)!.name} price. Use a number like 3.99.`,
           );
         info.price =
@@ -108,7 +118,7 @@ export function ItemSheet({
       });
       onClose();
     } catch (e) {
-      setError(`Couldn’t save: ${(e as Error).message}`);
+      fail(`Couldn’t save: ${(e as Error).message}`);
       setBusy(false);
     }
   }

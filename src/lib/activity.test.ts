@@ -70,6 +70,8 @@ describe('describe', () => {
       ev('x', { type: 'trip_start', itemNames: [], store: 'target', detail: 'solo' }),
     ]);
     expect(describeGroup(t, sam)).toBe('Sam started a solo trip to Target');
+    const [j] = groupFeed([ev('x', { type: 'trip_join', itemNames: [], store: 'ht' })]);
+    expect(describeGroup(j, sam)).toBe('Sam joined the trip to Harris Teeter');
   });
 });
 

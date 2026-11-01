@@ -252,6 +252,20 @@ describe('activity log', () => {
     );
   });
 
+  it('allows logging that someone joined a trip', async () => {
+    await assertSucceeds(
+      setDoc(doc(as('alex'), 'households', HID, 'activity', 'e6'), {
+        actorId: 'alex',
+        type: 'trip_join',
+        itemIds: [],
+        itemNames: [],
+        batchId: 'b6',
+        store: 'ht',
+        at: serverTimestamp(),
+      }),
+    );
+  });
+
   it('never allows editing or deleting entries', async () => {
     const ref = doc(as('alex'), 'households', HID, 'activity', 'e1');
     await assertFails(updateDoc(ref, { itemNames: ['Nothing'] }));

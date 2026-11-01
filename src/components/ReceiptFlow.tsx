@@ -232,7 +232,9 @@ export function ReceiptFlow({
   }
 
   function byHand() {
-    setStep({ kind: 'review', draft: fromModel({}, uid), remembered: new Set() });
+    // Start at Harris Teeter, your main store, rather than "Other store", where no prices are
+    // recorded.
+    setStep({ kind: 'review', draft: fromModel({ store: 'ht' }, uid), remembered: new Set() });
   }
 
   async function save(draft: ReceiptDraft) {
@@ -437,6 +439,10 @@ function Review({
           </>
         ) : draft.lines.length === 0 ? (
           <>Add the lines from the receipt, then the tax and total.</>
+        ) : check.linesCents <= 0 ? (
+          <>Enter what each line cost, then the total from the bottom of the receipt.</>
+        ) : draft.totalCents <= 0 ? (
+          <>Enter the total from the bottom of the receipt.</>
         ) : (
           <>
             Doesn’t add up yet.
@@ -548,10 +554,12 @@ function Review({
         </label>
       </div>
 
-      <p className="hint">
-        {matchedCount
-          ? `Saving updates the price on ${matchedCount} matched item${matchedCount === 1 ? '' : 's'}${draft.store === 'other' ? '' : ` at ${receiptStoreName(draft.store)}`}, checks off any still on the list, and remembers each match for next time.`
-          : 'Match lines to items on your list to record what you paid and check them off.'}
+      <p className={`hint${matchedCount && draft.store === 'other' ? ' store-warn' : ''}`}>
+        {!matchedCount
+          ? 'Match lines to items on your list to record what you paid and check them off.'
+          : draft.store === 'other'
+            ? `Prices aren’t saved for “Other store”. Pick Harris Teeter, Target or Amazon above to record what you paid. Saving still checks off the ${matchedCount} matched item${matchedCount === 1 ? '' : 's'}.`
+            : `Saving updates the price on ${matchedCount} matched item${matchedCount === 1 ? '' : 's'} at ${receiptStoreName(draft.store)}, checks off any still on the list, and remembers each match for next time.`}
       </p>
 
       {error && (

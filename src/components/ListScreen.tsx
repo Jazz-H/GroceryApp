@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import type { User } from 'firebase/auth';
 import { addItems, deleteItems, moveItem, setChecked } from '../data/items';
 import { startTrip } from '../data/trips';
@@ -35,11 +35,13 @@ export function ListScreen({
   user,
   household,
   items,
+  loading = false,
   trips,
 }: {
   user: User;
   household: Household;
   items: Item[];
+  loading?: boolean;
   trips: Trip[];
 }) {
   const [list, setList] = useState<ListId>('grocery');
@@ -49,6 +51,8 @@ export function ListScreen({
   );
   const [editing, setEditing] = useState<Item | null>(null);
   const [tripSheet, setTripSheet] = useState(false);
+  // Store picked inside the trip sheet when it was opened from the All view.
+  const [tripStore, setTripStore] = useState<StoreId | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const setStore = (s: StoreFilter) => {
@@ -67,7 +71,28 @@ export function ListScreen({
   );
   const total = useMemo(() => estimate(onList, store), [onList, store]);
   const checkedInView = itemsInView(onList, store).filter((i) => i.status === 'checked');
-  const activeTrip = store !== 'all' ? trips.find((t) => t.store === store) : undefined;
+  const activeTrip =
+    store !== 'all'
+      ? trips.find((t) => t.store === store)
+      : trips.find((t) => t.participants.includes(user.uid));
+  const inMyTrip = trips.some((t) => t.participants.includes(user.uid));
+
+  // A trip turns on aisle order. When the trip ends (from the banner, or by the partner), put
+  // the sort back the way it was. Only on a real end: not on first load, when trips are still [].
+  const wasInTrip = useRef<boolean | null>(null);
+  useEffect(() => {
+    const before = wasInTrip.current;
+    wasInTrip.current = inMyTrip;
+    if (before === true && !inMyTrip) {
+      const saved = readPref('fb.sortBeforeTrip', '', ['on', 'off', ''] as const);
+      if (saved) setSort(saved === 'on');
+      try {
+        localStorage.removeItem('fb.sortBeforeTrip');
+      } catch {
+        /* private mode */
+      }
+    }
+  }, [inMyTrip]); // eslint-disable-line react-hooks/exhaustive-deps
   const counts = (s: StoreFilter) =>
     itemsInView(onList, s).filter((i) => i.status === 'open').length;
 
@@ -103,9 +128,18 @@ export function ListScreen({
   }
 
   async function onStartTrip(mode: TripMode) {
-    if (store === 'all') return;
+    const target = store === 'all' ? tripStore : store;
+    if (!target) return;
     setTripSheet(false);
+    setTripStore(null);
+    // Show that store's list for the trip.
+    if (store !== target) setStore(target);
+    writePref('fb.sortBeforeTrip', sortByAisle ? 'on' : 'off');
     setSort(true);
+    await startTripAt(target, mode);
+  }
+
+  async function startTripAt(store: StoreId, mode: TripMode) {
     await startTrip(household.id, user.uid, store, mode);
     const actor = household.members[user.uid]?.name ?? 'Your partner';
     const open = itemsInView(onList, store).filter((i) => i.status === 'open').length;
@@ -173,11 +207,13 @@ export function ListScreen({
       <div className="board" aria-live="polite">
         {rows.length === 0 && (
           <p className="empty">
-            {list === 'grocery'
-              ? store === 'all'
-                ? 'The board is clear. Add something below.'
-                : `Nothing for ${storeDef(store).name} yet.`
-              : 'Nothing on the nice-to-have list yet.'}
+            {loading
+              ? 'Loading the board…'
+              : list === 'grocery'
+                ? store === 'all'
+                  ? 'The board is clear. Add something below.'
+                  : `Nothing for ${storeDef(store).name} yet.`
+                : 'Nothing on the nice-to-have list yet.'}
           </p>
         )}
         {rows.map((row, idx) => {
@@ -260,7 +296,7 @@ export function ListScreen({
         </span>
         <span className="total-right">
           <span className="mono">{formatCents(total.cents)}</span>
-          {store !== 'all' && list === 'grocery' && !activeTrip && (
+          {list === 'grocery' && !activeTrip && (
             <button className="btn small invert" onClick={() => setTripSheet(true)}>
               Start trip
             </button>
@@ -287,13 +323,39 @@ export function ListScreen({
         />
       )}
 
-      {tripSheet && store !== 'all' && (
+      {tripSheet && store === 'all' && !tripStore && (
         <Sheet
           onClose={() => setTripSheet(false)}
           labelledBy="trip-title"
           title={
             <h2 id="trip-title" className="sheet-title-plain">
-              Start a trip to {storeDef(store).name}
+              Where are you shopping?
+            </h2>
+          }
+        >
+          <div className="trip-choices">
+            {STORES.map((s) => (
+              <button className="choice" key={s.id} onClick={() => setTripStore(s.id)}>
+                <b>{s.name}</b>
+                <span>
+                  {counts(s.id)} {counts(s.id) === 1 ? 'item' : 'items'} on the list
+                </span>
+              </button>
+            ))}
+          </div>
+        </Sheet>
+      )}
+
+      {tripSheet && (store !== 'all' || tripStore) && (
+        <Sheet
+          onClose={() => {
+            setTripSheet(false);
+            setTripStore(null);
+          }}
+          labelledBy="trip-title"
+          title={
+            <h2 id="trip-title" className="sheet-title-plain">
+              Start a trip to {storeDef(store === 'all' ? tripStore! : store).name}
             </h2>
           }
         >

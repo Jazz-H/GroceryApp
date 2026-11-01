@@ -1334,6 +1334,12 @@ code {
   background: var(--chip);
   color: var(--muted);
 }
+.hint.store-warn {
+  color: var(--warn-ink);
+  background: var(--warn-bg);
+  padding: 8px 10px;
+  border-radius: 10px;
+}
 .add-line {
   justify-self: start;
   margin-top: 6px;

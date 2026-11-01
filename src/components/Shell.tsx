@@ -26,7 +26,8 @@ function tabFromHash(): Tab {
 
 export function Shell({ user, household }: { user: User; household: Household }) {
   const [tab, setTab] = useState<Tab>(tabFromHash);
-  const items = useItems(household.id);
+  const loadedItems = useItems(household.id);
+  const items = loadedItems ?? [];
   const activity = useActivity(household.id);
   const trips = useActiveTrips(household.id);
   const online = useOnline();
@@ -96,7 +97,13 @@ export function Shell({ user, household }: { user: User; household: Household })
       {/* Keyed by tab so each tab starts at the top instead of inheriting another tab's scroll. */}
       <div className={`screen${tab === 'list' ? ' screen-fixed' : ''}`} key={tab}>
         {tab === 'list' && (
-          <ListScreen user={user} household={household} items={items} trips={trips} />
+          <ListScreen
+            user={user}
+            household={household}
+            items={items}
+            loading={loadedItems === null}
+            trips={trips}
+          />
         )}
         {tab === 'spend' && <Spend household={household} uid={user.uid} items={items} />}
         {tab === 'us' && <Feed household={household} events={activity} />}

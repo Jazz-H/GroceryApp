@@ -87,6 +87,8 @@ export function describe(group: FeedGroup, member: Member | undefined): string {
       return group.detail === 'together'
         ? `${who} started shopping together at ${store}`
         : `${who} started a solo trip to ${store}`;
+    case 'trip_join':
+      return `${who} joined the trip to ${store}`;
     case 'trip_end':
       return `${who} finished at ${store}`;
     case 'receipt': {

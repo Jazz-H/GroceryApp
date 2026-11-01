@@ -249,33 +249,48 @@ function Budget({
 }) {
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const budget = household.budgetCents;
 
   if (editing)
     return (
-      <form
-        className="inline-form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const cents = text.trim() ? parsePrice(text) : null;
-          if (text.trim() && cents == null) return;
-          setBudget(household, cents);
-          setEditing(false);
-        }}
-      >
-        <label htmlFor="budget" className="sr-only">
-          Monthly budget in dollars
-        </label>
-        <input
-          id="budget"
-          inputMode="decimal"
-          autoFocus
-          placeholder="Monthly budget, e.g. 600"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-        <button className="btn ghost">Save</button>
-      </form>
+      <>
+        <form
+          className="inline-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const cents = text.trim() ? parsePrice(text) : null;
+            if (text.trim() && cents == null)
+              return setError('Use a dollar amount like 600. Leave it empty to remove the budget.');
+            setError(null);
+            setBudget(household, cents);
+            setEditing(false);
+          }}
+        >
+          <label htmlFor="budget" className="sr-only">
+            Monthly budget in dollars
+          </label>
+          <input
+            id="budget"
+            inputMode="decimal"
+            autoFocus
+            placeholder="Monthly budget, e.g. 600"
+            value={text}
+            onChange={(e) => {
+              setText(e.target.value);
+              setError(null);
+            }}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? 'budget-error' : undefined}
+          />
+          <button className="btn ghost">Save</button>
+        </form>
+        {error && (
+          <p className="error" id="budget-error" role="alert">
+            {error}
+          </p>
+        )}
+      </>
     );
 
   if (!budget)

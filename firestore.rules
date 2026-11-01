@@ -106,7 +106,7 @@ service cloud.firestore {
         allow create: if isMember(hid)
           && request.resource.data.actorId == uid()
           && request.resource.data.at == request.time
-          && request.resource.data.type in ['add', 'edit', 'check', 'uncheck', 'move', 'delete', 'trip_start', 'trip_end', 'receipt']
+          && request.resource.data.type in ['add', 'edit', 'check', 'uncheck', 'move', 'delete', 'trip_start', 'trip_join', 'trip_end', 'receipt']
           && request.resource.data.itemNames is list
           && request.resource.data.itemNames.size() <= 50;
         allow update, delete: if false;
