@@ -18,7 +18,13 @@ function Authed() {
   const [redirectError, setRedirectError] = useState<string | null>(null);
 
   useEffect(() => {
-    finishRedirectSignIn().catch((e: Error) => setRedirectError(e.message));
+    finishRedirectSignIn().catch((e: Error & { code?: string }) =>
+      setRedirectError(
+        e.code === 'auth/missing-initial-state' || /initial state/i.test(e.message)
+          ? 'the sign-in window lost track of the app. Close Fridgeboard completely, reopen it, and try again.'
+          : e.message,
+      ),
+    );
   }, []);
 
   if (user.status === 'loading') return <Splash />;

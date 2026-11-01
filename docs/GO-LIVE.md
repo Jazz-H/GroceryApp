@@ -95,13 +95,14 @@ Madison's iPhone needs **iOS 16.4 or later**, and notifications only work from t
 
 ## If something goes wrong
 
-| Problem                                            | Fix                                                                                                               |
-| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| The app says "Connect Firebase to finish setup"    | `.env.local` is missing or empty. Fill it in, then `npm run deploy` again                                         |
-| Google sign-in shows **redirect_uri_mismatch**     | Step 2.4 is missing, or still taking effect. Check the URI matches exactly, wait 5 minutes                        |
-| Sign-in loops back to the sign-in screen on iPhone | Check `VITE_FIREBASE_AUTH_DOMAIN` is `<project-id>.web.app`, redeploy, then delete and re-add the home-screen app |
-| `npm run deploy` says Firestore isn't set up       | Finish Step 2.2 (create the database) first                                                                       |
-| "That code didn't match a household"               | Codes are 6 characters. Tap **New code** in Settings and send that one                                            |
-| The app looks out of date after a deploy           | Close it fully and reopen. It updates itself on the next launch                                                   |
+| Problem                                                               | Fix                                                                                                                                                                                                                                                      |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The app says "Connect Firebase to finish setup"                       | `.env.local` is missing or empty. Fill it in, then `npm run deploy` again                                                                                                                                                                                |
+| Google sign-in shows **redirect_uri_mismatch**                        | Step 2.4 is missing, or still taking effect. Check the URI matches exactly, wait 5 minutes                                                                                                                                                               |
+| Sign-in loops back to the sign-in screen on iPhone                    | Check `VITE_FIREBASE_AUTH_DOMAIN` is `<project-id>.web.app`, redeploy, then delete and re-add the home-screen app                                                                                                                                        |
+| `npm run deploy` says Firestore isn't set up                          | Finish Step 2.2 (create the database) first                                                                                                                                                                                                              |
+| Android: **"Unable to process request due to missing initial state"** | Fixed in the latest version: `git pull`, then `npm run deploy`. Close the app fully (swipe it away), reopen, and sign in again. Quick workaround: sign in once in a normal Chrome tab at the same address. The installed Android app shares that sign-in |
+| "That code didn't match a household"                                  | Codes are 6 characters. Tap **New code** in Settings and send that one                                                                                                                                                                                   |
+| The app looks out of date after a deploy                              | Close it fully and reopen. It updates itself on the next launch                                                                                                                                                                                          |
 
 To push a change later: edit, then run `npm run deploy`. Both phones pick it up the next time they open the app.

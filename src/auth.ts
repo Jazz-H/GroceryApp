@@ -16,12 +16,25 @@ export function isStandalone(): boolean {
   );
 }
 
+/** iPhone or iPad (iPadOS reports itself as a Mac, so check for touch too). */
+export function isIOS(): boolean {
+  return (
+    /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.userAgent.includes('Macintosh') && navigator.maxTouchPoints > 1)
+  );
+}
+
 /**
- * Google sign-in. Installed apps use a full-page redirect, because popups are unreliable in
- * iOS home-screen apps. Browser tabs use a popup and fall back to redirect if it's blocked.
+ * Google sign-in.
+ *
+ * - Installed app on iPhone: full-page redirect. Popups can't report back to iOS home-screen
+ *   apps, and the redirect works because the sign-in handler is on the app's own domain.
+ * - Everywhere else (including the installed Android app): popup. On Android, a redirect opens
+ *   Google in a separate browser layer that loses the sign-in state ("missing initial state").
+ *   Falls back to redirect only if the popup is blocked outright.
  */
 export async function signInWithGoogle(): Promise<void> {
-  if (isStandalone()) {
+  if (isStandalone() && isIOS()) {
     await signInWithRedirect(auth, googleProvider);
     return;
   }
