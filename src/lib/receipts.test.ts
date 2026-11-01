@@ -9,8 +9,10 @@ import {
   matchLine,
   matchScore,
   monthKey,
+  latestByStore,
   monthTotals,
   msToDate,
+  priceHistory,
   summarizeMonth,
   toCsv,
   unitCents,
@@ -208,6 +210,41 @@ describe('spending', () => {
     expect(csv.split('\n')).toEqual([
       'Date,Store,Paid by,Item,Printed as,Qty,Line total,Receipt total',
       '2026-09-15,Harris Teeter,Alex,"Milk ""2%""","Milk, 2%",1,40.00,40.00',
+    ]);
+  });
+});
+
+describe('price history', () => {
+  const milk = { id: 'milk1', normalizedName: 'oat milk' };
+  const r = (store: Receipt['store'], date: string, lines: Receipt['lines']): Receipt => ({
+    ...receipt(store, date, 0),
+    lines,
+  });
+  const receipts = [
+    r('ht', '2026-10-01', [
+      { raw: 'OATLY', name: 'Oat milk', qty: 2, cents: 918, itemId: 'milk1' },
+    ]),
+    r('target', '2026-10-10', [
+      { raw: 'OAT', name: 'Oat milk', qty: 1, cents: 429, itemId: 'old', itemKey: 'oat milk' },
+    ]),
+    r('ht', '2026-10-20', [
+      { raw: 'OATLY', name: 'Oat milk', qty: 1, cents: 499, itemId: 'milk1' },
+      { raw: 'GUM', name: 'Gum', qty: 1, cents: 100, itemId: 'gum' },
+    ]),
+  ];
+
+  it('collects unit prices newest first, by id or by name', () => {
+    expect(priceHistory(receipts, milk).map((p) => [p.store, p.unitCents])).toEqual([
+      ['ht', 499],
+      ['target', 429],
+      ['ht', 459],
+    ]);
+  });
+
+  it('keeps the latest per store, cheapest first', () => {
+    expect(latestByStore(priceHistory(receipts, milk)).map((p) => [p.store, p.unitCents])).toEqual([
+      ['target', 429],
+      ['ht', 499],
     ]);
   });
 });

@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useReceipts } from '../data/hooks';
 import { deleteItems, saveItem } from '../data/items';
 import { timeAgo } from '../lib/activity';
 import { formatCents, parsePrice } from '../lib/money';
+import { latestByStore, priceHistory, receiptStoreName } from '../lib/receipts';
 import { STORES } from '../lib/stores';
 import type { Household, Item, ListId, StoreId, StoreInfo } from '../types';
 import { markerStyle, Sheet } from './ui';
@@ -33,14 +35,20 @@ export function ItemSheet({
   household,
   uid,
   focusStore,
+  onRemove,
   onClose,
 }: {
   item: Item;
   household: Household;
   uid: string;
   focusStore: StoreId;
+  /** Removes with an Undo window. Without it the item is deleted straight away. */
+  onRemove?: (item: Item) => void;
   onClose: () => void;
 }) {
+  const receipts = useReceipts(household.id);
+  const history = useMemo(() => priceHistory(receipts, item), [receipts, item]);
+  const best = latestByStore(history);
   const [name, setName] = useState(item.name);
   const [qty, setQty] = useState(item.qty);
   const [note, setNote] = useState(item.note);
@@ -124,7 +132,8 @@ export function ItemSheet({
   }
 
   async function remove() {
-    await deleteItems(household.id, uid, [item]);
+    if (onRemove) onRemove(item);
+    else await deleteItems(household.id, uid, [item]);
     onClose();
   }
 
@@ -234,6 +243,32 @@ export function ItemSheet({
           );
         })}
       </div>
+
+      {history.length > 0 && (
+        <section className="history" aria-labelledby="history-title">
+          <h3 id="history-title" className="label">
+            What you’ve paid
+          </h3>
+          {best.length > 1 && (
+            <p className="history-best">
+              Cheapest last time: <b>{receiptStoreName(best[0].store)}</b>{' '}
+              {formatCents(best[0].unitCents)} (vs {receiptStoreName(best[1].store)}{' '}
+              {formatCents(best[1].unitCents)})
+            </p>
+          )}
+          <ul>
+            {history.map((p, i) => (
+              <li key={i}>
+                <span>{receiptStoreName(p.store)}</span>
+                <span className="muted">
+                  {new Date(p.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                </span>
+                <span className="mono">{formatCents(p.unitCents)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <label htmlFor="item-note" className="note-label">
         Note

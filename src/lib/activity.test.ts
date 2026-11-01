@@ -72,6 +72,12 @@ describe('describe', () => {
     expect(describeGroup(t, sam)).toBe('Sam started a solo trip to Target');
     const [j] = groupFeed([ev('x', { type: 'trip_join', itemNames: [], store: 'ht' })]);
     expect(describeGroup(j, sam)).toBe('Sam joined the trip to Harris Teeter');
+    const [o] = groupFeed([
+      ev('x', { type: 'order', itemNames: ['Milk', 'Eggs'], store: 'target' }),
+    ]);
+    expect(describeGroup(o, sam)).toBe('Sam placed a Target order (2 items)');
+    const [p] = groupFeed([ev('x', { type: 'pickup', itemNames: ['Milk'], store: 'target' })]);
+    expect(describeGroup(p, sam)).toBe('Sam picked up the Target order');
   });
 });
 

@@ -39,14 +39,19 @@ export async function saveReceipt(
   allItems: Item[],
 ): Promise<SaveResult> {
   const batch = writeBatch(db);
+  const byId = new Map(allItems.map((i) => [i.id, i]));
   batch.set(doc(receipts(hid)), {
     ...draft,
-    lines: draft.lines.map((l) => ({ ...l, itemId: l.itemId ?? null })),
+    lines: draft.lines.map((l) => ({
+      ...l,
+      itemId: l.itemId ?? null,
+      // The item's name, so its price history survives clearing and re-adding it.
+      itemKey: (l.itemId && byId.get(l.itemId)?.normalizedName) || null,
+    })),
     createdBy: uid,
     createdAt: serverTimestamp(),
   });
 
-  const byId = new Map(allItems.map((i) => [i.id, i]));
   // The last line wins when one item shows up twice on a receipt.
   const matched = new Map<string, ReceiptDraft['lines'][number]>();
   for (const l of draft.lines) if (l.itemId && byId.has(l.itemId)) matched.set(l.itemId, l);
@@ -69,7 +74,7 @@ export async function saveReceipt(
       }
       if (!item.stores.includes(store)) update.stores = arrayUnion(store);
     }
-    if (item.status === 'open') {
+    if (item.status !== 'checked') {
       update.status = 'checked';
       update.checkedBy = uid;
       checked += 1;

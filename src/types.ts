@@ -1,6 +1,7 @@
 export type StoreId = 'ht' | 'target' | 'amazon';
 export type ListId = 'grocery' | 'nice';
-export type ItemStatus = 'open' | 'checked';
+/** "ordered": in a placed pickup order (Target), waiting to be picked up. */
+export type ItemStatus = 'open' | 'checked' | 'ordered';
 export type PriceKind = 'vic' | 'regular' | 'paid' | 'manual';
 export type AisleSource = 'kroger' | 'learned' | 'manual';
 
@@ -50,7 +51,9 @@ export type ActivityType =
   | 'trip_start'
   | 'trip_join'
   | 'trip_end'
-  | 'receipt';
+  | 'receipt'
+  | 'order'
+  | 'pickup';
 
 /** Stores a receipt can come from. "other" covers anywhere not on the list (Costco, a farmers market). */
 export type ReceiptStore = StoreId | 'other';
@@ -65,6 +68,19 @@ export interface ReceiptLine {
   cents: number;
   /** The list item this line matched, if any. */
   itemId: string | null;
+  /** Normalized name of the matched item, so price history survives clearing the item. */
+  itemKey?: string | null;
+}
+
+/** Everything the household has ever added, kept after items are cleared. Powers "usuals". */
+export interface CatalogEntry {
+  key: string;
+  name: string;
+  count: number;
+  /** Recent add times (epoch ms), oldest first, at most 6. */
+  addedAt: number[];
+  stores: StoreId[];
+  storeInfo: Partial<Record<StoreId, StoreInfo>>;
 }
 
 export interface Receipt {

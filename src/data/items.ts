@@ -2,6 +2,7 @@ import {
   collection,
   deleteField,
   doc,
+  increment,
   serverTimestamp,
   writeBatch,
   type WriteBatch,
@@ -9,7 +10,8 @@ import {
 import { db } from '../firebase';
 import { createBatcher } from '../lib/activity';
 import { normalizeName, type QuickAdd } from '../lib/text';
-import type { ActivityType, Item, ListId, StoreId, StoreInfo } from '../types';
+import { catalogKey, nextAddedAt } from '../lib/usuals';
+import type { ActivityType, CatalogEntry, Item, ListId, StoreId, StoreInfo } from '../types';
 
 const nextBatchId = createBatcher(
   () => Date.now(),
@@ -18,6 +20,28 @@ const nextBatchId = createBatcher(
 
 const items = (hid: string) => collection(db, 'households', hid, 'items');
 const activity = (hid: string) => collection(db, 'households', hid, 'activity');
+const catalog = (hid: string) => collection(db, 'households', hid, 'catalog');
+
+/** Remembers an item's stores, prices and aisles in the catalog (kept after it's cleared). */
+function rememberItem(
+  batch: WriteBatch,
+  hid: string,
+  item: Pick<Item, 'name' | 'stores' | 'storeInfo'>,
+) {
+  const key = catalogKey(item.name);
+  if (!key) return;
+  batch.set(
+    doc(catalog(hid), key),
+    // increment(0) creates the count on a first write and leaves an existing one alone.
+    {
+      name: item.name.slice(0, 120),
+      stores: item.stores,
+      storeInfo: item.storeInfo,
+      count: increment(0),
+    },
+    { merge: true },
+  );
+}
 
 /** Every change writes its activity entry in the same atomic batch, so the log can't miss anything. */
 function log(
@@ -45,18 +69,23 @@ export interface AddResult {
   skipped: string[];
 }
 
-/** Adds one or more items. Names already open on the same list are skipped, not duplicated. */
+/**
+ * Adds one or more items. Names already open (or ordered) on the same list are skipped, not
+ * duplicated. Something added before comes back with the stores, prices and aisles it had.
+ */
 export async function addItems(
   hid: string,
   uid: string,
   entries: QuickAdd[],
-  opts: { list: ListId; store: StoreId; existing: Item[] },
+  opts: { list: ListId; store: StoreId; existing: Item[]; catalog?: CatalogEntry[] },
 ): Promise<AddResult> {
   const openNames = new Set(
     opts.existing
-      .filter((i) => i.list === opts.list && i.status === 'open')
+      .filter((i) => i.list === opts.list && i.status !== 'checked')
       .map((i) => i.normalizedName),
   );
+  const known = new Map((opts.catalog ?? []).map((c) => [c.key, c]));
+  const now = Date.now();
   const batch = writeBatch(db);
   const added: { id: string; name: string }[] = [];
   const skipped: string[] = [];
@@ -68,6 +97,15 @@ export async function addItems(
     }
     openNames.add(normalizedName);
     const ref = doc(items(hid));
+    const key = catalogKey(entry.name);
+    const before = known.get(key);
+    const stores = [opts.store, ...(before?.stores ?? []).filter((s) => s !== opts.store)].slice(
+      0,
+      3,
+    );
+    const storeInfo = Object.fromEntries(
+      Object.entries(before?.storeInfo ?? {}).filter(([s]) => stores.includes(s as StoreId)),
+    );
     batch.set(ref, {
       name: entry.name.slice(0, 120),
       normalizedName,
@@ -75,8 +113,8 @@ export async function addItems(
       qty: entry.qty,
       unit: '',
       note: '',
-      stores: [opts.store],
-      storeInfo: {},
+      stores,
+      storeInfo,
       status: 'open',
       createdBy: uid,
       createdAt: serverTimestamp(),
@@ -84,6 +122,18 @@ export async function addItems(
       updatedAt: serverTimestamp(),
     });
     added.push({ id: ref.id, name: entry.name });
+    if (key)
+      batch.set(
+        doc(catalog(hid), key),
+        {
+          name: (before?.name ?? entry.name).slice(0, 120),
+          count: increment(1),
+          addedAt: nextAddedAt(before?.addedAt, now),
+          stores,
+          storeInfo,
+        },
+        { merge: true },
+      );
   }
   if (added.length) {
     // One activity entry per add, sharing a batch id so the feed groups them.
@@ -182,7 +232,37 @@ export async function deleteItems(hid: string, uid: string, toDelete: Item[]) {
   const batchId = nextBatchId();
   for (const item of toDelete) {
     batch.delete(doc(items(hid), item.id));
+    rememberItem(batch, hid, item);
     log(batch, hid, uid, 'delete', [item], { batchId });
   }
+  await batch.commit();
+}
+
+/** Marks items as in a placed pickup order. */
+export async function placeOrder(hid: string, uid: string, toOrder: Item[], store: StoreId) {
+  if (!toOrder.length) return;
+  const batch = writeBatch(db);
+  for (const item of toOrder)
+    batch.update(doc(items(hid), item.id), {
+      status: 'ordered',
+      updatedBy: uid,
+      updatedAt: serverTimestamp(),
+    });
+  log(batch, hid, uid, 'order', toOrder.slice(0, 50), { store });
+  await batch.commit();
+}
+
+/** Picked up: every ordered item is checked off. */
+export async function pickUpOrder(hid: string, uid: string, ordered: Item[], store: StoreId) {
+  if (!ordered.length) return;
+  const batch = writeBatch(db);
+  for (const item of ordered)
+    batch.update(doc(items(hid), item.id), {
+      status: 'checked',
+      checkedBy: uid,
+      updatedBy: uid,
+      updatedAt: serverTimestamp(),
+    });
+  log(batch, hid, uid, 'pickup', ordered.slice(0, 50), { store });
   await batch.commit();
 }

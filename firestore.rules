@@ -82,7 +82,7 @@ service cloud.firestore {
         function validItem(d) {
           return d.name is string && d.name.size() > 0 && d.name.size() <= 120
             && d.list in ['grocery', 'nice']
-            && d.status in ['open', 'checked']
+            && d.status in ['open', 'checked', 'ordered']
             && d.stores is list && d.stores.size() > 0 && d.stores.size() <= 3
             && d.qty is number && d.qty >= 1 && d.qty <= 999;
         }
@@ -106,7 +106,7 @@ service cloud.firestore {
         allow create: if isMember(hid)
           && request.resource.data.actorId == uid()
           && request.resource.data.at == request.time
-          && request.resource.data.type in ['add', 'edit', 'check', 'uncheck', 'move', 'delete', 'trip_start', 'trip_join', 'trip_end', 'receipt']
+          && request.resource.data.type in ['add', 'edit', 'check', 'uncheck', 'move', 'delete', 'trip_start', 'trip_join', 'trip_end', 'receipt', 'order', 'pickup']
           && request.resource.data.itemNames is list
           && request.resource.data.itemNames.size() <= 50;
         allow update, delete: if false;
@@ -157,6 +157,16 @@ service cloud.firestore {
           && validReceipt(request.resource.data)
           && request.resource.data.createdBy == resource.data.createdBy;
         allow delete: if isMember(hid);
+      }
+
+      // ---- Catalog: everything ever added, for "usuals" suggestions ----
+      match /catalog/{key} {
+        allow read: if isMember(hid);
+        allow write: if isMember(hid)
+          && (request.resource == null
+            || (request.resource.data.name is string
+              && request.resource.data.name.size() <= 120
+              && request.resource.data.count is number));
       }
 
       // ---- Remembered receipt matches ("HT ORG SPINACH" → Spinach) ----

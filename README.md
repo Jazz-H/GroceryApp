@@ -11,7 +11,11 @@ A shared grocery list for two phones (Android + iPhone) that replaces the whiteb
 - **Trips**: shopping together (shared live check-off) or solo (partner sees a banner)
 - **Notifications** when your partner starts a trip or adds groceries
 - Works **offline** in the store and syncs when signal comes back
-- **Receipts → spending**: snap a receipt, black out card info, and Gemini reads it. Matched items get the price you actually paid and are checked off. The **Spend** tab shows monthly totals, a budget, spending by store and by person, and a CSV export
+- **Usuals**: one-tap chips for things you buy regularly that aren't on the list, timed to how often you buy them. Re-adding something brings back its prices and aisles
+- **Undo** for 6 seconds after removing items or clearing checked ones
+- **Target pickup**: build the order with Find links into Target, mark items Added, then **Order placed** keeps them under "Ordered for pickup" until **Picked up**
+- **Price history** in each item: what you paid at each store, and which was cheapest last time
+- **Receipts → spending**: ending a trip offers to add its receipt. Snap a receipt, black out card info, and Gemini reads it. Matched items get the price you actually paid and are checked off. The **Spend** tab shows monthly totals, a budget, spending by store and by person, and a CSV export
 
 Planning docs: [discovery plan](docs/discovery-plan.md) · [design concepts](docs/design-concepts.html)
 

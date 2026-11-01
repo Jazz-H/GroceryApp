@@ -180,6 +180,8 @@ type Step =
   | { kind: 'review'; draft: ReceiptDraft; remembered: Set<number>; error?: string };
 
 export function ReceiptFlow({
+  initialStore,
+  intro,
   household,
   uid,
   items,
@@ -193,6 +195,10 @@ export function ReceiptFlow({
   aliases: Map<string, string>;
   onClose: () => void;
   onSaved: (message: string) => void;
+  /** Store to start with, e.g. the trip that just ended. */
+  initialStore?: ReceiptStore;
+  /** A line shown above the photo step, e.g. "Trip to Harris Teeter finished." */
+  intro?: string;
 }) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [step, setStep] = useState<Step>({ kind: 'photos' });
@@ -221,7 +227,10 @@ export function ReceiptFlow({
     setStep({ kind: 'reading' });
     try {
       const raw = await parseReceiptImages(photos.map(exportPhoto));
-      const { draft, remembered } = matchAll(fromModel(raw, uid), items, aliases);
+      const parsed = fromModel(raw, uid);
+      // Trust the store Gemini read, unless it couldn't tell: then use the trip's store.
+      if (parsed.store === 'other' && initialStore) parsed.store = initialStore;
+      const { draft, remembered } = matchAll(parsed, items, aliases);
       setStep({ kind: 'review', draft, remembered });
     } catch (e) {
       setError(
@@ -234,7 +243,11 @@ export function ReceiptFlow({
   function byHand() {
     // Start at Harris Teeter, your main store, rather than "Other store", where no prices are
     // recorded.
-    setStep({ kind: 'review', draft: fromModel({ store: 'ht' }, uid), remembered: new Set() });
+    setStep({
+      kind: 'review',
+      draft: fromModel({ store: initialStore ?? 'ht' }, uid),
+      remembered: new Set(),
+    });
   }
 
   async function save(draft: ReceiptDraft) {
@@ -265,6 +278,7 @@ export function ReceiptFlow({
     >
       {step.kind === 'photos' && (
         <>
+          {intro && <p className="receipt-intro">{intro}</p>}
           <p className="muted">
             Take a photo of a paper receipt, or pick screenshots of a Target or Amazon order. Use
             several photos for a long receipt, top to bottom.

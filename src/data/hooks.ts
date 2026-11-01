@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { collection, doc, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { auth, db } from '../firebase';
-import type { ActivityEvent, Household, Item, Receipt, Trip } from '../types';
-import { toActivity, toHousehold, toItem, toReceipt, toTrip } from './convert';
+import type { ActivityEvent, CatalogEntry, Household, Item, Receipt, Trip } from '../types';
+import { toActivity, toCatalog, toHousehold, toItem, toReceipt, toTrip } from './convert';
 
 export type Loadable<T> =
   { status: 'loading' } | { status: 'ready'; value: T } | { status: 'error'; error: Error };
@@ -147,6 +147,19 @@ export function useReceipts(hid: string, max = 300): Receipt[] {
     [hid, max],
   );
   return receipts;
+}
+
+/** Everything the household has added before, for "usuals" and restoring prices on re-add. */
+export function useCatalog(hid: string): CatalogEntry[] {
+  const [entries, setEntries] = useState<CatalogEntry[]>([]);
+  useEffect(
+    () =>
+      onSnapshot(collection(db, 'households', hid, 'catalog'), (snap) =>
+        setEntries(snap.docs.map(toCatalog)),
+      ),
+    [hid],
+  );
+  return entries;
 }
 
 /** Remembered receipt matches: alias key → item id. */

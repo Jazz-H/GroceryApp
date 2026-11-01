@@ -496,6 +496,173 @@ code {
   display: flex;
   flex-direction: column;
 }
+/* ---------- Usuals ---------- */
+.usuals {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 12px 8px;
+  margin-bottom: -2px;
+}
+.usuals::-webkit-scrollbar {
+  display: none;
+}
+.add-sheet .usuals {
+  padding: 0;
+  margin: 0;
+}
+.usuals-label {
+  flex: none;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 800;
+}
+.usual {
+  flex: none;
+  min-height: 32px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1.5px dashed var(--line);
+  background: var(--surface);
+  font-family: var(--hand);
+  font-size: 1.05rem;
+  white-space: nowrap;
+}
+.usual:hover {
+  border-color: var(--accent);
+}
+
+/* ---------- Undo toast ---------- */
+.toast.with-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 6px 6px 14px;
+  z-index: 15;
+}
+.toast.with-action .btn.invert {
+  background: var(--bg);
+  color: var(--accent);
+}
+.shell-toast {
+  position: fixed;
+  bottom: calc(84px + env(safe-area-inset-bottom));
+  z-index: 30;
+}
+
+/* ---------- Target pickup ---------- */
+.pickup-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 12px 8px;
+  padding: 8px 10px 8px 12px;
+  border-radius: 12px;
+  background: var(--chip);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.pickup-bar span {
+  flex: 1;
+  min-width: 140px;
+}
+.find,
+.cart {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+}
+.find {
+  color: var(--accent);
+  text-decoration: none;
+  border: 1.5px solid var(--line);
+}
+.cart {
+  background: var(--chip);
+  color: var(--muted);
+}
+.cart[aria-pressed='true'] {
+  background: var(--good);
+  color: #fff;
+}
+.it.is-ordered .nm {
+  opacity: 0.75;
+}
+.grp.ordered-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--accent);
+}
+
+/* ---------- Item sheet: price history ---------- */
+.history {
+  display: grid;
+  gap: 6px;
+}
+.history ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+.history li {
+  display: grid;
+  grid-template-columns: 1fr auto 5em;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.88rem;
+}
+.history li .mono {
+  text-align: right;
+}
+.history-best {
+  font-size: 0.85rem;
+  color: var(--good);
+}
+
+.receipt-intro {
+  font-weight: 600;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* Blank board space is tappable (opens the add pop-up). */
+.board {
+  cursor: text;
+}
+.board .it {
+  cursor: default;
+}
+.keyboard-proxy {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  border: 0;
+  padding: 0;
+  pointer-events: none;
+  font-size: 16px; /* under 16px, iOS zooms the page when it's focused */
+}
+.add-sheet {
+  display: grid;
+  gap: 12px;
+}
 .empty {
   font-family: var(--hand);
   color: var(--muted);

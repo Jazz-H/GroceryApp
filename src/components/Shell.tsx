@@ -1,12 +1,20 @@
 import { useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
-import { useActiveTrips, useActivity, useItems, useOnline } from '../data/hooks';
+import {
+  useActiveTrips,
+  useActivity,
+  useAliases,
+  useCatalog,
+  useItems,
+  useOnline,
+} from '../data/hooks';
 import { endTrip, joinTrip } from '../data/trips';
 import { storeDef } from '../lib/stores';
 import { refreshSubscription } from '../push';
-import type { Household } from '../types';
+import type { Household, StoreId, Trip } from '../types';
 import { Feed } from './Feed';
 import { ListScreen } from './ListScreen';
+import { ReceiptFlow } from './ReceiptFlow';
 import { Settings } from './Settings';
 import { Spend } from './Spend';
 import { Avatar } from './ui';
@@ -29,7 +37,17 @@ export function Shell({ user, household }: { user: User; household: Household })
   const loadedItems = useItems(household.id);
   const items = loadedItems ?? [];
   const activity = useActivity(household.id);
+  const catalog = useCatalog(household.id);
+  const aliases = useAliases(household.id);
   const trips = useActiveTrips(household.id);
+  // After you end a trip, offer to add its receipt right away.
+  const [receiptFor, setReceiptFor] = useState<StoreId | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  async function finishTrip(trip: Trip) {
+    await endTrip(household.id, user.uid, trip);
+    setReceiptFor(trip.store);
+  }
   const online = useOnline();
 
   useEffect(() => {
@@ -83,7 +101,7 @@ export function Shell({ user, household }: { user: User; household: Household })
                 : `${starter?.name ?? 'Someone'} is shopping ${trip.mode === 'solo' ? 'solo ' : ''}at ${store}`}
             </span>
             {mine ? (
-              <button className="btn small" onClick={() => endTrip(household.id, user.uid, trip)}>
+              <button className="btn small" onClick={() => finishTrip(trip)}>
                 End trip
               </button>
             ) : (
@@ -103,12 +121,34 @@ export function Shell({ user, household }: { user: User; household: Household })
             items={items}
             loading={loadedItems === null}
             trips={trips}
+            catalog={catalog}
+            activity={activity}
           />
         )}
         {tab === 'spend' && <Spend household={household} uid={user.uid} items={items} />}
         {tab === 'us' && <Feed household={household} events={activity} />}
         {tab === 'settings' && <Settings user={user} household={household} />}
       </div>
+      {receiptFor && (
+        <ReceiptFlow
+          household={household}
+          uid={user.uid}
+          items={items}
+          aliases={aliases}
+          initialStore={receiptFor}
+          intro={`Trip to ${storeDef(receiptFor).name} finished. Add the receipt now to record what you paid, or close this to skip.`}
+          onClose={() => setReceiptFor(null)}
+          onSaved={(message) => {
+            setToast(message);
+            window.setTimeout(() => setToast(null), 4000);
+          }}
+        />
+      )}
+      {toast && (
+        <div className="toast shell-toast" role="status">
+          {toast}
+        </div>
+      )}
       <nav className="tabbar" aria-label="Main">
         {TABS.map((t) => (
           <button

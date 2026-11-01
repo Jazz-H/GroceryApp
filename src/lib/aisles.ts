@@ -54,6 +54,8 @@ export interface BoardOptions {
 }
 
 export const NOT_PLACED = 'Not placed yet';
+/** Heading for items in a placed pickup order. Always last on the board. */
+export const ORDERED = 'Ordered for pickup';
 
 /** The store whose price and aisle an item shows in the current view. */
 export function viewStore(item: Item, store: StoreId | 'all'): StoreId {
@@ -94,7 +96,21 @@ function aisleRows(items: Item[], store: StoreId, zoneOrder: string[]): BoardRow
 
 /** Lays out the board: the rows to draw, in order, for the current pills. */
 export function buildBoard(items: Item[], opts: BoardOptions): BoardRow[] {
-  const visible = itemsInView(items, opts.store);
+  const inView = itemsInView(items, opts.store);
+  const ordered = inView.filter((i) => i.status === 'ordered');
+  const rows = layout(
+    inView.filter((i) => i.status !== 'ordered'),
+    opts,
+  );
+  if (ordered.length) {
+    rows.push({ type: 'aisle', label: ORDERED });
+    for (const item of [...ordered].sort(byCreated))
+      rows.push({ type: 'item', item, store: viewStore(item, opts.store) });
+  }
+  return rows;
+}
+
+function layout(visible: Item[], opts: BoardOptions): BoardRow[] {
   if (!opts.sortByAisle) {
     return [...visible].sort(byCreated).map((item) => ({
       type: 'item' as const,

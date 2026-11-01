@@ -355,3 +355,39 @@ export function toCsv(receipts: Receipt[], members: Record<string, Member>): str
   }
   return rows.map((row) => row.map(csvCell).join(',')).join('\n');
 }
+
+// ---------- Price history ----------
+
+export interface PricePoint {
+  store: ReceiptStore;
+  /** Price paid for one unit, in cents. */
+  unitCents: number;
+  at: number;
+}
+
+/**
+ * What you've paid for an item, newest first, from saved receipts. Matches lines by the item's
+ * id, or by its name for receipts saved before the item was cleared and added again.
+ */
+export function priceHistory(
+  receipts: Receipt[],
+  item: Pick<Item, 'id' | 'normalizedName'>,
+  max = 8,
+): PricePoint[] {
+  const points: PricePoint[] = [];
+  for (const r of receipts)
+    for (const l of r.lines) {
+      const mine = l.itemId === item.id || (!!l.itemKey && l.itemKey === item.normalizedName);
+      if (mine && l.cents > 0)
+        points.push({ store: r.store, unitCents: unitCents(l), at: r.purchasedAt });
+    }
+  return points.sort((a, b) => b.at - a.at).slice(0, max);
+}
+
+/** The latest price at each store, cheapest first. */
+export function latestByStore(points: PricePoint[]): PricePoint[] {
+  const latest = new Map<ReceiptStore, PricePoint>();
+  for (const p of [...points].sort((a, b) => b.at - a.at))
+    if (!latest.has(p.store)) latest.set(p.store, p);
+  return [...latest.values()].sort((a, b) => a.unitCents - b.unitCents);
+}

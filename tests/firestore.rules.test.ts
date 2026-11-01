@@ -9,6 +9,7 @@ import {
   getDoc,
   getDocs,
   getFirestore,
+  increment,
   serverTimestamp,
   setDoc,
   terminate,
@@ -372,5 +373,95 @@ describe('receipts', () => {
       setDoc(doc(as('sam'), 'households', HID, 'aliases', 'ht~x'), { itemId: 'milk' }),
     );
     await assertFails(setDoc(doc(as('alex'), 'households', HID, 'aliases', 'ht~y'), { itemId: 3 }));
+  });
+});
+
+describe('usuals catalog and pickup orders', () => {
+  it('adds an item and its catalog entry together, and keeps the entry when the item is removed', async () => {
+    const db = as('alex');
+    const add = writeBatch(db);
+    add.set(doc(db, 'households', HID, 'items', 'eggs'), {
+      ...item('alex'),
+      name: 'Eggs',
+      normalizedName: 'eggs',
+    });
+    add.set(
+      doc(db, 'households', HID, 'catalog', 'eggs'),
+      { name: 'Eggs', count: increment(1), addedAt: [1], stores: ['ht'], storeInfo: {} },
+      { merge: true },
+    );
+    await assertSucceeds(add.commit());
+
+    const remove = writeBatch(db);
+    remove.delete(doc(db, 'households', HID, 'items', 'eggs'));
+    remove.set(
+      doc(db, 'households', HID, 'catalog', 'eggs'),
+      { name: 'Eggs', stores: ['ht'], storeInfo: {}, count: increment(0) },
+      { merge: true },
+    );
+    await assertSucceeds(remove.commit());
+    // First-ever snapshot of an item the catalog hasn't seen (count created at 0).
+    await assertSucceeds(
+      setDoc(
+        doc(db, 'households', HID, 'catalog', 'milk'),
+        { name: 'Milk', stores: ['ht'], storeInfo: {}, count: increment(0) },
+        { merge: true },
+      ),
+    );
+  });
+
+  it('keeps the catalog private and well-formed', async () => {
+    await assertFails(getDocs(collection(as('sam'), 'households', HID, 'catalog')));
+    await assertFails(
+      setDoc(doc(as('sam'), 'households', HID, 'catalog', 'x'), { name: 'X', count: 1 }),
+    );
+    await assertFails(setDoc(doc(as('alex'), 'households', HID, 'catalog', 'y'), { name: 'Y' }));
+  });
+
+  it('allows placing and picking up a pickup order, with feed entries', async () => {
+    const db = as('alex');
+    const order = writeBatch(db);
+    order.update(doc(db, 'households', HID, 'items', 'milk'), {
+      status: 'ordered',
+      updatedBy: 'alex',
+      updatedAt: serverTimestamp(),
+    });
+    order.set(doc(db, 'households', HID, 'activity', 'o1'), {
+      actorId: 'alex',
+      type: 'order',
+      itemIds: ['milk'],
+      itemNames: ['Milk'],
+      batchId: 'bo',
+      store: 'target',
+      at: serverTimestamp(),
+    });
+    await assertSucceeds(order.commit());
+
+    const pickup = writeBatch(db);
+    pickup.update(doc(db, 'households', HID, 'items', 'milk'), {
+      status: 'checked',
+      checkedBy: 'alex',
+      updatedBy: 'alex',
+      updatedAt: serverTimestamp(),
+    });
+    pickup.set(doc(db, 'households', HID, 'activity', 'p1'), {
+      actorId: 'alex',
+      type: 'pickup',
+      itemIds: ['milk'],
+      itemNames: ['Milk'],
+      batchId: 'bp',
+      store: 'target',
+      at: serverTimestamp(),
+    });
+    await assertSucceeds(pickup.commit());
+  });
+
+  it('still rejects unknown item statuses', async () => {
+    await assertFails(
+      updateDoc(doc(as('alex'), 'households', HID, 'items', 'milk'), {
+        status: 'lost',
+        updatedBy: 'alex',
+      }),
+    );
   });
 });
