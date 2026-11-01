@@ -9,7 +9,7 @@ import { parseQuickAdd } from '../lib/text';
 import { notify } from '../push';
 import type { Household, Item, ListId, StoreId, Trip, TripMode } from '../types';
 import { ItemSheet } from './ItemSheet';
-import { Avatar, Sheet, SortIcon } from './ui';
+import { Avatar, markerStyle, Sheet, SortIcon } from './ui';
 
 type StoreFilter = StoreId | 'all';
 
@@ -194,15 +194,15 @@ export function ListScreen({
               </div>
             );
           const { item } = row;
-          const color = household.members[item.createdBy]?.color ?? 'var(--ink)';
+          const color = household.members[item.createdBy]?.color;
           const line = lineCents(item, row.store);
           const aisle = item.storeInfo[row.store]?.aisle?.label;
           const checker = item.checkedBy ? household.members[item.checkedBy]?.name : undefined;
           return (
             <div
-              className={`it${item.status === 'checked' ? ' done' : ''}`}
+              className={`it marker${item.status === 'checked' ? ' done' : ''}`}
               key={item.id}
-              style={{ color }}
+              style={markerStyle(color)}
             >
               <button
                 className="ck"

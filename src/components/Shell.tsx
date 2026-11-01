@@ -33,6 +33,20 @@ export function Shell({ user, household }: { user: User; household: Household })
     void refreshSubscription(household.id, user.uid).catch(() => undefined);
   }, [household.id, user.uid]);
 
+  // iOS can leave the page shifted up after the keyboard closes. Put it back.
+  useEffect(() => {
+    const onBlur = (e: FocusEvent) => {
+      if (!(e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement)) return;
+      window.setTimeout(() => {
+        const active = document.activeElement;
+        if (!(active instanceof HTMLInputElement || active instanceof HTMLSelectElement))
+          window.scrollTo(0, 0);
+      }, 100);
+    };
+    document.addEventListener('focusout', onBlur);
+    return () => document.removeEventListener('focusout', onBlur);
+  }, []);
+
   useEffect(() => {
     const onHash = () => setTab(tabFromHash());
     window.addEventListener('hashchange', onHash);
@@ -77,7 +91,8 @@ export function Shell({ user, household }: { user: User; household: Household })
           </div>
         );
       })}
-      <div className="screen">
+      {/* Keyed by tab so each tab starts at the top instead of inheriting another tab's scroll. */}
+      <div className={`screen${tab === 'list' ? ' screen-fixed' : ''}`} key={tab}>
         {tab === 'list' && (
           <ListScreen user={user} household={household} items={items} trips={trips} />
         )}

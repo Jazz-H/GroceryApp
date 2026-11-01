@@ -1,5 +1,12 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { inkFor, textOn } from '../lib/color';
 import type { Member } from '../types';
+
+/** CSS variables for a person's marker: raw color (dark mode) and a readable ink (light mode). */
+export function markerStyle(color: string | undefined): CSSProperties {
+  if (!color) return {};
+  return { '--marker': color, '--marker-ink': inkFor(color) } as CSSProperties;
+}
 
 export function Avatar({ member, size = 22 }: { member?: Member; size?: number }) {
   const initial = (member?.name ?? '?').charAt(0).toUpperCase();
@@ -8,6 +15,7 @@ export function Avatar({ member, size = 22 }: { member?: Member; size?: number }
       className="avatar"
       style={{
         background: member?.color ?? 'var(--muted)',
+        color: member?.color ? textOn(member.color) : '#fff',
         width: size,
         height: size,
         fontSize: size * 0.45,

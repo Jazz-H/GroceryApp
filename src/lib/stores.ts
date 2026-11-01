@@ -37,5 +37,15 @@ export const DEFAULT_ZONE_ORDER: Partial<Record<StoreId, string[]>> = {
   target: [AISLES_TOKEN],
 };
 
-/** Marker colors. The first two are the ones from the design. */
-export const MEMBER_COLORS = ['#0f8a7e', '#d4466a', '#7a4fd6', '#c26a00', '#2f6fd8', '#5a7d1a'];
+/**
+ * Marker colors. The household creator gets the first, the next person to join gets the second.
+ * Pastels are shown as-is in dark mode and as a deeper ink of the same hue on the white board.
+ */
+export const MEMBER_COLORS = [
+  { hex: '#89cff0', name: 'Baby blue' },
+  { hex: '#98e5c8', name: 'Mint green' },
+  { hex: '#0f8a7e', name: 'Teal' },
+  { hex: '#e2617f', name: 'Rose' },
+  { hex: '#a98bef', name: 'Lavender' },
+  { hex: '#f0a04b', name: 'Tangerine' },
+];

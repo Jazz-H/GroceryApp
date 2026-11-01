@@ -25,7 +25,7 @@ export async function createHousehold(user: User, name: string, zip: string): Pr
   batch.set(ref, {
     name: name.trim() || 'Home',
     memberIds: [user.uid],
-    members: { [user.uid]: memberFor(user, MEMBER_COLORS[0]) },
+    members: { [user.uid]: memberFor(user, MEMBER_COLORS[0].hex) },
     inviteCode: code,
     zip: zip.trim(),
     zoneOrder: DEFAULT_ZONE_ORDER,
@@ -49,7 +49,7 @@ export async function joinHousehold(user: User, rawCode: string): Promise<string
   try {
     await updateDoc(doc(db, 'households', hid), {
       memberIds: arrayUnion(user.uid),
-      [`members.${user.uid}`]: memberFor(user, MEMBER_COLORS[1]),
+      [`members.${user.uid}`]: memberFor(user, MEMBER_COLORS[1].hex),
       joinCode: code,
     });
   } catch {
@@ -72,7 +72,7 @@ export async function rotateInviteCode(household: Household, uid: string): Promi
 }
 
 export async function updateMember(household: Household, uid: string, patch: Partial<Member>) {
-  const current = household.members[uid] ?? { name: 'Me', color: MEMBER_COLORS[0] };
+  const current = household.members[uid] ?? { name: 'Me', color: MEMBER_COLORS[0].hex };
   await updateDoc(doc(db, 'households', household.id), {
     [`members.${uid}`]: { ...current, ...patch },
   });

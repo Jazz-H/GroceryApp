@@ -137,20 +137,32 @@ function You({ household, uid }: { household: Household; uid: string }) {
           }
         />
       </label>
-      <p className="label">Your marker color</p>
-      <div className="swatches" role="radiogroup" aria-label="Marker color">
-        {MEMBER_COLORS.map((c) => (
-          <button
-            key={c}
-            role="radio"
-            aria-checked={me?.color === c}
-            aria-label={`Color ${c}`}
-            className="swatch"
-            style={{ background: c }}
-            onClick={() => updateMember(household, uid, { color: c })}
-          />
-        ))}
-      </div>
+      <p className="label">Marker colors</p>
+      {household.memberIds.map((id) => {
+        const member = household.members[id];
+        const who = id === uid ? 'You' : (member?.name ?? 'Member');
+        return (
+          <div className="color-row" key={id}>
+            <span className="color-who">
+              <Avatar member={member} /> {who}
+            </span>
+            <div className="swatches" role="radiogroup" aria-label={`${who}: marker color`}>
+              {MEMBER_COLORS.map((c) => (
+                <button
+                  key={c.hex}
+                  role="radio"
+                  aria-checked={member?.color === c.hex}
+                  aria-label={c.name}
+                  title={c.name}
+                  className="swatch"
+                  style={{ background: c.hex }}
+                  onClick={() => updateMember(household, id, { color: c.hex })}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

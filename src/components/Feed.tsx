@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { describe, groupFeed, timeAgo } from '../lib/activity';
 import type { ActivityEvent, Household } from '../types';
-import { Avatar } from './ui';
+import { Avatar, markerStyle } from './ui';
 
 export function Feed({ household, events }: { household: Household; events: ActivityEvent[] }) {
   const groups = useMemo(() => groupFeed(events), [events]);
@@ -28,7 +28,11 @@ export function Feed({ household, events }: { household: Household; events: Acti
                 {g.count > 1 && (
                   <div className="pills">
                     {g.itemNames.map((n, i) => (
-                      <span className="pill" key={`${n}-${i}`} style={{ color: member?.color }}>
+                      <span
+                        className="pill marker"
+                        key={`${n}-${i}`}
+                        style={markerStyle(member?.color)}
+                      >
                         {n}
                       </span>
                     ))}

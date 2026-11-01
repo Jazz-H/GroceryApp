@@ -4,7 +4,7 @@ import { timeAgo } from '../lib/activity';
 import { formatCents, parsePrice } from '../lib/money';
 import { STORES } from '../lib/stores';
 import type { Household, Item, ListId, StoreId, StoreInfo } from '../types';
-import { Sheet } from './ui';
+import { markerStyle, Sheet } from './ui';
 
 interface StoreDraft {
   on: boolean;
@@ -58,7 +58,7 @@ export function ItemSheet({
   const [busy, setBusy] = useState(false);
 
   const author = household.members[item.createdBy];
-  const color = author?.color ?? 'var(--ink)';
+  const color = author?.color;
 
   function patch(store: StoreId, p: Partial<StoreDraft>) {
     setDrafts((d) => {
@@ -130,8 +130,8 @@ export function ItemSheet({
     >
       <input
         id="item-name"
-        className="sheet-name"
-        style={{ color }}
+        className="sheet-name marker"
+        style={markerStyle(color)}
         value={name}
         onChange={(e) => setName(e.target.value)}
         maxLength={120}
