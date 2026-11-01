@@ -29,8 +29,13 @@ export function useHouseholdId(uid: string): Loadable<string | null> {
     () =>
       onSnapshot(
         doc(db, 'users', uid),
-        (snap) =>
-          setState({ status: 'ready', value: (snap.data()?.householdId as string | null) ?? null }),
+        { includeMetadataChanges: true },
+        (snap) => {
+          // Right after creating or joining, wait until the server has the write. Otherwise the
+          // household listener can reach the server first and be denied.
+          if (snap.metadata.hasPendingWrites) return;
+          setState({ status: 'ready', value: (snap.data()?.householdId as string | null) ?? null });
+        },
         (error) => setState({ status: 'error', error }),
       ),
     [uid],
@@ -40,18 +45,36 @@ export function useHouseholdId(uid: string): Loadable<string | null> {
 
 export function useHousehold(hid: string): Loadable<Household> {
   const [state, setState] = useState<Loadable<Household>>({ status: 'loading' });
-  useEffect(
-    () =>
-      onSnapshot(
+  useEffect(() => {
+    let unsubscribe = () => {};
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let attempt = 0;
+    const listen = () => {
+      unsubscribe = onSnapshot(
         doc(db, 'households', hid),
-        (snap) =>
-          snap.exists()
-            ? setState({ status: 'ready', value: toHousehold(snap) })
-            : setState({ status: 'error', error: new Error('Household not found') }),
-        (error) => setState({ status: 'error', error }),
-      ),
-    [hid],
-  );
+        { includeMetadataChanges: true },
+        (snap) => {
+          attempt = 0;
+          if (snap.exists()) setState({ status: 'ready', value: toHousehold(snap) });
+          // A miss from the offline cache isn't final: wait for the server's answer.
+          else if (!snap.metadata.fromCache)
+            setState({ status: 'error', error: new Error('Household not found') });
+        },
+        (error) => {
+          // A just-created or just-joined household can briefly be unreadable. Retry a few times.
+          if (error.code === 'permission-denied' && attempt < 4) {
+            attempt += 1;
+            timer = setTimeout(listen, 500 * 2 ** attempt);
+          } else setState({ status: 'error', error });
+        },
+      );
+    };
+    listen();
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+    };
+  }, [hid]);
   return state;
 }
 

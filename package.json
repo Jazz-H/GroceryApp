@@ -14,7 +14,9 @@
     "format:check": "prettier --check .",
     "emulators": "firebase emulators:start --only auth,firestore --project demo-fridgeboard",
     "dev:local": "VITE_USE_EMULATORS=true vite --host",
-    "deploy": "npm run build && firebase deploy --only hosting,firestore"
+    "deploy": "npm run build && firebase deploy --only hosting,firestore",
+    "vapid": "node scripts/vapid-keys.mjs",
+    "deploy:push": "cd worker && npx wrangler@4 deploy"
   },
   "dependencies": {
     "firebase": "^12.19.0",
@@ -26,6 +28,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "firebase-tools": "^15.34.2",
+    "http_ece": "^1.2.1",
     "prettier": "^3.9.10",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",

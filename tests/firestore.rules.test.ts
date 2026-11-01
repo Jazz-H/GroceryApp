@@ -258,3 +258,34 @@ describe('activity log', () => {
     await assertFails(deleteDoc(ref));
   });
 });
+
+describe('push subscriptions', () => {
+  const sub = (uid: string) => ({
+    uid,
+    endpoint: 'https://push.example.com/abc',
+    p256dh: 'BPx',
+    auth: 'xyz',
+    prefs: { adds: true, trip: true },
+    device: 'Android',
+  });
+
+  it('lets a member save their own phone and read others', async () => {
+    await assertSucceeds(setDoc(doc(as('alex'), 'households', HID, 'pushSubs', 's1'), sub('alex')));
+    await assertSucceeds(getDocs(collection(as('alex'), 'households', HID, 'pushSubs')));
+  });
+
+  it('blocks saving a subscription for someone else or from outside', async () => {
+    await assertFails(setDoc(doc(as('alex'), 'households', HID, 'pushSubs', 's2'), sub('sam')));
+    await assertFails(setDoc(doc(as('sam'), 'households', HID, 'pushSubs', 's3'), sub('sam')));
+    await assertFails(getDocs(collection(as('sam'), 'households', HID, 'pushSubs')));
+  });
+
+  it('rejects non-https endpoints', async () => {
+    await assertFails(
+      setDoc(doc(as('alex'), 'households', HID, 'pushSubs', 's4'), {
+        ...sub('alex'),
+        endpoint: 'http://evil.example.com',
+      }),
+    );
+  });
+});

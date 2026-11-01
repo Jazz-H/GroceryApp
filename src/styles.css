@@ -227,32 +227,6 @@ code {
   font-size: 2.2rem;
   letter-spacing: -0.02em;
 }
-.board-hero {
-  display: grid;
-  gap: 2px;
-  justify-items: start;
-  padding: 16px 22px;
-  border: 2px solid var(--line);
-  border-radius: 16px;
-  background: var(--surface) repeating-linear-gradient(transparent 0 33px, var(--line) 33px 34px);
-  max-width: 260px;
-  box-shadow: var(--shadow);
-}
-.hand {
-  font-family: var(--hand);
-  font-size: 1.3rem;
-  line-height: 34px;
-}
-.hand.you {
-  color: #0f8a7e;
-}
-.hand.her {
-  color: #d4466a;
-}
-.hand.done {
-  text-decoration: line-through;
-  opacity: 0.5;
-}
 
 .card {
   background: var(--surface);
@@ -1012,4 +986,58 @@ code {
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* ---------- Notification toggles ---------- */
+.toggles {
+  display: grid;
+  gap: 4px;
+}
+.card label.toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+}
+.toggle input[role='switch'] {
+  appearance: none;
+  width: 44px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--line);
+  position: relative;
+  border: 0;
+  padding: 0;
+  flex: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.toggle input[role='switch']::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s;
+}
+.toggle input[role='switch']:checked {
+  background: var(--accent);
+}
+.toggle input[role='switch']:checked::after {
+  transform: translateX(18px);
+}
+
+.app-icon {
+  width: 112px;
+  height: 112px;
+  filter: drop-shadow(0 14px 22px rgba(255, 160, 20, 0.35));
 }

@@ -20,12 +20,7 @@ export function SignIn({ error }: { error?: string | null }) {
 
   return (
     <main className="center-page signin">
-      <div className="board-hero" aria-hidden="true">
-        <span className="hand you">eggs</span>
-        <span className="hand her">oat milk</span>
-        <span className="hand you done">paper towels</span>
-        <span className="hand her">spinach</span>
-      </div>
+      <img className="app-icon" src="/icon-192.png" width="112" height="112" alt="" />
       <h1 className="wordmark">Fridgeboard</h1>
       <p className="muted">The fridge whiteboard, on both your phones.</p>
       <button className="btn primary big" onClick={go} disabled={busy}>

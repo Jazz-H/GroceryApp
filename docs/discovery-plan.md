@@ -332,4 +332,6 @@ Built in this repo and tested end to end against the local Firebase emulators:
 | R10/R11 Receipts + spending          | ⏳ Phase 2, with Gemini                                                                         | —                                                  |
 | R12 Live Harris Teeter prices/aisles | ⏳ Phase 3, after the Kroger spike                                                              | —                                                  |
 
-**Tests:** 30 unit tests (aisle sorting, totals, quick-add parsing, activity grouping) and 12 security-rule tests against the Firestore emulator.
+**Tests:** 44 unit tests (aisle sorting, totals, parsing, activity grouping, Web Push encryption checked against an independent implementation, relay behavior, service worker merging) and 17 emulator tests (security rules, plus the relay reading real Firestore with the sender's token).
+
+**App icon:** a happy fridge on a sunny tile, with a whiteboard checklist in both marker colors and a tomato magnet.

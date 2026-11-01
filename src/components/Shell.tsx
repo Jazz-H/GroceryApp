@@ -3,6 +3,7 @@ import type { User } from 'firebase/auth';
 import { useActiveTrips, useActivity, useItems, useOnline } from '../data/hooks';
 import { endTrip, joinTrip } from '../data/trips';
 import { storeDef } from '../lib/stores';
+import { refreshSubscription } from '../push';
 import type { Household } from '../types';
 import { Feed } from './Feed';
 import { ListScreen } from './ListScreen';
@@ -27,6 +28,10 @@ export function Shell({ user, household }: { user: User; household: Household })
   const activity = useActivity(household.id);
   const trips = useActiveTrips(household.id);
   const online = useOnline();
+
+  useEffect(() => {
+    void refreshSubscription(household.id, user.uid).catch(() => undefined);
+  }, [household.id, user.uid]);
 
   useEffect(() => {
     const onHash = () => setTab(tabFromHash());

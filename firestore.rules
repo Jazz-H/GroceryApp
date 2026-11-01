@@ -112,6 +112,22 @@ service cloud.firestore {
         allow update, delete: if false;
       }
 
+      // ---- Push subscriptions: one per phone ----
+      // Members can read them (the relay reads with the sender's token) and delete dead ones.
+      // Only the owner can create or change their own.
+      match /pushSubs/{subId} {
+        function validSub(d) {
+          return d.uid == uid()
+            && d.endpoint is string && d.endpoint.matches('https://.+') && d.endpoint.size() < 1000
+            && d.p256dh is string && d.p256dh.size() < 200
+            && d.auth is string && d.auth.size() < 100
+            && d.prefs is map;
+        }
+        allow read, delete: if isMember(hid);
+        allow create: if isMember(hid) && validSub(request.resource.data);
+        allow update: if isMember(hid) && resource.data.uid == uid() && validSub(request.resource.data);
+      }
+
       // ---- Trips ----
       match /trips/{tripId} {
         allow read: if isMember(hid);

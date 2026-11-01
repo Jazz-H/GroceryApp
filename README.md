@@ -9,6 +9,7 @@ A shared grocery list for two phones (Android + iPhone) that replaces the whiteb
 - **Grocery** and **Nice-to-have** lists
 - **Activity log** of every change, with multi-item adds grouped
 - **Trips**: shopping together (shared live check-off) or solo (partner sees a banner)
+- **Notifications** when your partner starts a trip or adds groceries
 - Works **offline** in the store and syncs when signal comes back
 
 Planning docs: [discovery plan](docs/discovery-plan.md) · [design concepts](docs/design-concepts.html)
@@ -51,6 +52,37 @@ Everything here runs on Firebase's free **Spark** plan. No credit card is needed
    - **Android (Chrome):** ⋮ menu → **Install app**.
 8. **Connect your accounts:** one of you taps **Create household**. The other taps **Join with a code** and enters the code from Settings → Invite.
 
+## Notifications (free, about 10 more minutes)
+
+Notifications go through a tiny relay on Cloudflare Workers' free plan, in `worker/`. It has no Google credentials. It reads your household's phone subscriptions using the sender's own sign-in, so the same security rules apply.
+
+1. **Make keys:** `npm run vapid`. It prints a public key and a private key.
+2. **Set up the relay:** create a free account at <https://dash.cloudflare.com/sign-up>. Then edit `worker/wrangler.toml`:
+   - `FIREBASE_PROJECT_ID`: your project id
+   - `ALLOWED_ORIGINS`: `https://<project-id>.web.app`
+   - `VAPID_SUBJECT`: `mailto:` plus your email
+   - `VAPID_PUBLIC_KEY`: the public key
+3. **Deploy it:**
+   ```bash
+   cd worker
+   npx wrangler@4 login
+   npx wrangler@4 secret put VAPID_PRIVATE_KEY   # paste the private key
+   npx wrangler@4 deploy                         # prints https://fridgeboard-push.<you>.workers.dev
+   ```
+4. **Point the app at it:** in `.env.local`, set `VITE_VAPID_PUBLIC_KEY` (the public key) and `VITE_PUSH_URL` (the Worker URL). Then run `npm run deploy` again.
+5. **On each phone:** Settings → Notifications → **Turn on notifications**, then **Send me a test**.
+   - **iPhone:** needs iOS 16.4 or later, and only works from the Home Screen app.
+   - **Android:** works in Chrome, installed or not.
+
+What you'll get:
+
+| When                        | Notification                                                                      |
+| --------------------------- | --------------------------------------------------------------------------------- |
+| Your partner starts a trip  | “Sam is at Harris Teeter: shopping solo with 6 items. Add anything you need now.” |
+| Your partner adds groceries | “Alex added 3 items: Eggs, Milk, Bread”. Quick adds merge into one notification   |
+
+Each phone can turn either kind off in Settings.
+
 ## Scripts
 
 | Command              | What it does                                               |
@@ -80,11 +112,12 @@ src/
   lib/          pure logic + tests: aisle sorting, totals, quick-add parsing, activity feed
   data/         Firestore reads/writes: household, items, trips, live hooks
   components/   screens: sign-in, onboarding, Fridge Board, item sheet, feed, settings
-tests/          security-rule tests (run inside the Firestore emulator)
+worker/         push relay (Cloudflare Worker): Web Push encryption + VAPID, no dependencies
+public/push-sw.js  shows and merges notifications on the phone
+tests/          security-rule and relay tests (run inside the Firestore emulator)
 ```
 
 ## What's next
 
-1. Push notifications ("Alex is at Harris Teeter") through a free Cloudflare Worker
-2. Receipts → spending with Gemini (Firebase AI Logic, free tier)
-3. Live Harris Teeter prices and aisles from the Kroger API (after the location spike)
+1. Receipts → spending with Gemini (Firebase AI Logic, free tier)
+2. Live Harris Teeter prices and aisles from the Kroger API (after the location spike)

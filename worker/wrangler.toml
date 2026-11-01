@@ -1,0 +1,13 @@
+# Fridgeboard push relay. Free Cloudflare Workers plan.
+# Deploy:  cd worker && npx wrangler@4 deploy
+# Secret:  npx wrangler@4 secret put VAPID_PRIVATE_KEY
+name = "fridgeboard-push"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+[vars]
+FIREBASE_PROJECT_ID = "your-project-id"
+ALLOWED_ORIGINS = "https://your-project-id.web.app"
+VAPID_SUBJECT = "mailto:you@example.com"
+# Public half of the key pair from `npm run vapid` (safe to commit).
+VAPID_PUBLIC_KEY = ""

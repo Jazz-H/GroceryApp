@@ -10,13 +10,13 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'badge-96.png'],
       manifest: {
         name: 'Fridgeboard',
         short_name: 'Fridgeboard',
         description: 'Our shared grocery list',
         theme_color: '#1d5fd0',
-        background_color: '#f3f6f8',
+        background_color: '#ffc93c',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
@@ -32,6 +32,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Push and notification-click handlers live in public/push-sw.js.
+        importScripts: ['push-sw.js'],
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // Firebase's sign-in handler must always come from the network, never the app shell.
         navigateFallbackDenylist: [/^\/__\//],
@@ -52,6 +54,6 @@ export default defineConfig({
   // Firebase is most of the bundle; it's precached by the service worker, so one chunk is fine.
   build: { chunkSizeWarningLimit: 1200 },
   test: {
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'worker/**/*.test.ts'],
   },
 });

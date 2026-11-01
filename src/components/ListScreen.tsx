@@ -6,6 +6,7 @@ import { buildBoard, itemsInView } from '../lib/aisles';
 import { estimate, formatCents, lineCents } from '../lib/money';
 import { STORES, storeDef } from '../lib/stores';
 import { parseQuickAdd } from '../lib/text';
+import { notify } from '../push';
 import type { Household, Item, ListId, StoreId, Trip, TripMode } from '../types';
 import { ItemSheet } from './ItemSheet';
 import { Avatar, Sheet, SortIcon } from './ui';
@@ -86,6 +87,19 @@ export function ListScreen({
     if (skipped.length)
       flash(`${skipped.join(', ')} ${skipped.length === 1 ? 'is' : 'are'} already on the list`);
     else if (added.length > 1) flash(`Added ${added.length} items`);
+    if (added.length && list === 'grocery') {
+      // The partner's phone merges quick adds into one notification (see public/push-sw.js).
+      const actor = household.members[user.uid]?.name ?? 'Your partner';
+      void notify(household.id, {
+        kind: 'adds',
+        actor,
+        items: added,
+        title:
+          added.length > 1 ? `${actor} added ${added.length} items` : `${actor} added ${added[0]}`,
+        body: added.join(', '),
+        tag: `adds-${user.uid}`,
+      });
+    }
   }
 
   async function onStartTrip(mode: TripMode) {
@@ -93,6 +107,18 @@ export function ListScreen({
     setTripSheet(false);
     setSort(true);
     await startTrip(household.id, user.uid, store, mode);
+    const actor = household.members[user.uid]?.name ?? 'Your partner';
+    const open = itemsInView(onList, store).filter((i) => i.status === 'open').length;
+    void notify(household.id, {
+      kind: 'trip',
+      actor,
+      title: `${actor} is at ${storeDef(store).name}`,
+      body:
+        mode === 'together'
+          ? `Shopping together. ${open} ${open === 1 ? 'item' : 'items'} on the list.`
+          : `Shopping solo with ${open} ${open === 1 ? 'item' : 'items'}. Add anything you need now.`,
+      tag: `trip-${store}`,
+    });
   }
 
   return (

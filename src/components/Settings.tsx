@@ -11,6 +11,7 @@ import {
 import { usingEmulators } from '../firebase';
 import { AISLES_TOKEN, DEFAULT_ZONE_ORDER, MEMBER_COLORS } from '../lib/stores';
 import type { Household } from '../types';
+import { Notifications } from './Notifications';
 import { Avatar } from './ui';
 
 export function Settings({ user, household }: { user: User; household: Household }) {
@@ -21,6 +22,7 @@ export function Settings({ user, household }: { user: User; household: Household
       <Invite household={household} uid={user.uid} />
       <Household_ household={household} />
       <You household={household} uid={user.uid} />
+      <Notifications household={household} uid={user.uid} />
       <ZoneOrder household={household} />
       <div className="card">
         <h2>Account</h2>

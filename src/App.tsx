@@ -39,7 +39,12 @@ function LoadedHousehold({ user, hid }: { user: User; hid: string }) {
   const household = useHousehold(hid);
   if (household.status === 'loading') return <Splash />;
   if (household.status === 'error')
-    return <Onboarding user={user} notice="We couldn’t open your household. Join or create one." />;
+    return (
+      <Onboarding
+        user={user}
+        notice={`We couldn’t open your household (${household.error.message}). Join or create one.`}
+      />
+    );
   return <Shell user={user} household={household.value} />;
 }
 
