@@ -1,4 +1,4 @@
-# Fridgeboard
+# Stocked
 
 A shared grocery list for two phones (Android + iPhone) that replaces the whiteboard on the fridge. It's a free, installable web app (PWA) with Google sign-in and live sync through Firebase.
 

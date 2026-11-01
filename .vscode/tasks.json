@@ -28,7 +28,7 @@
       "presentation": { "group": "local" }
     },
     {
-      "label": "Run Fridgeboard locally",
+      "label": "Run Stocked locally",
       "dependsOn": ["Emulators", "App (local)"],
       "dependsOrder": "sequence",
       "problemMatcher": []

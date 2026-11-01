@@ -1,7 +1,7 @@
-# Fridgeboard: Discovery Plan
+# Stocked: Discovery Plan
 
 > **Phase:** MVP in progress Â· **Revised:** 2026-11-01 (v4: Walmart dropped, Gemini chosen for receipts, MVP built) Â· **Owners:** you + girlfriend (the only two users, and the product team)
-> **Working name:** Fridgeboard. Rename it whenever you like.
+> **Name:** Stocked (renamed from the working name Fridgeboard on 2026-11-01).
 
 **What changed in v2:** switched to an installable **PWA** (no app stores). **Google sign-in** through Firebase. A **$0 stack that needs no credit card**. A new **receipts and spending** feature. Store plans tailored to how you shop. Target pricing options researched.
 
@@ -84,7 +84,7 @@ Payments, checkout inside the app, coupon clipping, Apple Watch / Wear OS, nativ
 | â˜…â˜…â˜…      | **Receipts â†’ spending** (now core, see Â§7)                                       | Camera through file input works on both                                                                                                  |
 | â˜…â˜…       | **Smart suggestions**: "You buy bananas about every 6 days"                      | Built from receipt history                                                                                                               |
 | â˜…â˜…       | **Barcode scan to add**                                                          | Use the `zxing` JS library. iOS Safari has no built-in BarcodeDetector                                                                   |
-| â˜…â˜…       | **Voice add**                                                                    | Android: Google Assistant can open a URL. iOS: a Siri **Shortcut** that posts to the app's add endpoint ("Hey Siri, add to Fridgeboard") |
+| â˜…â˜…       | **Voice add**                                                                    | Android: Google Assistant can open a URL. iOS: a Siri **Shortcut** that posts to the app's add endpoint ("Hey Siri, add to Stocked") |
 | â˜…â˜…       | **Budgets** with a monthly limit and alerts at 80%                               | From receipt totals                                                                                                                      |
 | â˜…â˜…       | **Recipes to list** (paste a URL, ingredients are extracted)                     | Recipe sites publish structured data (schema.org/Recipe)                                                                                 |
 | â˜…        | Meal planner                                                                     | Feeds the Grocery list                                                                                                                   |
@@ -297,7 +297,7 @@ Receipts include the store location, the last 4 digits of your card, and sometim
 2. **Checked items:** built as: they stay crossed out until you tap _Clear checked_. Say if you'd rather they disappear.
 3. **Monthly grocery budget** to track against, if you want one (needed for the Spending tab).
 4. What's her iPhone's iOS version? It needs 16.4+ for push notifications.
-5. App name: keep _Fridgeboard_, or something else?
+5. ~~App name~~: answered, **Stocked**, with a pantry-shelves icon.
 
 ### Answered in v4
 

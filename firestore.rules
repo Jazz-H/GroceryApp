@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Fridgeboard security rules.
+// Stocked security rules.
 // - Only members of a household can read or write anything in it.
 // - Joining needs the household's current invite code.
 // - The activity log is append-only: entries can be created by their actor, never edited or deleted.

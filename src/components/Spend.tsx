@@ -52,7 +52,7 @@ export function Spend({
     const blob = new Blob([toCsv(receipts, household.members)], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `fridgeboard-receipts-${thisMonth}.csv`;
+    a.download = `stocked-receipts-${thisMonth}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
   }

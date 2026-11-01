@@ -1,4 +1,4 @@
-# Go live: get Fridgeboard on both phones
+# Go live: get Stocked on both phones
 
 About 20 minutes. Everything is free and needs no credit card.
 You need: a computer with this repo open in VS Code, Node 20+, and your Google account.
@@ -25,7 +25,7 @@ You need: a computer with this repo open in VS Code, Node 20+, and your Google a
    - Choose **Start in production mode** → **Create**. The app's own security rules replace the defaults when you deploy.
 3. **Register the web app:**
    - Click the **gear** (top left) → **Project settings** → scroll to **Your apps** → click the **`</>`** (Web) icon.
-   - Nickname: `Fridgeboard`. Leave "Firebase Hosting" unchecked → **Register app**.
+   - Nickname: `Stocked`. Leave "Firebase Hosting" unchecked → **Register app**.
    - Keep the `firebaseConfig` values on screen. You need them in Step 3.
 4. **Allow sign-in on your app's own address.** This is what makes iPhone sign-in work:
    - Open <https://console.cloud.google.com/apis/credentials> and make sure your Firebase project is selected at the top.
@@ -69,7 +69,7 @@ When it finishes it prints **`Hosting URL: https://<project-id>.web.app`**. **Th
 
 1. Open **Chrome** and go to `https://<project-id>.web.app`.
 2. Tap **⋮** (top right) → **Install app**. It may say **Add to Home screen**.
-3. Open **Fridgeboard** from your home screen.
+3. Open **Stocked** from your home screen.
 4. Tap **Sign in with Google** → **Create household**. Keep zip code `28262`.
 5. Go to **Settings** → under **Invite**, tap **Share invite** to text Madison the link and code.
 
@@ -81,7 +81,7 @@ Send Madison this message:
 >
 > 1. Open this link in **Safari** (it has to be Safari): https://&lt;project-id&gt;.web.app
 > 2. Tap the **Share** button (square with an arrow) → scroll down → **Add to Home Screen** → **Add**
-> 3. Open **Fridgeboard** from your home screen (not from Safari)
+> 3. Open **Stocked** from your home screen (not from Safari)
 > 4. Tap **Sign in with Google**, then **Join with a code**, and enter: **ABC234** ← (your code from Settings)
 
 You'll see Madison appear in **Settings → Invite** with a second marker color. Add an item on one phone and watch it appear on the other.

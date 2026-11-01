@@ -64,7 +64,7 @@ export function Notifications({ household, uid }: { household: Household; uid: s
     setMessage('Sending…');
     const res = await notify(household.id, {
       kind: 'test',
-      title: 'Fridgeboard notifications work',
+      title: 'Stocked notifications work',
       body: 'You’ll hear from your partner’s trips and adds here.',
       tag: 'test',
     });
@@ -86,7 +86,7 @@ export function Notifications({ household, uid }: { household: Household; uid: s
       {support === 'needs-install' && (
         <p className="muted">
           On iPhone, notifications only work from the installed app. Tap Share → Add to Home Screen,
-          open Fridgeboard from the new icon, then turn this on.
+          open Stocked from the new icon, then turn this on.
         </p>
       )}
       {support === 'unsupported' && (
@@ -94,8 +94,8 @@ export function Notifications({ household, uid }: { household: Household; uid: s
       )}
       {support === 'denied' && (
         <p className="muted">
-          Notifications are blocked for Fridgeboard. Allow them in your phone’s settings for this
-          app, then come back here.
+          Notifications are blocked for Stocked. Allow them in your phone’s settings for this app,
+          then come back here.
         </p>
       )}
       {support === 'ready' && !loading && !prefs && (
