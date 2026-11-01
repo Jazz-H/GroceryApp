@@ -1,6 +1,6 @@
 # GroceryApp (working name: Fridgeboard)
 
-A shared grocery list for two people on two platforms (Android and iOS) that replaces the whiteboard on the fridge.
+A shared grocery list for two people (Android + iPhone), built as a free installable web app (PWA) with Google sign-in and Firebase sync. It replaces the whiteboard on the fridge and tracks spending from receipts.
 
 **Status:** Discovery. No code yet.
 

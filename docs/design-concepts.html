@@ -113,6 +113,19 @@ header{display:grid;gap:14px}
 .d .swipe{display:flex;justify-content:space-between;font-size:10px;font-weight:700;margin-top:4px}
 .d .swipe .l{color:var(--muted)} .d .swipe .r{color:var(--good)}
 
+/* E: Spending */
+.e .big{display:grid;gap:2px}
+.e .big .mono{font-size:26px;font-weight:500}
+.e .meter{height:8px;border-radius:99px;background:var(--chip);overflow:hidden}
+.e .meter i{display:block;height:100%;background:var(--warn)}
+.e .aisle{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-top:8px}
+.e .bar{display:grid;grid-template-columns:78px 1fr 36px;gap:8px;align-items:center;font-size:11px}
+.e .bar i{display:block;height:10px;border-radius:3px;background:var(--marker-blue)}
+.e .bar .mono{text-align:right}
+.e .rc{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.e .rc .nm{flex:1;font-weight:600;line-height:1.3}
+.e .rc .nm .muted{font-weight:400;font-size:10.5px}
+
 /* Recommendation + questions */
 .rec{display:grid;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:24px}
 .layers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
@@ -135,7 +148,7 @@ footer{color:var(--muted);font-size:.85rem}
   <header>
     <span class="eyebrow">Discovery · four layout directions</span>
     <h1>Fridgeboard <span class="scrawl">concepts</span></h1>
-    <p class="lede">One shared list for an Android phone and an iPhone, replacing the whiteboard on the fridge. Every concept includes the two lists (Grocery and Nice-to-have), four stores, live sync, and an activity log. They differ in which of those the screen is built around.</p>
+    <p class="lede">One shared list for an Android phone and an iPhone, replacing the whiteboard on the fridge. It's a free web app you install to your home screen, with Google sign-in and Firebase sync. Every concept includes the two lists (Grocery and Nice-to-have), the stores, live sync, and an activity log. They differ in which of those the screen is built around.</p>
     <div class="legend">
       <span><i class="dot" style="background:var(--you)"></i>You (Android)</span>
       <span><i class="dot" style="background:var(--her)"></i>Girlfriend (iOS)</span>
@@ -281,14 +294,44 @@ footer{color:var(--muted);font-size:.85rem}
 
   <section class="rec">
     <span class="eyebrow">Recommendation</span>
-    <h2>Layer them instead of picking one</h2>
-    <p>The concepts aren't mutually exclusive. The strongest app uses B as the main screen and adds the others as layers. Use the per-person marker colors from A on every screen, so it's always clear who added what.</p>
+    <h2>Three tabs, built for how you shop</h2>
+    <p>The concepts aren't mutually exclusive. Since you walk Harris Teeter in store and use pickup at Target, the list screen changes with the store. Prices now come mostly from receipts, so the price grid from C becomes a Spending tab. Per-person colors from A appear on every screen.</p>
     <div class="layers">
-      <div class="layer"><b>Main screen: Aisle Flow (B)</b><span>Grocery list by store and aisle, big checkboxes, trip mode, running total.</span></div>
-      <div class="layer"><b>Second tab: Together Feed (D)</b><span>Grouped activity log with reactions. Nice-to-have swipe deck lives here.</span></div>
-      <div class="layer"><b>Slide-up sheet: Price Board (C)</b><span>Opened from B's total. Ships when the Walmart and Harris Teeter price APIs are confirmed.</span></div>
+      <div class="layer"><b>List: Aisle Flow (B)</b><span>Harris Teeter: sorted by aisle, shared live trip or solo trip. Target: pickup checklist with Open in Target buttons.</span></div>
+      <div class="layer"><b>Us: Together Feed (D)</b><span>Grouped activity log with reactions. The Nice-to-have swipe deck lives here.</span></div>
+      <div class="layer"><b>Spending: new</b><span>Snap a receipt, review the parsed lines, and see monthly totals, budget, and price history by store.</span></div>
     </div>
   </section>
+
+  <article class="concept e">
+    <div class="phone" role="img" aria-label="Spending tab mockup: monthly total, store breakdown, and recent receipts">
+      <div class="screen">
+        <div class="status"><span>9:41</span><span>●●● 5G</span></div>
+        <div class="appbar"><h4>Spending</h4><span class="muted">Oct 2026</span></div>
+        <div class="body">
+          <div class="big"><span class="mono">$612.40</span><span class="muted">of $700 budget · 87%</span></div>
+          <div class="meter"><i style="width:87%"></i></div>
+          <div class="aisle">By store</div>
+          <div class="bar"><span>Harris Teeter</span><i style="width:100%"></i><span class="mono">$318</span></div>
+          <div class="bar"><span>Target</span><i style="width:62%"></i><span class="mono">$196</span></div>
+          <div class="bar"><span>Amazon</span><i style="width:31%"></i><span class="mono">$98</span></div>
+          <div class="aisle">Recent receipts</div>
+          <div class="rc"><span class="av y">A</span><span class="nm">Harris Teeter<br><span class="muted">Oct 30 · VIC saved $8.12</span></span><span class="mono">$84.17</span></div>
+          <div class="rc"><span class="av h">S</span><span class="nm">Target pickup<br><span class="muted">Oct 28 · 2 lines to review</span></span><span class="mono">$52.60</span></div>
+        </div>
+        <div class="fab">⌁</div>
+      </div>
+    </div>
+    <div class="notes">
+      <span class="tag">New screen</span>
+      <h2>Receipts and spending</h2>
+      <p>Take a photo of a paper receipt, or a screenshot of a Target pickup or Amazon order. Gemini reads it into lines, the app checks that the lines add up to the total, and matches each line to an item on your list. Matched items are checked off and their "last paid" price updates. That's how Target gets real prices without an API.</p>
+      <div class="pc">
+        <div><b>You get</b><ul><li>Monthly total against your budget</li><li>Spend by store, category, and person</li><li>Price history per item across stores</li><li>VIC and Circle savings totaled</li></ul></div>
+        <div><b>Watch for</b><ul><li>Card digits are cropped off before upload</li><li>Gemini's free tier may use data to improve Google's products</li><li>Long receipts need 2–3 photos</li></ul></div>
+      </div>
+    </div>
+  </article>
 
   <section class="q">
     <span class="eyebrow">Store pricing feasibility</span>
@@ -297,28 +340,37 @@ footer{color:var(--muted);font-size:.85rem}
       <table>
         <thead><tr><th>Store</th><th>Price data</th><th>Cart handoff</th><th>Outlook</th></tr></thead>
         <tbody>
-          <tr><td><b>Walmart</b></td><td>Walmart affiliate API (walmart.io)</td><td>Add-to-cart link</td><td><span class="chip g">Good</span></td></tr>
-          <tr><td><b>Harris Teeter</b></td><td>Owned by Kroger. Kroger Developer API has location prices (confirm HT stores are included)</td><td>Kroger cart API</td><td><span class="chip y">Probable</span></td></tr>
-          <tr><td><b>Amazon</b></td><td>Associates product API, needs qualifying sales</td><td>Public add-to-cart link</td><td><span class="chip y">Gated</span></td></tr>
-          <tr><td><b>Target</b></td><td>No public API. Paid third-party provider or receipts</td><td>Product page link</td><td><span class="chip r">Limited</span></td></tr>
+          <tr><td><b>Harris Teeter</b><br><span class="muted">In store · VIC</span></td><td>Owned by Kroger. Free Kroger Developer API returns regular and promo prices for one store. Confirm a Harris Teeter near 28262 is included</td><td>Not needed, you shop in store</td><td><span class="chip y">Probable</span></td></tr>
+          <tr><td><b>Target</b><br><span class="muted">Pickup · Circle</span></td><td>No free official API. Use the price you paid, from receipts and order screenshots. Target's internal website API is unofficial and against its terms, so the app won't depend on it</td><td>Open each item in the Target app</td><td><span class="chip g">Last paid</span></td></tr>
+          <tr><td><b>Amazon</b><br><span class="muted">Prime</span></td><td>Order screenshots. The official API needs an affiliate account with recent sales</td><td>Public add-to-cart link</td><td><span class="chip y">Last paid</span></td></tr>
+          <tr><td><b>Walmart</b><br><span class="muted">Optional</span></td><td>Walmart affiliate API, free with approval</td><td>Add-to-cart link</td><td><span class="chip g">Good</span></td></tr>
         </tbody>
       </table>
     </div>
-    <p class="muted">Receipt scanning works for every store and is the fallback, so the app stays useful even without any retailer API.</p>
+    <p class="muted">Receipts work for every store, so prices and spending tracking don't depend on any retailer's permission.</p>
+  </section>
+
+  <section class="q">
+    <span class="eyebrow">Free stack</span>
+    <h2>$0 a month, no credit card</h2>
+    <div class="layers">
+      <div class="layer"><b>App</b><span>React PWA on Firebase Hosting at a free .web.app address. Install from Chrome or Safari.</span></div>
+      <div class="layer"><b>Accounts and sync</b><span>Firebase Auth with Google, and Firestore with offline cache. The free Spark plan covers two people many times over.</span></div>
+      <div class="layer"><b>Server bits</b><span>A Cloudflare Worker on the free plan holds API keys, fetches Harris Teeter prices, and sends push notifications.</span></div>
+    </div>
   </section>
 
   <section class="q">
     <span class="eyebrow">Questions for the two of you</span>
     <h2>Answers to these will shape the design</h2>
     <ol>
-      <li>Logging: should <em>every</em> change be logged, with multi-item adds grouped into one entry? Or did you mean something narrower?</li>
-      <li>Do you shop together, or split up across stores at the same time?</li>
-      <li>In store, pickup, or delivery at each of the four stores?</li>
-      <li>Store memberships: Walmart+, Target Circle, Prime, Harris Teeter VIC?</li>
-      <li>Your zip code or preferred store locations, since prices vary by location.</li>
-      <li>Is about $15–50/month for Target price data worth it, or are receipt prices fine?</li>
-      <li>Which concept feels most like you two, and which details from the others would you keep?</li>
-      <li>Are you OK with $99/yr for Apple's developer program, so she can install through TestFlight?</li>
+      <li>Logging: should <em>every</em> change be logged, with multi-item adds grouped into one entry?</li>
+      <li>Do you still shop at Walmart? If not, it comes out of the first version.</li>
+      <li>Should checked-off items stay crossed out until the trip ends, or disappear right away?</li>
+      <li>Do you want a monthly grocery budget to track against? How much?</li>
+      <li>Receipt reading: Gemini's free tier (most accurate, card info cropped out first), or fully on-device (private, less accurate)?</li>
+      <li>Which iOS version is on her iPhone? Push notifications need 16.4 or later.</li>
+      <li>Keep the name Fridgeboard?</li>
     </ol>
   </section>
 
