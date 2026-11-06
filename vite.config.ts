@@ -54,6 +54,15 @@ export default defineConfig({
   // Firebase is most of the bundle; it's precached by the service worker, so one chunk is fine.
   build: { chunkSizeWarningLimit: 1200 },
   test: {
-    include: ['src/**/*.test.ts', 'worker/**/*.test.ts'],
+    // `.tsx` as well as `.ts`: component tests live beside their components,
+    // and the old glob would have silently collected none of them.
+    include: ['src/**/*.test.{ts,tsx}', 'worker/**/*.test.ts'],
+    // No global `environment: 'jsdom'` on purpose. Chat-Application sets one,
+    // but 9 of the 10 test files here are pure lib tests that never touch a
+    // DOM, and switching the default measured 543ms -> 2.91s with 79% of the
+    // run spent constructing jsdom once per file. Component tests opt in with
+    // a `// @vitest-environment jsdom` docblock instead, which keeps the fast
+    // suite fast and makes each file's requirement explicit.
+    setupFiles: ['src/test/setup.ts'],
   },
 });
