@@ -5,18 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:local": "VITE_USE_EMULATORS=true vite --host",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
+    "lint": "eslint .",
+    "typecheck": "tsc -b",
     "test": "vitest run",
     "test:rules": "firebase emulators:exec --only firestore --project demo-fridgeboard \"vitest run --config vitest.rules.config.ts\"",
-    "typecheck": "tsc -b",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "emulators": "firebase emulators:start --only auth,firestore --project demo-fridgeboard",
-    "dev:local": "VITE_USE_EMULATORS=true vite --host",
     "deploy": "npm run build && firebase deploy --only hosting,firestore",
-    "vapid": "node scripts/vapid-keys.mjs",
-    "deploy:push": "cd worker && npx wrangler@4 deploy"
+    "deploy:push": "cd worker && npx wrangler@4 deploy",
+    "vapid": "node scripts/vapid-keys.mjs"
   },
   "dependencies": {
     "firebase": "^12.19.0",
@@ -24,13 +25,19 @@
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
+    "eslint": "^10.14.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.4.26",
     "firebase-tools": "^15.34.2",
+    "globals": "^15.15.0",
     "http_ece": "^1.2.1",
     "prettier": "^3.9.10",
-    "typescript": "^7.0.2",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1",
     "vite": "^8.3.5",
     "vite-plugin-pwa": "^2.0.0",
     "vitest": "^5.0.5"

@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type MouseEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type MouseEvent,
+} from 'react';
 import type { User } from 'firebase/auth';
 import {
   addItems,
@@ -124,14 +132,17 @@ export function ListScreen({
   const [pending, setPending] = useState<{ items: Item[]; label: string } | null>(null);
   const pendingRef = useRef(pending);
   const pendingTimer = useRef(0);
-  const commitPending = () => {
+  const commitPending = useCallback(() => {
     const p = pendingRef.current;
     if (!p) return;
     window.clearTimeout(pendingTimer.current);
     pendingRef.current = null;
     setPending(null);
     void deleteItems(household.id, user.uid, p.items);
-  };
+    // Everything else it touches is a ref or a stable setter, so this is
+    // stable across renders — which is what lets the listener effect below
+    // depend on it instead of suppressing the rule.
+  }, [household.id, user.uid]);
   function removeWithUndo(toRemove: Item[]) {
     if (!toRemove.length) return;
     commitPending();
@@ -161,7 +172,11 @@ export function ListScreen({
       window.removeEventListener('pagehide', commitPending);
       commitPending();
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // commitPending, not []. The cleanup commits the pending removal, so an
+    // effect that re-ran every render would commit immediately and there
+    // would be no undo window at all. useCallback above keeps it stable, so
+    // this re-binds only when the household or user changes.
+  }, [commitPending]);
 
   const visibleItems = useMemo(() => {
     const hidden = new Set(pending?.items.map((i) => i.id));
@@ -221,7 +236,7 @@ export function ListScreen({
         /* private mode */
       }
     }
-  }, [inMyTrip]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [inMyTrip]);
   const counts = (s: StoreFilter) =>
     itemsInView(onList, s).filter((i) => i.status === 'open').length;
 

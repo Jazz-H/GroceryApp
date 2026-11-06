@@ -2,7 +2,15 @@ import { useEffect, useState } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { collection, doc, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { auth, db } from '../firebase';
-import type { ActivityEvent, CatalogEntry, Household, Item, Receipt, Trip } from '../types';
+import type {
+  ActivityEvent,
+  CatalogEntry,
+  Household,
+  Item,
+  Receipt,
+  Trip,
+  UserProfile,
+} from '../types';
 import { toActivity, toCatalog, toHousehold, toItem, toReceipt, toTrip } from './convert';
 
 export type Loadable<T> =
@@ -34,7 +42,8 @@ export function useHouseholdId(uid: string): Loadable<string | null> {
           // Right after creating or joining, wait until the server has the write. Otherwise the
           // household listener can reach the server first and be denied.
           if (snap.metadata.hasPendingWrites) return;
-          setState({ status: 'ready', value: (snap.data()?.householdId as string | null) ?? null });
+          const profile = snap.data() as UserProfile | undefined;
+          setState({ status: 'ready', value: profile?.householdId ?? null });
         },
         (error) => setState({ status: 'error', error }),
       ),

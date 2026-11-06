@@ -206,7 +206,20 @@ export function ReceiptFlow({
   const [busy, setBusy] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
-  useEffect(() => () => photos.forEach((p) => p.bitmap.close()), []); // eslint-disable-line react-hooks/exhaustive-deps
+  // ImageBitmaps hold decoded image memory and must be closed. Removing a
+  // photo closes its own bitmap (see PhotoEditor's onRemove), but anything
+  // still open when this flow unmounts has to be closed too.
+  //
+  // This used to be `useEffect(() => () => photos.forEach(...), [])` with the
+  // rule suppressed, which closed nothing at all: the cleanup captured
+  // `photos` as it was at mount, and it starts empty. Six full-resolution
+  // phone photos is several hundred MB of decoded bitmap leaked per receipt.
+  // The ref is read at unmount rather than captured at mount.
+  const openPhotos = useRef<Photo[]>([]);
+  useEffect(() => {
+    openPhotos.current = photos;
+  }, [photos]);
+  useEffect(() => () => openPhotos.current.forEach((p) => p.bitmap.close()), []);
 
   async function addFiles(files: FileList | null) {
     if (!files?.length) return;
