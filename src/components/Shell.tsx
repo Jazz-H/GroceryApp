@@ -97,7 +97,7 @@ export function Shell({ user, household }: { user: User; household: Household })
           <ListScreen user={user} household={household} items={items} trips={trips} />
         )}
         {tab === 'us' && <Feed household={household} events={activity} />}
-        {tab === 'settings' && <Settings user={user} household={household} />}
+        {tab === 'settings' && <Settings user={user} household={household} items={items} />}
       </div>
       <nav className="tabbar" aria-label="Main">
         {TABS.map((t) => (

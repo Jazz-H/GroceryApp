@@ -10,6 +10,11 @@ export function normalizeName(name: string): string {
 export interface QuickAdd {
   name: string;
   qty: number;
+  /** Optional extras, used by Import. */
+  store?: import('../types').StoreId;
+  priceCents?: number;
+  priceKind?: import('../types').PriceKind;
+  note?: string;
 }
 
 /**

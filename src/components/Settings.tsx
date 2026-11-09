@@ -10,11 +10,20 @@ import {
 } from '../data/household';
 import { usingEmulators } from '../firebase';
 import { AISLES_TOKEN, DEFAULT_ZONE_ORDER, MEMBER_COLORS } from '../lib/stores';
-import type { Household } from '../types';
+import type { Household, Item } from '../types';
 import { Notifications } from './Notifications';
+import { ImportItems } from './ImportItems';
 import { Avatar } from './ui';
 
-export function Settings({ user, household }: { user: User; household: Household }) {
+export function Settings({
+  user,
+  household,
+  items,
+}: {
+  user: User;
+  household: Household;
+  items: Item[];
+}) {
   const me = household.members[user.uid];
   return (
     <section className="settings">
@@ -23,6 +32,7 @@ export function Settings({ user, household }: { user: User; household: Household
       <Household_ household={household} />
       <You household={household} uid={user.uid} />
       <Notifications household={household} uid={user.uid} />
+      <ImportItems household={household} uid={user.uid} items={items} />
       <ZoneOrder household={household} />
       <div className="card">
         <h2>Account</h2>

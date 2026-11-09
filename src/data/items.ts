@@ -68,15 +68,24 @@ export async function addItems(
     }
     openNames.add(normalizedName);
     const ref = doc(items(hid));
+    const store = entry.store ?? opts.store;
+    const storeInfo =
+      entry.priceCents != null
+        ? {
+            [store]: {
+              price: { cents: entry.priceCents, kind: entry.priceKind ?? 'manual', at: Date.now() },
+            },
+          }
+        : {};
     batch.set(ref, {
       name: entry.name.slice(0, 120),
       normalizedName,
       list: opts.list,
-      qty: entry.qty,
+      qty: Math.min(999, Math.max(1, Math.round(entry.qty) || 1)),
       unit: '',
-      note: '',
-      stores: [opts.store],
-      storeInfo: {},
+      note: (entry.note ?? '').slice(0, 300),
+      stores: [store],
+      storeInfo,
       status: 'open',
       createdBy: uid,
       createdAt: serverTimestamp(),
