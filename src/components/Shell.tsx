@@ -18,6 +18,7 @@ import { ReceiptFlow } from './ReceiptFlow';
 import { Settings } from './Settings';
 import { Spend } from './Spend';
 import { Avatar } from './ui';
+import { AppChrome } from './AppChrome';
 
 type Tab = 'list' | 'spend' | 'us' | 'settings';
 const TABS: { id: Tab; label: string }[] = [
@@ -29,6 +30,7 @@ const TABS: { id: Tab; label: string }[] = [
 
 function tabFromHash(): Tab {
   const h = location.hash.replace('#', '');
+  if (h.startsWith('import=')) return 'settings';
   return h === 'us' || h === 'settings' || h === 'spend' ? h : 'list';
 }
 
@@ -81,6 +83,7 @@ export function Shell({ user, household }: { user: User; household: Household })
 
   return (
     <div className="shell">
+      <AppChrome />
       {!online && (
         <div className="offline">
           Offline. Changes are saved and will sync when you’re back online.
@@ -127,7 +130,7 @@ export function Shell({ user, household }: { user: User; household: Household })
         )}
         {tab === 'spend' && <Spend household={household} uid={user.uid} items={items} />}
         {tab === 'us' && <Feed household={household} events={activity} />}
-        {tab === 'settings' && <Settings user={user} household={household} />}
+        {tab === 'settings' && <Settings user={user} household={household} items={items} />}
       </div>
       {receiptFor && (
         <ReceiptFlow

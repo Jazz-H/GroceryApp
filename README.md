@@ -96,6 +96,10 @@ What you'll get:
 
 Each phone can turn either kind off in Settings.
 
+## Automatic deploys
+
+Pushes to `main` are tested and deployed automatically by GitHub Actions. Pull requests run the same checks. One-time setup: [docs/AUTO-DEPLOY.md](docs/AUTO-DEPLOY.md).
+
 ## Scripts
 
 | Command              | What it does                                               |

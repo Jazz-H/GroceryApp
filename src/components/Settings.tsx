@@ -9,12 +9,22 @@ import {
   updateZoneOrder,
 } from '../data/household';
 import { usingEmulators } from '../firebase';
+import { checkForUpdate } from '../pwa';
 import { AISLES_TOKEN, DEFAULT_ZONE_ORDER, MEMBER_COLORS } from '../lib/stores';
-import type { Household } from '../types';
+import type { Household, Item } from '../types';
 import { Notifications } from './Notifications';
+import { ImportItems } from './ImportItems';
 import { Avatar } from './ui';
 
-export function Settings({ user, household }: { user: User; household: Household }) {
+export function Settings({
+  user,
+  household,
+  items,
+}: {
+  user: User;
+  household: Household;
+  items: Item[];
+}) {
   const me = household.members[user.uid];
   return (
     <section className="settings">
@@ -23,6 +33,7 @@ export function Settings({ user, household }: { user: User; household: Household
       <Household_ household={household} />
       <You household={household} uid={user.uid} />
       <Notifications household={household} uid={user.uid} />
+      <ImportItems household={household} uid={user.uid} items={items} />
       <ZoneOrder household={household} />
       <div className="card">
         <h2>Account</h2>
@@ -42,10 +53,7 @@ export function Settings({ user, household }: { user: User; household: Household
           </button>
           <LeaveButton household={household} uid={user.uid} />
         </div>
-        <p className="hint">
-          Stocked {__APP_VERSION__}
-          {usingEmulators ? ' · local emulators' : ''}
-        </p>
+        <AppVersion />
       </div>
     </section>
   );
@@ -259,5 +267,32 @@ function LeaveButton({ household, uid }: { household: Household; uid: string }) 
         Leave
       </button>
     </span>
+  );
+}
+
+function AppVersion() {
+  const [status, setStatus] = useState<string | null>(null);
+  async function check() {
+    setStatus('Checking…');
+    const result = await checkForUpdate();
+    setStatus(
+      result === 'updating'
+        ? 'Updating…'
+        : result === 'latest'
+          ? 'You have the latest version.'
+          : 'Couldn’t check right now. Try again when you’re online.',
+    );
+  }
+  return (
+    <div className="row-actions version-row">
+      <span className="hint">
+        Stocked {__APP_VERSION__} · built {__BUILD_ID__} UTC
+        {usingEmulators ? ' · local emulators' : ''}
+      </span>
+      <button className="btn small ghost" onClick={check}>
+        Check for updates
+      </button>
+      {status && <span className="hint">{status}</span>}
+    </div>
   );
 }

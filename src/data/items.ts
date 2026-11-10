@@ -99,20 +99,25 @@ export async function addItems(
     const ref = doc(items(hid));
     const key = catalogKey(entry.name);
     const before = known.get(key);
-    const stores = [opts.store, ...(before?.stores ?? []).filter((s) => s !== opts.store)].slice(
-      0,
-      3,
-    );
-    const storeInfo = Object.fromEntries(
+    // Imports can name their own store and price; otherwise use the current store.
+    const store = entry.store ?? opts.store;
+    const stores = [store, ...(before?.stores ?? []).filter((s) => s !== store)].slice(0, 3);
+    const storeInfo: Partial<Record<StoreId, StoreInfo>> = Object.fromEntries(
       Object.entries(before?.storeInfo ?? {}).filter(([s]) => stores.includes(s as StoreId)),
     );
+    if (entry.priceCents != null) {
+      storeInfo[store] = {
+        ...storeInfo[store],
+        price: { cents: entry.priceCents, kind: entry.priceKind ?? 'manual', at: now },
+      };
+    }
     batch.set(ref, {
       name: entry.name.slice(0, 120),
       normalizedName,
       list: opts.list,
-      qty: entry.qty,
+      qty: Math.min(999, Math.max(1, Math.round(entry.qty) || 1)),
       unit: '',
-      note: '',
+      note: (entry.note ?? '').slice(0, 300),
       stores,
       storeInfo,
       status: 'open',
