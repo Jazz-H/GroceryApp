@@ -29,7 +29,7 @@ export function AppChrome() {
       )}
       {updateReady && (
         <div className="update-banner" role="status">
-          <span>A new version of Fridgeboard is ready.</span>
+          <span>A new version of Stocked is ready.</span>
           <button className="btn small" onClick={applyUpdate}>
             Update
           </button>

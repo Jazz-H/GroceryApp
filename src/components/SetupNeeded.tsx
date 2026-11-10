@@ -1,7 +1,7 @@
 export function SetupNeeded() {
   return (
     <main className="center-page">
-      <h1 className="wordmark">Fridgeboard</h1>
+      <h1 className="wordmark">Stocked</h1>
       <div className="card prose">
         <h2>Connect Firebase to finish setup</h2>
         <p>This build doesn’t have Firebase settings yet.</p>

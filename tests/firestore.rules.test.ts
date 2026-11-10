@@ -9,6 +9,7 @@ import {
   getDoc,
   getDocs,
   getFirestore,
+  increment,
   serverTimestamp,
   setDoc,
   terminate,
@@ -252,6 +253,20 @@ describe('activity log', () => {
     );
   });
 
+  it('allows logging that someone joined a trip', async () => {
+    await assertSucceeds(
+      setDoc(doc(as('alex'), 'households', HID, 'activity', 'e6'), {
+        actorId: 'alex',
+        type: 'trip_join',
+        itemIds: [],
+        itemNames: [],
+        batchId: 'b6',
+        store: 'ht',
+        at: serverTimestamp(),
+      }),
+    );
+  });
+
   it('never allows editing or deleting entries', async () => {
     const ref = doc(as('alex'), 'households', HID, 'activity', 'e1');
     await assertFails(updateDoc(ref, { itemNames: ['Nothing'] }));
@@ -285,6 +300,167 @@ describe('push subscriptions', () => {
       setDoc(doc(as('alex'), 'households', HID, 'pushSubs', 's4'), {
         ...sub('alex'),
         endpoint: 'http://evil.example.com',
+      }),
+    );
+  });
+});
+
+function receipt(by: string, paidBy = by) {
+  return {
+    store: 'ht',
+    purchasedAt: 1767000000000,
+    paidBy,
+    createdBy: by,
+    createdAt: serverTimestamp(),
+    subtotalCents: 399,
+    taxCents: 0,
+    savingsCents: 0,
+    totalCents: 399,
+    lines: [{ raw: 'MILK', name: 'Milk', qty: 1, cents: 399, itemId: 'milk' }],
+  };
+}
+
+describe('receipts', () => {
+  it('saves a receipt, its prices, a remembered match and the log entry in one batch', async () => {
+    const db = as('alex');
+    const batch = writeBatch(db);
+    batch.set(doc(db, 'households', HID, 'receipts', 'r1'), receipt('alex'));
+    batch.update(doc(db, 'households', HID, 'items', 'milk'), {
+      'storeInfo.ht.price': { cents: 399, kind: 'paid', at: 1767000000000 },
+      status: 'checked',
+      checkedBy: 'alex',
+      updatedBy: 'alex',
+      updatedAt: serverTimestamp(),
+    });
+    batch.set(doc(db, 'households', HID, 'aliases', 'ht~milk'), {
+      itemId: 'milk',
+      store: 'ht',
+      raw: 'MILK',
+      by: 'alex',
+    });
+    batch.set(doc(db, 'households', HID, 'activity', 'e5'), {
+      actorId: 'alex',
+      type: 'receipt',
+      itemIds: ['milk'],
+      itemNames: ['Milk'],
+      batchId: 'b5',
+      store: 'ht',
+      detail: '$3.99',
+      at: serverTimestamp(),
+    });
+    await assertSucceeds(batch.commit());
+  });
+
+  it('blocks non-members and faked authors or payers', async () => {
+    await assertFails(setDoc(doc(as('sam'), 'households', HID, 'receipts', 'r2'), receipt('sam')));
+    await assertFails(setDoc(doc(as('alex'), 'households', HID, 'receipts', 'r3'), receipt('sam')));
+    await assertFails(
+      setDoc(doc(as('alex'), 'households', HID, 'receipts', 'r4'), receipt('alex', 'mallory')),
+    );
+    await assertFails(getDocs(collection(as('sam'), 'households', HID, 'receipts')));
+  });
+
+  it('lets members fix and delete receipts but keeps the author', async () => {
+    const ref = doc(as('alex'), 'households', HID, 'receipts', 'r5');
+    await assertSucceeds(setDoc(ref, receipt('alex')));
+    await assertSucceeds(updateDoc(ref, { totalCents: 450 }));
+    await assertFails(updateDoc(ref, { createdBy: 'sam' }));
+    await assertSucceeds(deleteDoc(ref));
+  });
+
+  it('keeps remembered matches private to the household', async () => {
+    await assertFails(
+      setDoc(doc(as('sam'), 'households', HID, 'aliases', 'ht~x'), { itemId: 'milk' }),
+    );
+    await assertFails(setDoc(doc(as('alex'), 'households', HID, 'aliases', 'ht~y'), { itemId: 3 }));
+  });
+});
+
+describe('usuals catalog and pickup orders', () => {
+  it('adds an item and its catalog entry together, and keeps the entry when the item is removed', async () => {
+    const db = as('alex');
+    const add = writeBatch(db);
+    add.set(doc(db, 'households', HID, 'items', 'eggs'), {
+      ...item('alex'),
+      name: 'Eggs',
+      normalizedName: 'eggs',
+    });
+    add.set(
+      doc(db, 'households', HID, 'catalog', 'eggs'),
+      { name: 'Eggs', count: increment(1), addedAt: [1], stores: ['ht'], storeInfo: {} },
+      { merge: true },
+    );
+    await assertSucceeds(add.commit());
+
+    const remove = writeBatch(db);
+    remove.delete(doc(db, 'households', HID, 'items', 'eggs'));
+    remove.set(
+      doc(db, 'households', HID, 'catalog', 'eggs'),
+      { name: 'Eggs', stores: ['ht'], storeInfo: {}, count: increment(0) },
+      { merge: true },
+    );
+    await assertSucceeds(remove.commit());
+    // First-ever snapshot of an item the catalog hasn't seen (count created at 0).
+    await assertSucceeds(
+      setDoc(
+        doc(db, 'households', HID, 'catalog', 'milk'),
+        { name: 'Milk', stores: ['ht'], storeInfo: {}, count: increment(0) },
+        { merge: true },
+      ),
+    );
+  });
+
+  it('keeps the catalog private and well-formed', async () => {
+    await assertFails(getDocs(collection(as('sam'), 'households', HID, 'catalog')));
+    await assertFails(
+      setDoc(doc(as('sam'), 'households', HID, 'catalog', 'x'), { name: 'X', count: 1 }),
+    );
+    await assertFails(setDoc(doc(as('alex'), 'households', HID, 'catalog', 'y'), { name: 'Y' }));
+  });
+
+  it('allows placing and picking up a pickup order, with feed entries', async () => {
+    const db = as('alex');
+    const order = writeBatch(db);
+    order.update(doc(db, 'households', HID, 'items', 'milk'), {
+      status: 'ordered',
+      updatedBy: 'alex',
+      updatedAt: serverTimestamp(),
+    });
+    order.set(doc(db, 'households', HID, 'activity', 'o1'), {
+      actorId: 'alex',
+      type: 'order',
+      itemIds: ['milk'],
+      itemNames: ['Milk'],
+      batchId: 'bo',
+      store: 'target',
+      at: serverTimestamp(),
+    });
+    await assertSucceeds(order.commit());
+
+    const pickup = writeBatch(db);
+    pickup.update(doc(db, 'households', HID, 'items', 'milk'), {
+      status: 'checked',
+      checkedBy: 'alex',
+      updatedBy: 'alex',
+      updatedAt: serverTimestamp(),
+    });
+    pickup.set(doc(db, 'households', HID, 'activity', 'p1'), {
+      actorId: 'alex',
+      type: 'pickup',
+      itemIds: ['milk'],
+      itemNames: ['Milk'],
+      batchId: 'bp',
+      store: 'target',
+      at: serverTimestamp(),
+    });
+    await assertSucceeds(pickup.commit());
+  });
+
+  it('still rejects unknown item statuses', async () => {
+    await assertFails(
+      updateDoc(doc(as('alex'), 'households', HID, 'items', 'milk'), {
+        status: 'lost',
+        updatedBy: 'alex',
       }),
     );
   });

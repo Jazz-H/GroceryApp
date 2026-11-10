@@ -1,43 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs>
-    <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffd54a"/>
-      <stop offset="1" stop-color="#ffab1f"/>
-    </linearGradient>
-  </defs>
-  <!-- Sunny tile -->
-  <rect width="512" height="512" rx="112" fill="url(#sun)"/>
-  <!-- Sparkles -->
-  <path d="M86 92 l7 19 19 7 -19 7 -7 19 -7 -19 -19 -7 19 -7z" fill="#fff"/>
-  <path d="M428 392 l5 13 13 5 -13 5 -5 13 -5 -13 -13 -5 13 -5z" fill="#fff" opacity=".9"/>
-  <!-- Feet -->
-  <rect x="168" y="430" width="40" height="34" rx="10" fill="#12304f"/>
-  <rect x="304" y="430" width="40" height="34" rx="10" fill="#12304f"/>
-  <!-- Fridge body -->
-  <rect x="132" y="54" width="248" height="390" rx="46" fill="#ffffff" stroke="#12304f" stroke-width="14"/>
-  <path d="M139 176 H373" stroke="#12304f" stroke-width="12"/>
-  <!-- Handles -->
-  <rect x="338" y="92" width="16" height="58" rx="8" fill="#12304f"/>
-  <rect x="338" y="200" width="16" height="92" rx="8" fill="#12304f"/>
-  <!-- Happy face on the freezer door -->
-  <circle cx="212" cy="112" r="12" fill="#12304f"/>
-  <circle cx="268" cy="112" r="12" fill="#12304f"/>
-  <circle cx="208" cy="107" r="4" fill="#fff"/>
-  <circle cx="264" cy="107" r="4" fill="#fff"/>
-  <ellipse cx="186" cy="136" rx="14" ry="8" fill="#ff8fa3" opacity=".85"/>
-  <ellipse cx="294" cy="136" rx="14" ry="8" fill="#ff8fa3" opacity=".85"/>
-  <path d="M220 134 Q240 156 260 134" fill="none" stroke="#12304f" stroke-width="9" stroke-linecap="round"/>
-  <!-- Whiteboard checklist on the door -->
-  <rect x="164" y="206" width="156" height="184" rx="16" fill="#f3f6f8" stroke="#c9d5de" stroke-width="6"/>
-  <circle cx="192" cy="250" r="12" fill="#0f8a7e"/>
-  <path d="M186 250 l5 5 9 -11" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M214 251 q14 -6 28 -1 t28 0 t22 -2" fill="none" stroke="#0f8a7e" stroke-width="9" stroke-linecap="round" opacity=".55"/>
-  <circle cx="192" cy="300" r="11" fill="none" stroke="#d4466a" stroke-width="5"/>
-  <path d="M214 301 q12 -7 26 -1 t26 1 t18 -3" fill="none" stroke="#d4466a" stroke-width="9" stroke-linecap="round"/>
-  <circle cx="192" cy="348" r="11" fill="none" stroke="#1d5fd0" stroke-width="5"/>
-  <path d="M214 349 q12 -6 24 -1 t22 0" fill="none" stroke="#1d5fd0" stroke-width="9" stroke-linecap="round"/>
-  <!-- Tomato magnet -->
-  <circle cx="314" cy="214" r="26" fill="#ff5a4f" stroke="#12304f" stroke-width="7"/>
-  <path d="M314 192 q-12 -10 -20 -4 q10 2 14 8 q-8 4 -6 10 q8 -6 12 -6 q4 0 12 6 q2 -6 -6 -10 q4 -6 14 -8 q-8 -6 -20 4z" fill="#2fa84f" stroke="#12304f" stroke-width="4" stroke-linejoin="round"/>
-  <circle cx="304" cy="222" r="5" fill="#fff" opacity=".6"/>
+  <!-- Stocked: pantry shelves, with a check in each of your two marker colors. -->
+  <rect width="512" height="512" rx="112" fill="#0f8a7e"/>
+  <g transform="translate(256 256) scale(1) translate(-256 -256)">
+  <g transform="translate(0 -12)">
+    <rect x="104" y="112" width="132" height="132" rx="18" fill="#ffffff"/>
+    <path d="M141 177 l22 22 36 -42" fill="none" stroke="#0f8a7e" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="252" y="160" width="76" height="84" rx="14" fill="#ffd27a"/>
+    <rect x="342" y="132" width="66" height="112" rx="14" fill="#d4466a"/>
+    <rect x="88" y="244" width="336" height="24" rx="12" fill="#0a5f57"/>
+    <rect x="104" y="318" width="70" height="86" rx="14" fill="#d4466a"/>
+    <rect x="190" y="276" width="128" height="128" rx="18" fill="#ffffff"/>
+    <path d="M225 339 l22 22 36 -42" fill="none" stroke="#d4466a" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="334" y="306" width="74" height="98" rx="14" fill="#ffd27a"/>
+    <rect x="88" y="404" width="336" height="24" rx="12" fill="#0a5f57"/>
+  </g>
+  </g>
 </svg>

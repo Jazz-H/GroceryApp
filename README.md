@@ -1,4 +1,4 @@
-# Fridgeboard
+# Stocked
 
 A shared grocery list for two phones (Android + iPhone) that replaces the whiteboard on the fridge. It's a free, installable web app (PWA) with Google sign-in and live sync through Firebase.
 
@@ -11,6 +11,11 @@ A shared grocery list for two phones (Android + iPhone) that replaces the whiteb
 - **Trips**: shopping together (shared live check-off) or solo (partner sees a banner)
 - **Notifications** when your partner starts a trip or adds groceries
 - Works **offline** in the store and syncs when signal comes back
+- **Usuals**: one-tap chips for things you buy regularly that aren't on the list, timed to how often you buy them. Re-adding something brings back its prices and aisles
+- **Undo** for 6 seconds after removing items or clearing checked ones
+- **Target pickup**: build the order with Find links into Target, mark items Added, then **Order placed** keeps them under "Ordered for pickup" until **Picked up**
+- **Price history** in each item: what you paid at each store, and which was cheapest last time
+- **Receipts → spending**: ending a trip offers to add its receipt. Snap a receipt, black out card info, and Gemini reads it. Matched items get the price you actually paid and are checked off. The **Spend** tab shows monthly totals, a budget, spending by store and by person, and a CSV export
 
 Planning docs: [discovery plan](docs/discovery-plan.md) · [design concepts](docs/design-concepts.html)
 
@@ -54,6 +59,11 @@ Everything here runs on Firebase's free **Spark** plan. No credit card is needed
    - **iPhone (Safari):** Share → **Add to Home Screen**, then open it from the new icon and sign in **there**, not in Safari.
    - **Android (Chrome):** ⋮ menu → **Install app**.
 8. **Connect your accounts:** one of you taps **Create household**. The other taps **Join with a code** and enters the code from Settings → Invite.
+9. **Turn on receipt reading (optional):** in the Firebase console, open **AI Logic → Get started** and pick the **Gemini Developer API**. It's free and needs no credit card. Then redeploy. Without this step, receipts can still be typed in by hand.
+
+   Against the local emulators there's no Gemini, so **Read receipt** returns a sample Harris Teeter receipt to test with.
+
+   Privacy: photos are never stored. Black boxes you draw are burned into the image before it's sent to Gemini. Google may use data sent to the free tier to improve its products.
 
 ## Notifications (free, about 10 more minutes)
 
@@ -86,6 +96,10 @@ What you'll get:
 
 Each phone can turn either kind off in Settings.
 
+## Automatic deploys
+
+Pushes to `main` are tested and deployed automatically by GitHub Actions. Pull requests run the same checks. One-time setup: [docs/AUTO-DEPLOY.md](docs/AUTO-DEPLOY.md).
+
 ## Scripts
 
 | Command              | What it does                                               |
@@ -93,7 +107,7 @@ Each phone can turn either kind off in Settings.
 | `npm run dev:local`  | App against local emulators                                |
 | `npm run dev`        | App against your real Firebase project (uses `.env.local`) |
 | `npm run emulators`  | Start local Auth + Firestore emulators                     |
-| `npm test`           | Unit tests (sorting, totals, parsing, activity grouping)   |
+| `npm test`           | Unit tests (sorting, totals, parsing, activity, receipts)  |
 | `npm run test:rules` | Security-rule tests against the Firestore emulator         |
 | `npm run typecheck`  | TypeScript check                                           |
 | `npm run build`      | Production build into `dist/`                              |
@@ -112,9 +126,11 @@ Each phone can turn either kind off in Settings.
 
 ```
 src/
-  lib/          pure logic + tests: aisle sorting, totals, quick-add parsing, activity feed
-  data/         Firestore reads/writes: household, items, trips, live hooks
-  components/   screens: sign-in, onboarding, Fridge Board, item sheet, feed, settings
+  lib/          pure logic + tests: aisle sorting, totals, quick-add parsing, activity feed,
+                receipt checks, line matching, spending summaries
+  data/         Firestore reads/writes: household, items, trips, receipts, Gemini call, live hooks
+  components/   screens: sign-in, onboarding, Fridge Board, item sheet, receipts, spending,
+                feed, settings
 worker/         push relay (Cloudflare Worker): Web Push encryption + VAPID, no dependencies
 public/push-sw.js  shows and merges notifications on the phone
 tests/          security-rule and relay tests (run inside the Firestore emulator)
@@ -122,5 +138,5 @@ tests/          security-rule and relay tests (run inside the Firestore emulator
 
 ## What's next
 
-1. Receipts → spending with Gemini (Firebase AI Logic, free tier)
-2. Live Harris Teeter prices and aisles from the Kroger API (after the location spike)
+1. Live Harris Teeter prices and aisles from the Kroger API (after the location spike)
+2. Price history per item across stores, from saved receipts

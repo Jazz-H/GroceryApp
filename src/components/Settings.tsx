@@ -72,9 +72,9 @@ function Invite({ household, uid }: { household: Household; uid: string }) {
     }
   }
   async function share() {
-    const text = `Join our grocery list on Fridgeboard: open ${location.origin}, sign in, and enter code ${household.inviteCode}`;
+    const text = `Join our grocery list on Stocked: open ${location.origin}, sign in, and enter code ${household.inviteCode}`;
     if (navigator.share)
-      await navigator.share({ title: 'Fridgeboard invite', text }).catch(() => undefined);
+      await navigator.share({ title: 'Stocked invite', text }).catch(() => undefined);
     else await copy();
   }
   return (
@@ -286,7 +286,7 @@ function AppVersion() {
   return (
     <div className="row-actions version-row">
       <span className="hint">
-        Fridgeboard {__APP_VERSION__} · built {__BUILD_ID__} UTC
+        Stocked {__APP_VERSION__} · built {__BUILD_ID__} UTC
         {usingEmulators ? ' · local emulators' : ''}
       </span>
       <button className="btn small ghost" onClick={check}>

@@ -1,5 +1,5 @@
 import { Timestamp, type DocumentData, type DocumentSnapshot } from 'firebase/firestore';
-import type { ActivityEvent, Household, Item, Trip } from '../types';
+import type { ActivityEvent, CatalogEntry, Household, Item, Receipt, Trip } from '../types';
 import { isStoreId } from '../lib/stores';
 
 /** Firestore timestamps (including pending local ones) → epoch ms. */
@@ -26,7 +26,7 @@ export function toItem(snap: DocumentSnapshot): Item {
     note: String(d.note ?? ''),
     stores: stores.length ? stores : ['ht'],
     storeInfo: d.storeInfo ?? {},
-    status: d.status === 'checked' ? 'checked' : 'open',
+    status: d.status === 'checked' || d.status === 'ordered' ? d.status : 'open',
     createdBy: String(d.createdBy ?? ''),
     createdAt: ms(d.createdAt),
     updatedBy: String(d.updatedBy ?? ''),
@@ -60,6 +60,51 @@ export function toHousehold(snap: DocumentSnapshot): Household {
     inviteCode: String(d.inviteCode ?? ''),
     zip: String(d.zip ?? ''),
     zoneOrder: d.zoneOrder ?? {},
+    budgetCents: typeof d.budgetCents === 'number' && d.budgetCents > 0 ? d.budgetCents : null,
+  };
+}
+
+const RECEIPT_STORES = ['ht', 'target', 'amazon', 'other'];
+
+const int = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math.round(v) : 0);
+
+export function toReceipt(snap: DocumentSnapshot): Receipt {
+  const d = data(snap);
+  const lines = Array.isArray(d.lines) ? d.lines : [];
+  return {
+    id: snap.id,
+    store: RECEIPT_STORES.includes(d.store) ? d.store : 'other',
+    purchasedAt: ms(d.purchasedAt),
+    paidBy: String(d.paidBy ?? ''),
+    createdBy: String(d.createdBy ?? ''),
+    createdAt: ms(d.createdAt),
+    subtotalCents: int(d.subtotalCents),
+    taxCents: int(d.taxCents),
+    savingsCents: int(d.savingsCents),
+    totalCents: int(d.totalCents),
+    lines: lines.map((l: DocumentData) => ({
+      raw: String(l.raw ?? ''),
+      name: String(l.name ?? ''),
+      qty: int(l.qty) || 1,
+      cents: int(l.cents),
+      itemId: typeof l.itemId === 'string' ? l.itemId : null,
+      itemKey: typeof l.itemKey === 'string' ? l.itemKey : null,
+    })),
+  };
+}
+
+export function toCatalog(snap: DocumentSnapshot): CatalogEntry {
+  const d = data(snap);
+  const stores = Array.isArray(d.stores) ? d.stores.filter(isStoreId) : [];
+  return {
+    key: snap.id,
+    name: String(d.name ?? ''),
+    count: typeof d.count === 'number' ? d.count : 0,
+    addedAt: Array.isArray(d.addedAt)
+      ? d.addedAt.filter((t: unknown) => typeof t === 'number')
+      : [],
+    stores,
+    storeInfo: d.storeInfo ?? {},
   };
 }
 

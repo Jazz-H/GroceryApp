@@ -2,8 +2,16 @@ import { useEffect, useState } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { collection, doc, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { auth, db } from '../firebase';
-import type { ActivityEvent, Household, Item, Trip } from '../types';
-import { toActivity, toHousehold, toItem, toTrip } from './convert';
+import type {
+  ActivityEvent,
+  CatalogEntry,
+  Household,
+  Item,
+  Receipt,
+  Trip,
+  UserProfile,
+} from '../types';
+import { toActivity, toCatalog, toHousehold, toItem, toReceipt, toTrip } from './convert';
 
 export type Loadable<T> =
   { status: 'loading' } | { status: 'ready'; value: T } | { status: 'error'; error: Error };
@@ -34,7 +42,8 @@ export function useHouseholdId(uid: string): Loadable<string | null> {
           // Right after creating or joining, wait until the server has the write. Otherwise the
           // household listener can reach the server first and be denied.
           if (snap.metadata.hasPendingWrites) return;
-          setState({ status: 'ready', value: (snap.data()?.householdId as string | null) ?? null });
+          const profile = snap.data() as UserProfile | undefined;
+          setState({ status: 'ready', value: profile?.householdId ?? null });
         },
         (error) => setState({ status: 'error', error }),
       ),
@@ -49,13 +58,20 @@ export function useHousehold(hid: string): Loadable<Household> {
     let unsubscribe = () => {};
     let timer: ReturnType<typeof setTimeout> | undefined;
     let attempt = 0;
+    let shown = false;
     const listen = () => {
       unsubscribe = onSnapshot(
         doc(db, 'households', hid),
         { includeMetadataChanges: true },
         (snap) => {
           attempt = 0;
-          if (snap.exists()) setState({ status: 'ready', value: toHousehold(snap) });
+          if (snap.exists()) {
+            // Right after creating a household, wait until it's saved before showing the app,
+            // so the list, feed and trip listeners that start next aren't refused by the rules.
+            if (!shown && snap.metadata.hasPendingWrites) return;
+            shown = true;
+            setState({ status: 'ready', value: toHousehold(snap) });
+          }
           // A miss from the offline cache isn't final: wait for the server's answer.
           else if (!snap.metadata.fromCache)
             setState({ status: 'error', error: new Error('Household not found') });
@@ -78,12 +94,21 @@ export function useHousehold(hid: string): Loadable<Household> {
   return state;
 }
 
-export function useItems(hid: string): Item[] {
-  const [items, setItems] = useState<Item[]>([]);
+/** The household's items, or null until the first answer arrives (from the cache or server). */
+export function useItems(hid: string): Item[] | null {
+  const [items, setItems] = useState<Item[] | null>(null);
   useEffect(
     () =>
-      onSnapshot(query(collection(db, 'households', hid, 'items'), orderBy('createdAt')), (snap) =>
-        setItems(snap.docs.map(toItem)),
+      onSnapshot(
+        query(collection(db, 'households', hid, 'items'), orderBy('createdAt')),
+        // Needed so the server's "still empty" answer arrives even when nothing else changed.
+        { includeMetadataChanges: true },
+        (snap) => {
+          // An empty answer from a cold cache isn't "no items" yet: wait for the server.
+          if (snap.empty && snap.metadata.fromCache && navigator.onLine) return;
+          setItems(snap.docs.map(toItem));
+        },
+        () => setItems((current) => current ?? []),
       ),
     [hid],
   );
@@ -114,6 +139,49 @@ export function useActiveTrips(hid: string): Trip[] {
     [hid],
   );
   return trips;
+}
+
+export function useReceipts(hid: string, max = 300): Receipt[] {
+  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  useEffect(
+    () =>
+      onSnapshot(
+        query(
+          collection(db, 'households', hid, 'receipts'),
+          orderBy('purchasedAt', 'desc'),
+          limit(max),
+        ),
+        (snap) => setReceipts(snap.docs.map(toReceipt)),
+      ),
+    [hid, max],
+  );
+  return receipts;
+}
+
+/** Everything the household has added before, for "usuals" and restoring prices on re-add. */
+export function useCatalog(hid: string): CatalogEntry[] {
+  const [entries, setEntries] = useState<CatalogEntry[]>([]);
+  useEffect(
+    () =>
+      onSnapshot(collection(db, 'households', hid, 'catalog'), (snap) =>
+        setEntries(snap.docs.map(toCatalog)),
+      ),
+    [hid],
+  );
+  return entries;
+}
+
+/** Remembered receipt matches: alias key → item id. */
+export function useAliases(hid: string): Map<string, string> {
+  const [aliases, setAliases] = useState<Map<string, string>>(() => new Map());
+  useEffect(
+    () =>
+      onSnapshot(collection(db, 'households', hid, 'aliases'), (snap) =>
+        setAliases(new Map(snap.docs.map((d) => [d.id, String(d.data().itemId ?? '')]))),
+      ),
+    [hid],
+  );
+  return aliases;
 }
 
 /** True while the browser reports no network. Writes still work and sync later. */

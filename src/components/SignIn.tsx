@@ -21,8 +21,8 @@ export function SignIn({ error }: { error?: string | null }) {
   return (
     <main className="center-page signin">
       <img className="app-icon" src="/icon-192.png" width="112" height="112" alt="" />
-      <h1 className="wordmark">Fridgeboard</h1>
-      <p className="muted">The fridge whiteboard, on both your phones.</p>
+      <h1 className="wordmark">Stocked</h1>
+      <p className="muted">Keep the kitchen stocked, together.</p>
       <button className="btn primary big" onClick={go} disabled={busy}>
         <GoogleMark /> {busy ? 'Opening Google…' : 'Sign in with Google'}
       </button>

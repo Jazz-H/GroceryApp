@@ -21,7 +21,7 @@ function Authed() {
     finishRedirectSignIn().catch((e: Error & { code?: string }) =>
       setRedirectError(
         e.code === 'auth/missing-initial-state' || /initial state/i.test(e.message)
-          ? 'the sign-in window lost track of the app. Close Fridgeboard completely, reopen it, and try again.'
+          ? 'the sign-in window lost track of the app. Close Stocked completely, reopen it, and try again.'
           : e.message,
       ),
     );
@@ -57,7 +57,7 @@ function LoadedHousehold({ user, hid }: { user: User; hid: string }) {
 function Splash({ message }: { message?: string }) {
   return (
     <main className="splash">
-      <h1 className="wordmark">Fridgeboard</h1>
+      <h1 className="wordmark">Stocked</h1>
       <p className="muted">{message ?? 'Loading…'}</p>
     </main>
   );

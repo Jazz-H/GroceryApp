@@ -9,7 +9,7 @@ function logTrip(
   batch: ReturnType<typeof writeBatch>,
   hid: string,
   uid: string,
-  type: 'trip_start' | 'trip_end',
+  type: 'trip_start' | 'trip_join' | 'trip_end',
   store: StoreId,
   detail?: string,
 ) {
@@ -42,6 +42,7 @@ export async function startTrip(hid: string, uid: string, store: StoreId, mode: 
 export async function joinTrip(hid: string, uid: string, trip: Trip) {
   const batch = writeBatch(db);
   batch.update(doc(trips(hid), trip.id), { participants: arrayUnion(uid), mode: 'together' });
+  logTrip(batch, hid, uid, 'trip_join', trip.store);
   await batch.commit();
 }
 

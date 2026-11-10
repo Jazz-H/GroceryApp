@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { aisleLabel, aisleSortKey, buildBoard, NOT_PLACED } from './aisles';
+import { aisleLabel, aisleSortKey, buildBoard, NOT_PLACED, ORDERED } from './aisles';
 import { DEFAULT_ZONE_ORDER } from './stores';
 import { aisle, makeItem } from './testItems';
 
@@ -113,5 +113,18 @@ describe('buildBoard', () => {
       'store:Amazon',
       'Coffee filters',
     ]);
+  });
+});
+
+describe('ordered items', () => {
+  it('go last, under their own heading, whatever the sort', () => {
+    const milk = makeItem('Milk', ['target'], {}, { status: 'ordered' });
+    const eggs = makeItem('Eggs', ['target']);
+    for (const sortByAisle of [false, true]) {
+      const rows = buildBoard([milk, eggs], { store: 'target', sortByAisle, zoneOrder: {} });
+      const labels = rows.map((r) => (r.type === 'item' ? r.item.name : r.label));
+      expect(labels.slice(-2)).toEqual([ORDERED, 'Milk']);
+      expect(labels).toContain('Eggs');
+    }
   });
 });

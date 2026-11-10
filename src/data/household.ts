@@ -11,7 +11,7 @@ import type { User } from 'firebase/auth';
 import { db } from '../firebase';
 import { DEFAULT_ZONE_ORDER, MEMBER_COLORS } from '../lib/stores';
 import { cleanInviteCode, makeInviteCode } from '../lib/text';
-import type { Household, Member, StoreId } from '../types';
+import type { Household, Member, StoreId, UserProfile } from '../types';
 
 function memberFor(user: User, color: string): Member {
   const name = (user.displayName ?? user.email ?? 'Me').split(' ')[0];
@@ -31,7 +31,8 @@ export async function createHousehold(user: User, name: string, zip: string): Pr
     zoneOrder: DEFAULT_ZONE_ORDER,
   });
   batch.set(doc(db, 'invites', code), { householdId: ref.id, createdBy: user.uid });
-  batch.set(doc(db, 'users', user.uid), { householdId: ref.id }, { merge: true });
+  const profile: UserProfile = { householdId: ref.id };
+  batch.set(doc(db, 'users', user.uid), profile, { merge: true });
   await batch.commit();
   return ref.id;
 }
@@ -57,7 +58,8 @@ export async function joinHousehold(user: User, rawCode: string): Promise<string
       'That code is no longer valid, or the household is full. Ask for a new code.',
     );
   }
-  await setDoc(doc(db, 'users', user.uid), { householdId: hid }, { merge: true });
+  const profile: UserProfile = { householdId: hid };
+  await setDoc(doc(db, 'users', user.uid), profile, { merge: true });
   return hid;
 }
 
@@ -92,5 +94,6 @@ export async function leaveHousehold(household: Household, uid: string) {
   await updateDoc(doc(db, 'households', household.id), {
     memberIds: household.memberIds.filter((m) => m !== uid),
   });
-  await setDoc(doc(db, 'users', uid), { householdId: null }, { merge: true });
+  const cleared: UserProfile = { householdId: null };
+  await setDoc(doc(db, 'users', uid), cleared, { merge: true });
 }

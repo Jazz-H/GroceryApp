@@ -46,7 +46,7 @@ function storeFrom(value: string | undefined): StoreId | undefined {
  */
 export function parseImport(text: string, defaultStore: StoreId): QuickAdd[] {
   const lines = text
-    .replace(/^﻿/, '')
+    .replace(/^\uFEFF/, '')
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean);

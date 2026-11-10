@@ -1,0 +1,84 @@
+# Every push to main (for example a merged pull request) is tested and, if green, goes live at
+# https://fridgeboard-642b9.web.app. Phones pick it up via the in-app "Update" banner.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  FIREBASE_PROJECT_ID: fridgeboard-642b9
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+
+      - name: Lint, typecheck and test
+        run: |
+          npm run lint
+          npm run typecheck
+          npm test
+          npm run test:rules
+
+      - name: Firebase config for the build
+        run: node scripts/write-env.mjs
+        env:
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_VAPID_PUBLIC_KEY: ${{ vars.VITE_VAPID_PUBLIC_KEY }}
+          VITE_PUSH_URL: ${{ vars.VITE_PUSH_URL }}
+
+      - run: npm run build
+
+      - name: Deploy to Firebase (Hosting + Firestore rules)
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FRIDGEBOARD_642B9 }}
+        run: |
+          if [ -z "$SERVICE_ACCOUNT" ]; then
+            echo "::error::Missing secret FIREBASE_SERVICE_ACCOUNT_FRIDGEBOARD_642B9. See docs/AUTO-DEPLOY.md."
+            exit 1
+          fi
+          printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          npx firebase deploy --only hosting,firestore:rules --project "$FIREBASE_PROJECT_ID" --non-interactive --message "GitHub ${GITHUB_SHA::7}"
+
+  push-relay:
+    # Optional: redeploys the notification relay when worker/ changes and a Cloudflare token exists.
+    needs: deploy
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - id: changed
+        run: |
+          if git diff --quiet HEAD~1 HEAD -- worker/; then echo "worker=false" >> "$GITHUB_OUTPUT"; else echo "worker=true" >> "$GITHUB_OUTPUT"; fi
+      - name: Deploy push relay
+        if: steps.changed.outputs.worker == 'true' && env.CLOUDFLARE_API_TOKEN != ''
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          workingDirectory: worker

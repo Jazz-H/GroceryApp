@@ -44,7 +44,8 @@ export function Sheet({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', onKey);
-    ref.current?.focus();
+    // Keep focus on a field inside the sheet that focused itself (e.g. the add box).
+    if (!ref.current?.contains(document.activeElement)) ref.current?.focus();
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
   return (

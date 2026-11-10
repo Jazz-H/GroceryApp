@@ -1,17 +1,17 @@
-/* Fridgeboard push handling. Loaded into the generated service worker via importScripts. */
+/* Stocked push handling. Loaded into the generated service worker via importScripts. */
 
 self.addEventListener('push', (event) => {
   let data = {};
   try {
     data = event.data ? event.data.json() : {};
   } catch {
-    data = { title: 'Fridgeboard', body: event.data ? event.data.text() : '' };
+    data = { title: 'Stocked', body: event.data ? event.data.text() : '' };
   }
 
   event.waitUntil(
     (async () => {
-      const tag = data.tag || data.kind || 'fridgeboard';
-      let title = data.title || 'Fridgeboard';
+      const tag = data.tag || data.kind || 'stocked';
+      let title = data.title || 'Stocked';
       let body = data.body || '';
       let items = Array.isArray(data.items) ? data.items : [];
 

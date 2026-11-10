@@ -1,19 +1,29 @@
 import { useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
-import { useActiveTrips, useActivity, useItems, useOnline } from '../data/hooks';
+import {
+  useActiveTrips,
+  useActivity,
+  useAliases,
+  useCatalog,
+  useItems,
+  useOnline,
+} from '../data/hooks';
 import { endTrip, joinTrip } from '../data/trips';
 import { storeDef } from '../lib/stores';
 import { refreshSubscription } from '../push';
-import type { Household } from '../types';
+import type { Household, StoreId, Trip } from '../types';
 import { Feed } from './Feed';
 import { ListScreen } from './ListScreen';
+import { ReceiptFlow } from './ReceiptFlow';
 import { Settings } from './Settings';
+import { Spend } from './Spend';
 import { Avatar } from './ui';
 import { AppChrome } from './AppChrome';
 
-type Tab = 'list' | 'us' | 'settings';
+type Tab = 'list' | 'spend' | 'us' | 'settings';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'list', label: 'List' },
+  { id: 'spend', label: 'Spend' },
   { id: 'us', label: 'Us' },
   { id: 'settings', label: 'Settings' },
 ];
@@ -21,14 +31,25 @@ const TABS: { id: Tab; label: string }[] = [
 function tabFromHash(): Tab {
   const h = location.hash.replace('#', '');
   if (h.startsWith('import=')) return 'settings';
-  return h === 'us' || h === 'settings' ? h : 'list';
+  return h === 'us' || h === 'settings' || h === 'spend' ? h : 'list';
 }
 
 export function Shell({ user, household }: { user: User; household: Household }) {
   const [tab, setTab] = useState<Tab>(tabFromHash);
-  const items = useItems(household.id);
+  const loadedItems = useItems(household.id);
+  const items = loadedItems ?? [];
   const activity = useActivity(household.id);
+  const catalog = useCatalog(household.id);
+  const aliases = useAliases(household.id);
   const trips = useActiveTrips(household.id);
+  // After you end a trip, offer to add its receipt right away.
+  const [receiptFor, setReceiptFor] = useState<StoreId | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  async function finishTrip(trip: Trip) {
+    await endTrip(household.id, user.uid, trip);
+    setReceiptFor(trip.store);
+  }
   const online = useOnline();
 
   useEffect(() => {
@@ -83,7 +104,7 @@ export function Shell({ user, household }: { user: User; household: Household })
                 : `${starter?.name ?? 'Someone'} is shopping ${trip.mode === 'solo' ? 'solo ' : ''}at ${store}`}
             </span>
             {mine ? (
-              <button className="btn small" onClick={() => endTrip(household.id, user.uid, trip)}>
+              <button className="btn small" onClick={() => finishTrip(trip)}>
                 End trip
               </button>
             ) : (
@@ -97,11 +118,40 @@ export function Shell({ user, household }: { user: User; household: Household })
       {/* Keyed by tab so each tab starts at the top instead of inheriting another tab's scroll. */}
       <div className={`screen${tab === 'list' ? ' screen-fixed' : ''}`} key={tab}>
         {tab === 'list' && (
-          <ListScreen user={user} household={household} items={items} trips={trips} />
+          <ListScreen
+            user={user}
+            household={household}
+            items={items}
+            loading={loadedItems === null}
+            trips={trips}
+            catalog={catalog}
+            activity={activity}
+          />
         )}
+        {tab === 'spend' && <Spend household={household} uid={user.uid} items={items} />}
         {tab === 'us' && <Feed household={household} events={activity} />}
         {tab === 'settings' && <Settings user={user} household={household} items={items} />}
       </div>
+      {receiptFor && (
+        <ReceiptFlow
+          household={household}
+          uid={user.uid}
+          items={items}
+          aliases={aliases}
+          initialStore={receiptFor}
+          intro={`Trip to ${storeDef(receiptFor).name} finished. Add the receipt now to record what you paid, or close this to skip.`}
+          onClose={() => setReceiptFor(null)}
+          onSaved={(message) => {
+            setToast(message);
+            window.setTimeout(() => setToast(null), 4000);
+          }}
+        />
+      )}
+      {toast && (
+        <div className="toast shell-toast" role="status">
+          {toast}
+        </div>
+      )}
       <nav className="tabbar" aria-label="Main">
         {TABS.map((t) => (
           <button
@@ -135,6 +185,13 @@ function TabIcon({ id }: { id: Tab }) {
       <svg {...common}>
         <rect x="4" y="3" width="16" height="18" rx="2.5" />
         <path d="M8 8h8M8 12h8M8 16h5" />
+      </svg>
+    );
+  if (id === 'spend')
+    return (
+      <svg {...common}>
+        <path d="M6 3h12v18l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 21z" />
+        <path d="M9 8h6M9 12h6M9 16h3" />
       </svg>
     );
   if (id === 'us')
