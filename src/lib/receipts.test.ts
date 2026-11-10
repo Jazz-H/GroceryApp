@@ -16,6 +16,7 @@ import {
   summarizeMonth,
   toCsv,
   unitCents,
+  monthLabel,
 } from './receipts';
 import { makeItem } from './testItems';
 
@@ -246,5 +247,12 @@ describe('price history', () => {
       ['target', 429],
       ['ht', 499],
     ]);
+  });
+});
+
+describe('monthLabel', () => {
+  it('includes the year', () => {
+    expect(monthLabel('2026-11')).toMatch(/2026$/);
+    expect(monthLabel('2025-10', 'short')).toMatch(/’25$/);
   });
 });
