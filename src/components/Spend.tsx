@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAliases, useReceiptsState } from '../data/hooks';
 import {
   deleteReceipt,
@@ -30,6 +30,14 @@ import { SettleUp } from './SettleUp';
 import { ReceiptFlow } from './ReceiptFlow';
 import { Avatar, Sheet } from './ui';
 
+type RecapLink = { kind: 'week' | 'month'; at: number } | null;
+
+function recapFromHash(): RecapLink {
+  const h = location.hash;
+  const kind = h === '#recap-week' ? 'week' : h === '#recap-month' ? 'month' : null;
+  return kind && { kind, at: Date.now() };
+}
+
 export function Spend({
   household,
   uid,
@@ -51,6 +59,25 @@ export function Spend({
   const cards = useMemo(() => knownCards(receipts), [receipts]);
   const unknownCount = receipts.filter((r) => !r.payments?.length).length;
   const [toast, setToast] = useState<string | null>(null);
+  // Tapping a recap notification opens #recap-week or #recap-month: show that card.
+  const [recapLink, setRecapLink] = useState(recapFromHash);
+  useEffect(() => {
+    const onHash = () => {
+      const link = recapFromHash();
+      if (link) setRecapLink(link);
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  useEffect(() => {
+    if (!recapLink) return;
+    window.history.replaceState(null, '', '#spend');
+    window.setTimeout(
+      () =>
+        document.querySelector('.recap')?.scrollIntoView({ block: 'start', behavior: 'smooth' }),
+      50,
+    );
+  }, [recapLink]);
 
   const summary = useMemo(() => summarizeMonth(receipts, month), [receipts, month]);
   const previous = useMemo(
@@ -97,7 +124,22 @@ export function Spend({
         }}
       />
 
-      <RecapCard household={household} receipts={receipts} onOpen={setMonth} />
+      <RecapCard
+        kind="week"
+        household={household}
+        receipts={receipts}
+        key={`week-${recapLink?.kind === 'week' ? recapLink.at : 0}`}
+        forced={recapLink?.kind === 'week'}
+        onOpen={setMonth}
+      />
+      <RecapCard
+        kind="month"
+        household={household}
+        receipts={receipts}
+        key={`month-${recapLink?.kind === 'month' ? recapLink.at : 0}`}
+        forced={recapLink?.kind === 'month'}
+        onOpen={setMonth}
+      />
 
       <div className="month-nav">
         <button
