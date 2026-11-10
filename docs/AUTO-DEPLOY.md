@@ -35,11 +35,11 @@ Open **https://github.com/Jazz-H/GroceryApp/actions**, choose **Deploy → Run w
 
 Open the failed run in the **Actions** tab. The red step tells you what happened:
 
-| Step | Usual cause | Fix |
-| --- | --- | --- |
-| Lint, typecheck and test | A change broke a check | Ask Claude to fix the failing check. Nothing was deployed. |
-| Firebase config for the build | The site's config couldn't be read | Add `VITE_FIREBASE_API_KEY` and `VITE_FIREBASE_APP_ID` as repository **Variables**, from `.env.local` |
-| Deploy to Firebase | Missing secret, or a permission error | Re-check setup step 4. A "permission denied" message names the role to add to `github-deploy` |
+| Step                          | Usual cause                           | Fix                                                                                                   |
+| ----------------------------- | ------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Lint, typecheck and test      | A change broke a check                | Ask Claude to fix the failing check. Nothing was deployed.                                            |
+| Firebase config for the build | The site's config couldn't be read    | Add `VITE_FIREBASE_API_KEY` and `VITE_FIREBASE_APP_ID` as repository **Variables**, from `.env.local` |
+| Deploy to Firebase            | Missing secret, or a permission error | Re-check setup step 4. A "permission denied" message names the role to add to `github-deploy`         |
 
 ## Notification relay (optional)
 

@@ -28,7 +28,8 @@ const lines = [
   `VITE_FIREBASE_MESSAGING_SENDER_ID=${cfg.messagingSenderId ?? ''}`,
   'VITE_USE_EMULATORS=false',
 ];
-if (process.env.VITE_VAPID_PUBLIC_KEY) lines.push(`VITE_VAPID_PUBLIC_KEY=${process.env.VITE_VAPID_PUBLIC_KEY}`);
+if (process.env.VITE_VAPID_PUBLIC_KEY)
+  lines.push(`VITE_VAPID_PUBLIC_KEY=${process.env.VITE_VAPID_PUBLIC_KEY}`);
 if (process.env.VITE_PUSH_URL) lines.push(`VITE_PUSH_URL=${process.env.VITE_PUSH_URL}`);
 writeFileSync('.env.production.local', lines.join('\n') + '\n');
 console.log(`Wrote .env.production.local for ${project}`);
