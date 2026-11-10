@@ -20,9 +20,21 @@ export function ImportItems({
   const fromLink = useRef(text.length > 0);
   const cardRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!fromLink.current) return;
-    history.replaceState(null, '', '#settings');
-    cardRef.current?.scrollIntoView({ block: 'start' });
+    const apply = () => {
+      const fromHash = decodeImportHash(location.hash);
+      if (!fromHash) return;
+      fromLink.current = true;
+      setText(fromHash);
+      history.replaceState(null, '', '#settings');
+      cardRef.current?.scrollIntoView({ block: 'start' });
+    };
+    if (fromLink.current) {
+      history.replaceState(null, '', '#settings');
+      cardRef.current?.scrollIntoView({ block: 'start' });
+    }
+    // A link opened while Settings is already showing only changes the hash.
+    window.addEventListener('hashchange', apply);
+    return () => window.removeEventListener('hashchange', apply);
   }, []);
   const [store, setStore] = useState<StoreId>('target');
   const [list, setList] = useState<ListId>('grocery');
