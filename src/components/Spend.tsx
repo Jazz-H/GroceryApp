@@ -3,6 +3,7 @@ import { useAliases, useReceipts } from '../data/hooks';
 import { deleteReceipt, setBudget, setPaidByForAll, setReceiptPaidBy } from '../data/receipts';
 import { formatCents, parsePrice } from '../lib/money';
 import {
+  cardsLabel,
   monthKey,
   monthLabel,
   monthTotals,
@@ -174,6 +175,34 @@ export function Spend({
               </button>
             </>
           )}
+          {summary.byCard.some((c) => c.key) && (
+            <>
+              <h2>By card</h2>
+              <ul className="bars">
+                {summary.byCard.map((c) => (
+                  <li key={c.key || 'unknown'}>
+                    <span className="bar-label">
+                      {c.key ? (
+                        <>
+                          {summary.cardNames[c.key]?.replace(/^Target\s+/, '') || 'Card'}{' '}
+                          <span className="mono">•{c.key}</span>
+                        </>
+                      ) : (
+                        'Other / unknown'
+                      )}
+                    </span>
+                    <span className="bar-track">
+                      <span
+                        className="bar"
+                        style={{ width: `${(c.cents / summary.cents) * 100}%` }}
+                      />
+                    </span>
+                    <span className="mono">{formatCents(c.cents)}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </div>
       )}
 
@@ -216,14 +245,16 @@ export function Spend({
                 <button onClick={() => setOpen(r)}>
                   <Avatar member={household.members[r.paidBy]} size={24} />
                   <span className="r-main">
-                    <b>{receiptStoreName(r.store)}</b>
+                    <b>{r.kind === 'tip' ? 'Shopper tip' : receiptStoreName(r.store)}</b>
                     <span className="hint">
                       {new Date(r.purchasedAt).toLocaleDateString(undefined, {
                         weekday: 'short',
                         month: 'short',
                         day: 'numeric',
-                      })}{' '}
-                      · {r.lines.length} item{r.lines.length === 1 ? '' : 's'}
+                      })}
+                      {r.lines.length > 0 &&
+                        ` · ${r.lines.length} item${r.lines.length === 1 ? '' : 's'}`}
+                      {` · ${cardsLabel(r) || 'card unknown'}`}
                     </span>
                   </span>
                   <span className="mono">{formatCents(r.totalCents)}</span>
@@ -399,7 +430,7 @@ function ReceiptDetail({
       labelledBy="rd-title"
       title={
         <h2 id="rd-title" className="sheet-title-plain">
-          {receiptStoreName(receipt.store)} ·{' '}
+          {receipt.kind === 'tip' ? 'Shopper tip' : receiptStoreName(receipt.store)} ·{' '}
           {new Date(receipt.purchasedAt).toLocaleDateString(undefined, {
             month: 'long',
             day: 'numeric',
@@ -443,6 +474,21 @@ function ReceiptDetail({
           <span>Total</span>
           <span className="mono">{formatCents(receipt.totalCents)}</span>
         </li>
+        {(receipt.payments ?? []).map((p, i) => (
+          <li key={`p${i}`} className="muted">
+            <span>
+              {p.card}
+              {p.last4 && <span className="mono"> •{p.last4}</span>}
+            </span>
+            <span className="mono">{formatCents(p.cents)}</span>
+          </li>
+        ))}
+        {!receipt.payments?.length && (
+          <li className="muted">
+            <span>Card unknown</span>
+            <span />
+          </li>
+        )}
       </ul>
       {receipt.savingsCents > 0 && (
         <p className="hint">Saved {formatCents(receipt.savingsCents)} with discounts.</p>

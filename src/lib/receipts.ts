@@ -1,4 +1,4 @@
-import type { Item, Member, Receipt, ReceiptLine, ReceiptStore } from '../types';
+import type { Item, Member, Receipt, ReceiptLine, ReceiptPayment, ReceiptStore } from '../types';
 import { formatCents } from './money';
 import { storeDef } from './stores';
 import { normalizeName } from './text';
@@ -57,7 +57,21 @@ export function fromModel(raw: unknown, paidBy: string, now: number = Date.now()
     })
     .filter((l) => l.raw || l.name);
   const purchasedAt = dateToMs(String(r.date ?? '')) ?? new Date(now).setHours(12, 0, 0, 0);
+  const payments: ReceiptPayment[] = (Array.isArray(r.payments) ? r.payments.slice(0, 8) : [])
+    .map((p) => {
+      const o = (p && typeof p === 'object' ? p : {}) as Record<string, unknown>;
+      return {
+        card: String(o.card ?? '').slice(0, 60),
+        last4: String(o.last4 ?? '')
+          .replace(/\D/g, '')
+          .slice(-4),
+        cents: toCents(o.amount),
+      };
+    })
+    .filter((p) => p.card || p.last4);
   return {
+    ...(r.kind === 'tip' ? { kind: 'tip' as const } : {}),
+    ...(payments.length ? { payments } : {}),
     store,
     purchasedAt,
     paidBy,
@@ -285,6 +299,11 @@ export interface MonthSummary {
   count: number;
   byStore: Slice<ReceiptStore>[];
   byPerson: Slice<string>[];
+  /** Keyed by last 4 digits; "" collects coupons, gift cards without digits and unknown. */
+  byCard: Slice<string>[];
+  /** Card names by last 4, for labels. */
+  cardNames: Record<string, string>;
+  tipsCents: number;
 }
 
 function slices<K extends string>(totals: Map<K, number>): Slice<K>[] {
@@ -298,10 +317,22 @@ export function summarizeMonth(receipts: Receipt[], month: string): MonthSummary
   const inMonth = receipts.filter((r) => monthKey(r.purchasedAt) === month);
   const byStore = new Map<ReceiptStore, number>();
   const byPerson = new Map<string, number>();
+  const byCard = new Map<string, number>();
+  const cardNames: Record<string, string> = {};
   let cents = 0;
   let savingsCents = 0;
+  let tipsCents = 0;
   for (const r of inMonth) {
     cents += r.totalCents;
+    if (r.kind === 'tip') tipsCents += r.totalCents;
+    let paid = 0;
+    for (const p of r.payments ?? []) {
+      byCard.set(p.last4, (byCard.get(p.last4) ?? 0) + p.cents);
+      if (p.last4) cardNames[p.last4] ??= p.card;
+      paid += p.cents;
+    }
+    // Whatever the payments don't cover counts as unknown.
+    if (r.totalCents - paid > 0) byCard.set('', (byCard.get('') ?? 0) + r.totalCents - paid);
     savingsCents += r.savingsCents;
     byStore.set(r.store, (byStore.get(r.store) ?? 0) + r.totalCents);
     byPerson.set(r.paidBy, (byPerson.get(r.paidBy) ?? 0) + r.totalCents);
@@ -313,7 +344,17 @@ export function summarizeMonth(receipts: Receipt[], month: string): MonthSummary
     count: inMonth.length,
     byStore: slices(byStore),
     byPerson: slices(byPerson),
+    byCard: slices(byCard),
+    cardNames,
+    tipsCents,
   };
+}
+
+/** "•8759" or "•8759 + •3979" for a receipt's cards; "" when none are known. */
+export function cardsLabel(r: Pick<Receipt, 'payments'>): string {
+  return [...new Set((r.payments ?? []).filter((p) => p.last4).map((p) => `•${p.last4}`))].join(
+    ' + ',
+  );
 }
 
 /** Totals for the last `n` months, oldest first, ending with `month`. */
@@ -342,7 +383,17 @@ const dollars = (cents: number) => formatCents(cents).replace('$', '');
 /** One row per receipt line, ready for a spreadsheet. */
 export function toCsv(receipts: Receipt[], members: Record<string, Member>): string {
   const rows: (string | number)[][] = [
-    ['Date', 'Store', 'Paid by', 'Item', 'Printed as', 'Qty', 'Line total', 'Receipt total'],
+    [
+      'Date',
+      'Store',
+      'Paid by',
+      'Cards',
+      'Item',
+      'Printed as',
+      'Qty',
+      'Line total',
+      'Receipt total',
+    ],
   ];
   const sorted = [...receipts].sort((a, b) => a.purchasedAt - b.purchasedAt);
   for (const r of sorted) {
@@ -350,7 +401,20 @@ export function toCsv(receipts: Receipt[], members: Record<string, Member>): str
       msToDate(r.purchasedAt),
       receiptStoreName(r.store),
       members[r.paidBy]?.name ?? '',
+      (r.payments ?? [])
+        .map((p) => `${p.card}${p.last4 ? ` *${p.last4}` : ''} ${dollars(p.cents)}`)
+        .join('; '),
     ];
+    // Receipts imported as totals only still get a row.
+    if (!r.lines.length)
+      rows.push([
+        ...base,
+        r.kind === 'tip' ? 'Shopper tip' : '(total only)',
+        '',
+        1,
+        dollars(r.totalCents),
+        dollars(r.totalCents),
+      ]);
     for (const l of r.lines)
       rows.push([...base, l.name, l.raw, l.qty, dollars(l.cents), dollars(r.totalCents)]);
     if (r.taxCents) rows.push([...base, 'Tax', '', 1, dollars(r.taxCents), dollars(r.totalCents)]);
