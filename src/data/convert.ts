@@ -70,6 +70,7 @@ export function toHousehold(snap: DocumentSnapshot): Household {
     zoneOrder: d.zoneOrder ?? {},
     budgetCents: typeof d.budgetCents === 'number' && d.budgetCents > 0 ? d.budgetCents : null,
     ...(typeof d.recapSentFor === 'string' ? { recapSentFor: d.recapSentFor } : {}),
+    ...(typeof d.weekRecapSentFor === 'string' ? { weekRecapSentFor: d.weekRecapSentFor } : {}),
   };
 }
 

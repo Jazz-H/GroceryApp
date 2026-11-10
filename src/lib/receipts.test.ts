@@ -18,6 +18,11 @@ import {
   unitCents,
   monthLabel,
   monthRecap,
+  weekRecap,
+  weekStart,
+  weekKey,
+  weekLabel,
+  shiftWeek,
   priceTrends,
   budgetCrossed,
   cardsLabel,
@@ -401,6 +406,49 @@ describe('monthRecap', () => {
       receipts: 2,
       topStore: 'target',
       topCents: 10500,
+    });
+  });
+});
+
+describe('weekly recap', () => {
+  const at = (y: number, m: number, d: number) => new Date(y, m - 1, d, 12).getTime();
+  const r = (when: number, store: 'ht' | 'target', cents: number, kind?: 'tip') =>
+    ({
+      id: String(when) + store + cents,
+      store,
+      purchasedAt: when,
+      totalCents: cents,
+      ...(kind ? { kind } : {}),
+    }) as never;
+
+  it('finds the Monday and names the week', () => {
+    const mon = weekStart(at(2026, 11, 8)); // a Sunday
+    expect(weekKey(mon)).toBe('2026-11-02');
+    expect(weekKey(weekStart(at(2026, 11, 9)))).toBe('2026-11-09');
+    expect(weekLabel(mon)).toBe('Nov 2–8');
+    expect(weekLabel(weekStart(at(2026, 11, 1)))).toBe('Oct 26–Nov 1');
+    expect(weekKey(shiftWeek(mon, -1))).toBe('2026-10-26');
+  });
+
+  it('totals Monday to Sunday and compares with the week before', () => {
+    const start = weekStart(at(2026, 11, 4));
+    const w = weekRecap(
+      [
+        r(at(2026, 11, 2), 'ht', 5000),
+        r(at(2026, 11, 8), 'target', 3000),
+        r(at(2026, 11, 8), 'ht', 2000),
+        r(at(2026, 11, 8), 'ht', 500, 'tip'),
+        r(at(2026, 11, 9), 'ht', 9999), // next week
+        r(at(2026, 10, 28), 'target', 4000), // week before
+      ],
+      start,
+    );
+    expect(w).toMatchObject({
+      cents: 10500,
+      receipts: 3,
+      topStore: 'ht',
+      topCents: 7000,
+      prevCents: 4000,
     });
   });
 });

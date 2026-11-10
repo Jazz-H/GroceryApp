@@ -10,7 +10,18 @@ import {
   useReceiptsState,
 } from '../data/hooks';
 import { claimRecap } from '../data/household';
-import { monthKey, monthLabel, monthRecap, shiftMonth } from '../lib/receipts';
+import {
+  monthKey,
+  monthLabel,
+  monthRecap,
+  shiftMonth,
+  shiftWeek,
+  summarizeMonth,
+  weekKey,
+  weekLabel,
+  weekRecap,
+  weekStart,
+} from '../lib/receipts';
 import { endTrip, joinTrip } from '../data/trips';
 import { storeDef } from '../lib/stores';
 import { notify, refreshSubscription } from '../push';
@@ -102,6 +113,34 @@ export function Shell({ user, household }: { user: User; household: Household })
       })
       .catch(() => undefined);
   }, [receipts, household.id, household.recapSentFor, household.budgetCents]);
+
+  // First open in a new week: send last week's recap to everyone, once per household.
+  useEffect(() => {
+    if (!receipts) return;
+    const start = shiftWeek(weekStart(Date.now()), -1);
+    const key = weekKey(start);
+    if (household.weekRecapSentFor === key) return;
+    const recap = weekRecap(receipts, start);
+    if (recap.cents <= 0) return;
+    // Budget so far in the month the week ended in.
+    const month = monthKey(shiftWeek(start, 1) - 1);
+    void claimRecap(household.id, key, 'weekRecapSentFor')
+      .then((mine) => {
+        if (!mine) return;
+        return notify(household.id, 'week_recap', {
+          week: weekLabel(start),
+          cents: recap.cents,
+          receipts: recap.receipts,
+          topStore: recap.topStore ?? undefined,
+          topCents: recap.topCents,
+          prevCents: recap.prevCents,
+          month: monthLabel(month).split(' ')[0],
+          monthCents: summarizeMonth(receipts, month).cents,
+          budgetCents: household.budgetCents ?? undefined,
+        });
+      })
+      .catch(() => undefined);
+  }, [receipts, household.id, household.weekRecapSentFor, household.budgetCents]);
 
   useEffect(() => {
     void refreshSubscription(household.id, user.uid).catch(() => undefined);

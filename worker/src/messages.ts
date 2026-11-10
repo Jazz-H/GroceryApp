@@ -10,6 +10,7 @@ export const KINDS = [
   'trip_end',
   'receipt',
   'budget',
+  'week_recap',
   'recap',
   'test',
 ] as const;
@@ -23,12 +24,13 @@ export const PREF_FOR: Record<Exclude<Kind, 'test'>, Pref> = {
   trip_end: 'trip',
   receipt: 'receipts',
   budget: 'budget',
+  week_recap: 'weekly',
   recap: 'recap',
 };
-export const PREFS = ['adds', 'trip', 'receipts', 'budget', 'recap'] as const;
+export const PREFS = ['adds', 'trip', 'receipts', 'budget', 'weekly', 'recap'] as const;
 
 /** Kinds that also go to the sender's own phones (news for everyone, not about the sender). */
-export const TO_EVERYONE: readonly Kind[] = ['recap'];
+export const TO_EVERYONE: readonly Kind[] = ['week_recap', 'recap'];
 export type Pref = (typeof PREFS)[number];
 
 const STORES: Record<string, string> = { ht: 'Harris Teeter', target: 'Target', amazon: 'Amazon' };
@@ -54,6 +56,10 @@ export interface NotifyData {
   receipts?: number;
   topStore?: string;
   topCents?: number;
+  /** Weekly recap: "Nov 2–8", the week before's spend, and the month so far. */
+  week?: string;
+  prevCents?: number;
+  monthCents?: number;
 }
 
 export interface Message {
@@ -98,6 +104,10 @@ export function cleanData(input: unknown): NotifyData {
     receipts: int(r.receipts, 10_000),
     topStore: typeof r.topStore === 'string' && r.topStore in STORES ? r.topStore : undefined,
     topCents: int(r.topCents, 100_000_00),
+    week:
+      typeof r.week === 'string' ? r.week.replace(/[^\p{L}\d –]/gu, '').slice(0, 20) : undefined,
+    prevCents: int(r.prevCents, 100_000_00),
+    monthCents: int(r.monthCents, 100_000_00),
   };
 }
 
@@ -164,6 +174,28 @@ export function compose(kind: Kind, d: NotifyData, actor: string, senderUid: str
             ? `${money(d.cents)} of ${money(d.budgetCents)} spent.`
             : '',
         tag: 'budget',
+        url: '/#spend',
+      };
+    }
+    case 'week_recap': {
+      const parts: string[] = [];
+      if (d.receipts !== undefined) parts.push(plural(d.receipts, 'receipt'));
+      if (d.topStore && d.topCents !== undefined)
+        parts.push(`most at ${storeName(d.topStore)} (${money(d.topCents)})`);
+      if (d.prevCents && d.cents !== undefined && d.prevCents !== d.cents)
+        parts.push(
+          d.cents > d.prevCents
+            ? `${money(d.cents - d.prevCents)} more than the week before`
+            : `${money(d.prevCents - d.cents)} less than the week before`,
+        );
+      if (d.budgetCents && d.monthCents !== undefined)
+        parts.push(
+          `${d.month || 'This month'} so far: ${money(d.monthCents)} of ${money(d.budgetCents)}`,
+        );
+      return {
+        title: `${d.week ? `Week of ${d.week}` : 'Last week'}: ${money(d.cents ?? 0)} on groceries`,
+        body: parts.join(' · ') || 'Open Spend for the details.',
+        tag: `week-recap-${d.week ?? ''}`,
         url: '/#spend',
       };
     }
