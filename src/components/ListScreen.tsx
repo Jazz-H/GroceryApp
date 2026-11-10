@@ -348,19 +348,16 @@ export function ListScreen({
       </header>
 
       <div className="seg" role="tablist" aria-label="List">
-        {(['grocery', 'nice'] as const).map((l) => (
-          <button
-            key={l}
-            role="tab"
-            aria-selected={!quick && list === l}
-            onClick={() => {
-              setQuick(false);
-              setList(l);
-            }}
-          >
-            {l === 'grocery' ? 'Grocery' : 'Nice-to-have'}
-          </button>
-        ))}
+        <button
+          role="tab"
+          aria-selected={!quick && list === 'grocery'}
+          onClick={() => {
+            setQuick(false);
+            setList('grocery');
+          }}
+        >
+          Grocery
+        </button>
         <button
           role="tab"
           aria-selected={quick}
@@ -370,6 +367,16 @@ export function ListScreen({
           }}
         >
           Quick add
+        </button>
+        <button
+          role="tab"
+          aria-selected={!quick && list === 'nice'}
+          onClick={() => {
+            setQuick(false);
+            setList('nice');
+          }}
+        >
+          Nice-to-have
         </button>
       </div>
 
