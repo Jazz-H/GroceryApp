@@ -63,9 +63,6 @@ export function Spend({
     <section className="spend">
       <div className="spend-head">
         <h1 className="screen-title">Spending</h1>
-        <button className="btn primary" onClick={() => setAdding(true)}>
-          Add receipt
-        </button>
       </div>
 
       <div className="month-nav">
@@ -90,6 +87,10 @@ export function Spend({
       </div>
 
       <div className="card spend-total">
+        <span className="spend-label">
+          {monthLabel(month)}
+          {month === thisMonth ? ' so far' : ''}
+        </span>
         <div className="big">{formatCents(summary.cents)}</div>
         <p className="muted">
           {summary.count} receipt{summary.count === 1 ? '' : 's'}
@@ -98,6 +99,23 @@ export function Spend({
           {summary.savingsCents > 0 && ` · saved ${formatCents(summary.savingsCents)}`}
         </p>
         <Budget household={household} spent={summary.cents} isCurrent={month === thisMonth} />
+        <button className="btn primary snap" onClick={() => setAdding(true)}>
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M3 8h3l2-3h8l2 3h3v12H3z" />
+            <circle cx="12" cy="13" r="3.5" />
+          </svg>
+          Snap a receipt
+        </button>
       </div>
 
       {summary.count > 0 && (
@@ -173,7 +191,7 @@ export function Spend({
         <h2>Receipts in {monthLabel(month)}</h2>
         {inMonth.length === 0 ? (
           <p className="muted">
-            None yet. After a shop, tap <b>Add receipt</b> and take a photo. Prices on your list
+            None yet. After a shop, tap <b>Snap a receipt</b> and take a photo. Prices on your list
             update from what you actually paid.
           </p>
         ) : (

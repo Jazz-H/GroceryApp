@@ -207,14 +207,14 @@ export function ItemSheet({
                 id={`price-${s.id}`}
                 aria-label={`${s.name} price`}
                 inputMode="decimal"
-                placeholder="–"
+                placeholder="Price $"
                 value={d.price}
                 onChange={(e) => patch(s.id, { price: e.target.value })}
               />
               <input
                 id={`aisle-${s.id}`}
                 aria-label={`${s.name} aisle`}
-                placeholder={s.hasAisles ? 'e.g. 7' : 'n/a'}
+                placeholder={s.hasAisles ? 'Aisle (e.g. 7)' : 'No aisles'}
                 disabled={!s.hasAisles}
                 value={d.aisle}
                 onChange={(e) => patch(s.id, { aisle: e.target.value })}

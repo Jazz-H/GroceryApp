@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { User } from 'firebase/auth';
 import {
   useActiveTrips,
@@ -45,6 +45,16 @@ export function Shell({ user, household }: { user: User; household: Household })
   // After you end a trip, offer to add its receipt right away.
   const [receiptFor, setReceiptFor] = useState<StoreId | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  // The center + opens the List's add sheet from any tab.
+  const [addRequested, setAddRequested] = useState(false);
+  const keyboardProxy = useRef<HTMLInputElement>(null);
+  const onAddHandled = useCallback(() => setAddRequested(false), []);
+  function requestAdd() {
+    // iOS only shows the keyboard for a field focused during the tap itself.
+    keyboardProxy.current?.focus();
+    if (tab !== 'list') go('list');
+    setAddRequested(true);
+  }
 
   async function finishTrip(trip: Trip) {
     await endTrip(household.id, user.uid, trip);
@@ -126,6 +136,8 @@ export function Shell({ user, household }: { user: User; household: Household })
             trips={trips}
             catalog={catalog}
             activity={activity}
+            addRequested={addRequested}
+            onAddHandled={onAddHandled}
           />
         )}
         {tab === 'spend' && <Spend household={household} uid={user.uid} items={items} />}
@@ -152,19 +164,49 @@ export function Shell({ user, household }: { user: User; household: Household })
           {toast}
         </div>
       )}
+      <input ref={keyboardProxy} className="keyboard-proxy" aria-hidden="true" tabIndex={-1} />
       <nav className="tabbar" aria-label="Main">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            aria-current={tab === t.id ? 'page' : undefined}
-            onClick={() => go(t.id)}
-          >
-            <TabIcon id={t.id} />
-            {t.label}
+        {TABS.slice(0, 2).map((t) => (
+          <TabButton key={t.id} t={t} current={tab === t.id} onClick={() => go(t.id)} />
+        ))}
+        <span className="tab-plus">
+          <button aria-label="Add items" onClick={requestAdd}>
+            <svg
+              width="26"
+              height="26"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.6"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M12 5v14M5 12h14" />
+            </svg>
           </button>
+        </span>
+        {TABS.slice(2).map((t) => (
+          <TabButton key={t.id} t={t} current={tab === t.id} onClick={() => go(t.id)} />
         ))}
       </nav>
     </div>
+  );
+}
+
+function TabButton({
+  t,
+  current,
+  onClick,
+}: {
+  t: { id: Tab; label: string };
+  current: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button aria-current={current ? 'page' : undefined} onClick={onClick}>
+      <TabIcon id={t.id} />
+      {t.label}
+    </button>
   );
 }
 
