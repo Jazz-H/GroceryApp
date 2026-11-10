@@ -1,11 +1,41 @@
-import { deleteDoc, doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
-import { isStandalone } from './auth';
+import {
+  collection,
+  deleteDoc,
+  deleteField,
+  doc,
+  getDoc,
+  onSnapshot,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import { isIOS, isStandalone } from './auth';
 import { auth, db } from './firebase';
 
-/** Notification kinds a phone can opt out of. Keep in sync with worker/src/index.ts. */
-export type PushKind = 'adds' | 'trip';
+/** Switches a phone can turn off. Keep in sync with PREFS in worker/src/messages.ts. */
+export type PushKind = 'adds' | 'trip' | 'receipts' | 'budget';
 export type PushPrefs = Record<PushKind, boolean>;
-export const DEFAULT_PREFS: PushPrefs = { adds: true, trip: true };
+export const DEFAULT_PREFS: PushPrefs = { adds: true, trip: true, receipts: true, budget: true };
+
+/** What can be sent. The relay writes the text; see worker/src/messages.ts. */
+export type NotifyKind =
+  'adds' | 'trip_start' | 'trip_join' | 'trip_end' | 'receipt' | 'budget' | 'test';
+
+/** Quiet hours in this phone's time zone, e.g. 22 → 7. */
+export interface QuietHours {
+  start: number;
+  end: number;
+  tz: string;
+}
+
+/** Everything about this phone's notifications. */
+export interface PhoneSettings {
+  prefs: PushPrefs;
+  /** Epoch ms; nothing arrives before then. 0 when not snoozed. */
+  mutedUntil: number;
+  quiet: QuietHours | null;
+}
 
 const env = import.meta.env;
 const RELAY_URL = (env.VITE_PUSH_URL ?? '').replace(/\/$/, '');
@@ -17,8 +47,6 @@ export type PushSupport =
   | 'needs-install' // iPhone: only works from the Home Screen app
   | 'unsupported' // this browser has no Web Push
   | 'denied'; // the person blocked notifications
-
-const isIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
 
 export function pushSupport(): PushSupport {
   if (!RELAY_URL || !VAPID_PUBLIC_KEY) return 'not-configured';
@@ -49,8 +77,10 @@ async function subId(endpoint: string): Promise<string> {
 function deviceLabel(): string {
   const ua = navigator.userAgent;
   if (/iphone/i.test(ua)) return 'iPhone';
-  if (/ipad/i.test(ua)) return 'iPad';
-  if (/android/i.test(ua)) return 'Android';
+  if (isIOS()) return 'iPad';
+  if (/android/i.test(ua)) return 'Android phone';
+  if (/mac/i.test(ua)) return 'Mac';
+  if (/windows/i.test(ua)) return 'Windows PC';
   return 'Browser';
 }
 
@@ -98,19 +128,98 @@ export async function disablePush(hid: string): Promise<void> {
 }
 
 export async function loadPrefs(hid: string): Promise<PushPrefs | null> {
+  return (await loadPhone(hid))?.prefs ?? null;
+}
+
+/** This phone's saved settings, or null when it isn't subscribed. */
+export async function loadPhone(hid: string): Promise<PhoneSettings | null> {
   const sub = await currentSubscription();
   if (!sub) return null;
   const snap = await getDoc(subRef(hid, await subId(sub.endpoint)));
-  return snap.exists() ? { ...DEFAULT_PREFS, ...(snap.data().prefs as Partial<PushPrefs>) } : null;
+  if (!snap.exists()) return null;
+  const d = snap.data();
+  return {
+    prefs: { ...DEFAULT_PREFS, ...(d.prefs as Partial<PushPrefs>) },
+    mutedUntil: typeof d.mutedUntil === 'number' ? d.mutedUntil : 0,
+    quiet:
+      d.quiet && typeof d.quiet.start === 'number' && typeof d.quiet.end === 'number'
+        ? { start: d.quiet.start, end: d.quiet.end, tz: String(d.quiet.tz ?? '') }
+        : null,
+  };
 }
 
-export async function setPref(hid: string, kind: PushKind, on: boolean): Promise<void> {
+/** The id of this phone's subscription doc, if it has one. */
+export async function currentSubId(): Promise<string | null> {
+  const sub = await currentSubscription().catch(() => null);
+  return sub ? subId(sub.endpoint) : null;
+}
+
+async function updateThisPhone(hid: string, patch: Record<string, unknown>): Promise<void> {
   const sub = await currentSubscription();
   if (!sub) return;
   await updateDoc(subRef(hid, await subId(sub.endpoint)), {
-    [`prefs.${kind}`]: on,
+    ...patch,
     updatedAt: serverTimestamp(),
   });
+}
+
+/** Snooze this phone until a time (epoch ms), or pass 0 to unsnooze. */
+export function setMutedUntil(hid: string, until: number): Promise<void> {
+  return updateThisPhone(hid, { mutedUntil: until > Date.now() ? until : deleteField() });
+}
+
+/** Quiet hours in this phone's time zone, or null to turn them off. */
+export function setQuietHours(hid: string, hours: { start: number; end: number } | null) {
+  return updateThisPhone(hid, {
+    quiet: hours
+      ? { ...hours, tz: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC' }
+      : deleteField(),
+  });
+}
+
+export interface PushDevice {
+  id: string;
+  uid: string;
+  device: string;
+  updatedAt: number;
+}
+
+/** Every phone in the household that gets notifications, newest first. */
+export function usePushDevices(hid: string): PushDevice[] {
+  const [devices, setDevices] = useState<PushDevice[]>([]);
+  useEffect(
+    () =>
+      onSnapshot(
+        collection(db, 'households', hid, 'pushSubs'),
+        (snap) =>
+          setDevices(
+            snap.docs
+              .map((d) => {
+                const x = d.data();
+                return {
+                  id: d.id,
+                  uid: String(x.uid ?? ''),
+                  device: String(x.device ?? 'Phone'),
+                  updatedAt:
+                    typeof x.updatedAt?.toMillis === 'function' ? x.updatedAt.toMillis() : 0,
+                };
+              })
+              .sort((a, b) => b.updatedAt - a.updatedAt),
+          ),
+        () => setDevices([]),
+      ),
+    [hid],
+  );
+  return devices;
+}
+
+/** Stops notifications to a phone (any member may remove a stale one). */
+export async function removeDevice(hid: string, id: string): Promise<void> {
+  await deleteDoc(subRef(hid, id));
+}
+
+export function setPref(hid: string, kind: PushKind, on: boolean): Promise<void> {
+  return updateThisPhone(hid, { [`prefs.${kind}`]: on });
 }
 
 /**
@@ -120,36 +229,57 @@ export async function setPref(hid: string, kind: PushKind, on: boolean): Promise
 export async function refreshSubscription(hid: string, uid: string): Promise<void> {
   const sub = await currentSubscription();
   if (!sub) return;
-  const prefs = (await loadPrefs(hid)) ?? DEFAULT_PREFS;
-  await save(hid, uid, sub, prefs);
+  const phone = await loadPhone(hid);
+  await save(hid, uid, sub, phone?.prefs ?? DEFAULT_PREFS);
+  // save() replaces the doc; keep snooze and quiet hours.
+  if (phone?.quiet) await setQuietHoursExact(hid, phone.quiet);
+  if (phone && phone.mutedUntil > Date.now()) await setMutedUntil(hid, phone.mutedUntil);
 }
 
-export interface NotifyMessage {
-  kind: PushKind | 'test';
-  title: string;
-  body?: string;
-  actor?: string;
+function setQuietHoursExact(hid: string, quiet: QuietHours) {
+  return updateThisPhone(hid, { quiet });
+}
+
+/** Details the relay turns into text. Only numbers, a store and item names. */
+export interface NotifyData {
   items?: string[];
-  tag?: string;
-  url?: string;
+  count?: number;
+  store?: string;
+  mode?: 'together' | 'solo';
+  open?: number;
+  checked?: number;
+  cents?: number;
+  budgetCents?: number;
+  pct?: number;
+  month?: string;
 }
 
-/** Asks the relay to notify the other members. Never throws: a missed notification isn't worth an error. */
+export type NotifyResult = { ok: true; sent: number } | { ok: false; error: string };
+
+/**
+ * Asks the relay to notify the other members. Never throws: a missed notification isn't worth
+ * an error. The result says what happened, for the test button.
+ */
 export async function notify(
   hid: string,
-  message: NotifyMessage,
-): Promise<{ sent: number } | null> {
-  if (!RELAY_URL || !auth.currentUser) return null;
+  kind: NotifyKind,
+  data: NotifyData = {},
+): Promise<NotifyResult> {
+  if (!RELAY_URL) return { ok: false, error: 'This app was built without a notification relay.' };
+  if (!auth.currentUser) return { ok: false, error: 'Sign in first.' };
   try {
     const token = await auth.currentUser.getIdToken();
     const res = await fetch(`${RELAY_URL}/notify`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ householdId: hid, body: '', ...message }),
+      body: JSON.stringify({ householdId: hid, kind, data }),
       keepalive: true,
     });
-    return res.ok ? ((await res.json()) as { sent: number }) : null;
+    const body = (await res.json().catch(() => ({}))) as { sent?: number; error?: string };
+    return res.ok
+      ? { ok: true, sent: body.sent ?? 0 }
+      : { ok: false, error: body.error ?? `The relay answered ${res.status}.` };
   } catch {
-    return null;
+    return { ok: false, error: 'Couldn’t reach the notification relay.' };
   }
 }

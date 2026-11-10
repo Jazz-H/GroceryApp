@@ -2344,3 +2344,50 @@ textarea {
   gap: 12px;
   text-align: left;
 }
+
+/* ---- Settings: notifications ---- */
+.sub-head {
+  margin: 14px 0 6px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.quiet-hours {
+  display: flex;
+  gap: 12px;
+  margin: 6px 0 4px;
+}
+.quiet-hours label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.92rem;
+}
+.devices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.devices li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+  font-size: 0.92rem;
+}
+.devices li:first-child {
+  border-top: 0;
+}
+.pill-tag {
+  margin-left: 8px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--chip);
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 800;
+}

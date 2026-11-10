@@ -3,19 +3,24 @@ import { saveReceipt } from '../data/receipts';
 import { parseReceiptImages, ParseError } from '../data/receiptParser';
 import { formatCents, parsePrice } from '../lib/money';
 import {
+  budgetCrossed,
   checkTotals,
   dateToMs,
   fromModel,
   knownCards,
   matchAll,
+  monthKey,
+  monthLabel,
   msToDate,
   receiptStoreName,
   singlePayment,
+  summarizeMonth,
   TOLERANCE_CENTS,
   type KnownCard,
   type ReceiptDraft,
 } from '../lib/receipts';
 import { useReceipts } from '../data/hooks';
+import { notify } from '../push';
 import { CardSelect } from './CardSelect';
 import type { Household, Item, ReceiptLine, ReceiptStore } from '../types';
 import { Sheet } from './ui';
@@ -285,6 +290,20 @@ export function ReceiptFlow({
       : rest;
     try {
       const { priced, checked } = await saveReceipt(household.id, uid, draft, items);
+      // Tell the other person, and say if this receipt pushed the month past the budget.
+      void notify(household.id, 'receipt', { store: draft.store, cents: draft.totalCents });
+      const month = monthKey(draft.purchasedAt);
+      if (month === monthKey(Date.now())) {
+        const before = summarizeMonth(allReceipts, month).cents;
+        const pct = budgetCrossed(before, before + draft.totalCents, household.budgetCents);
+        if (pct)
+          void notify(household.id, 'budget', {
+            pct,
+            cents: before + draft.totalCents,
+            budgetCents: household.budgetCents ?? undefined,
+            month: monthLabel(month).split(' ')[0],
+          });
+      }
       const parts = [`Saved ${formatCents(draft.totalCents)} at ${receiptStoreName(draft.store)}`];
       if (priced) parts.push(`${priced} price${priced === 1 ? '' : 's'} updated`);
       if (checked) parts.push(`${checked} checked off`);

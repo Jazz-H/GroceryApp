@@ -67,21 +67,24 @@ Everything here runs on Firebase's free **Spark** plan. No credit card is needed
 
 ## Notifications (free, about 10 more minutes)
 
-Notifications go through a tiny relay on Cloudflare Workers' free plan, in `worker/`. It has no Google credentials. It reads your household's phone subscriptions using the sender's own sign-in, so the same security rules apply.
+Notifications go through a tiny relay on Cloudflare Workers' free plan, in `worker/`. It has no Google credentials. It reads your household and its phone subscriptions using the sender's own sign-in, so the same security rules apply. It also:
+
+- writes the notification text itself, so phones can't send each other arbitrary messages;
+- only notifies current members;
+- skips phones that are snoozed or in quiet hours;
+- limits how many notifications one person can send in 10 minutes.
 
 1. **Make keys:** `npm run vapid`. It prints a public key and a private key.
-2. **Set up the relay:** create a free account at <https://dash.cloudflare.com/sign-up>. Then edit `worker/wrangler.toml`:
-   - `FIREBASE_PROJECT_ID`: your project id
-   - `ALLOWED_ORIGINS`: `https://<project-id>.web.app`
-   - `VAPID_SUBJECT`: `mailto:` plus your email
-   - `VAPID_PUBLIC_KEY`: the public key
+2. **Set up the relay:** create a free account at <https://dash.cloudflare.com/sign-up>. In `worker/wrangler.toml`, check `FIREBASE_PROJECT_ID` (your project id) and `ALLOWED_ORIGINS` (`https://<project-id>.web.app`).
 3. **Deploy it:**
    ```bash
    cd worker
    npx wrangler@4 login
    npx wrangler@4 secret put VAPID_PRIVATE_KEY   # paste the private key
-   npx wrangler@4 deploy                         # prints https://fridgeboard-push.<you>.workers.dev
+   npx wrangler@4 deploy --var VAPID_PUBLIC_KEY:<the public key>
+   # prints https://fridgeboard-push.<you>.workers.dev
    ```
+   The public key and `VAPID_SUBJECT` (optional: `mailto:` plus an email; it defaults to the app's URL) live as variables in the Cloudflare dashboard, not in `wrangler.toml`. `keep_vars = true` stops later deploys from wiping them. Check it with `https://fridgeboard-push.<you>.workers.dev/health`: it should say `"configured":true`.
 4. **Point the app at it:** in `.env.local`, set `VITE_VAPID_PUBLIC_KEY` (the public key) and `VITE_PUSH_URL` (the Worker URL). Then run `npm run deploy` again.
 5. **On each phone:** Settings → Notifications → **Turn on notifications**, then **Send me a test**.
    - **iPhone:** needs iOS 16.4 or later, and only works from the Home Screen app.
@@ -89,12 +92,16 @@ Notifications go through a tiny relay on Cloudflare Workers' free plan, in `work
 
 What you'll get:
 
-| When                        | Notification                                                                      |
-| --------------------------- | --------------------------------------------------------------------------------- |
-| Your partner starts a trip  | “Sam is at Harris Teeter: shopping solo with 6 items. Add anything you need now.” |
-| Your partner adds groceries | “Alex added 3 items: Eggs, Milk, Bread”. Quick adds merge into one notification   |
+| When                         | Notification                                                                      |
+| ---------------------------- | --------------------------------------------------------------------------------- |
+| Your partner starts a trip   | “Sam is at Harris Teeter: shopping solo with 6 items. Add anything you need now.” |
+| Your partner joins your trip | “Sam joined your Target trip”                                                     |
+| Your partner ends a trip     | “Sam finished at Target: 14 items checked off.”                                   |
+| Your partner adds groceries  | “Alex added 3 items: Eggs, Milk, Bread”. Quick adds merge into one notification   |
+| A receipt is saved           | “Alex saved a Target receipt: $162.60 added to spending.”                         |
+| Spending passes the budget   | “November spending passed 80% of budget”, then “November is over budget”          |
 
-Each phone can turn either kind off in Settings.
+Tapping a notification opens the right screen (a trip opens that store's list; receipts open Spend). In Settings each phone can turn kinds off, snooze for an hour or until 8 AM, and set quiet hours. Settings also lists every phone that gets notifications, so either of you can remove an old one. Signing out or leaving the household stops that phone's notifications.
 
 ## Automatic deploys
 

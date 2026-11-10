@@ -506,3 +506,20 @@ export function shortCardName(name: string | undefined): string {
     .trim();
   return short || 'Card';
 }
+
+/**
+ * The budget line a new receipt crossed this month: 100 when spending went over budget, 80 when
+ * it passed 80%, or null. Only the highest line crossed is reported, and only once.
+ */
+export function budgetCrossed(
+  beforeCents: number,
+  afterCents: number,
+  budgetCents: number | null | undefined,
+): 80 | 100 | null {
+  if (!budgetCents || budgetCents <= 0 || afterCents <= beforeCents) return null;
+  for (const pct of [100, 80] as const) {
+    const line = (budgetCents * pct) / 100;
+    if (beforeCents < line && afterCents >= line) return pct;
+  }
+  return null;
+}
