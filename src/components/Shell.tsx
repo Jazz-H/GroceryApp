@@ -7,7 +7,10 @@ import {
   useCatalog,
   useItems,
   useOnline,
+  useReceiptsState,
 } from '../data/hooks';
+import { claimRecap } from '../data/household';
+import { monthKey, monthLabel, monthRecap, shiftMonth } from '../lib/receipts';
 import { endTrip, joinTrip } from '../data/trips';
 import { storeDef } from '../lib/stores';
 import { notify, refreshSubscription } from '../push';
@@ -76,6 +79,29 @@ export function Shell({ user, household }: { user: User; household: Household })
     void notify(household.id, 'trip_join', { store: trip.store });
   }
   const online = useOnline();
+  const receipts = useReceiptsState(household.id);
+
+  // First open in a new month: send last month's recap to everyone, once per household.
+  useEffect(() => {
+    if (!receipts) return;
+    const last = shiftMonth(monthKey(Date.now()), -1);
+    if (household.recapSentFor === last) return;
+    const recap = monthRecap(receipts, last);
+    if (recap.cents <= 0) return;
+    void claimRecap(household.id, last)
+      .then((mine) => {
+        if (!mine) return;
+        return notify(household.id, 'recap', {
+          month: monthLabel(last).split(' ')[0],
+          cents: recap.cents,
+          receipts: recap.receipts,
+          topStore: recap.topStore ?? undefined,
+          topCents: recap.topCents,
+          budgetCents: household.budgetCents ?? undefined,
+        });
+      })
+      .catch(() => undefined);
+  }, [receipts, household.id, household.recapSentFor, household.budgetCents]);
 
   useEffect(() => {
     void refreshSubscription(household.id, user.uid).catch(() => undefined);

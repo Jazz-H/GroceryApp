@@ -2391,3 +2391,194 @@ textarea {
   font-size: 0.72rem;
   font-weight: 800;
 }
+
+/* ---- Spend: settle up ---- */
+.settle-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.02rem;
+}
+.settle-line > span:nth-child(2) {
+  flex: 1;
+}
+.settle-amount {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+/* ---- Item sheet: price chart ---- */
+.price-chart {
+  margin: 6px 0 10px;
+}
+.price-chart svg {
+  width: 100%;
+  height: auto;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.price-chart figcaption {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  margin-top: 4px;
+}
+.chart-legend {
+  display: flex;
+  gap: 10px;
+}
+.chart-legend i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 4px;
+}
+.trend {
+  margin: 4px 0 0;
+  font-size: 0.88rem;
+}
+.trend.up {
+  color: var(--danger);
+}
+.trend.down {
+  color: var(--good);
+}
+
+/* ---- Spend: monthly recap ---- */
+.recap {
+  border-color: var(--accent);
+}
+.recap-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.recap-big {
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+/* ---- Add sheet extras: barcode + recipe ---- */
+.add-extras {
+  display: flex;
+  gap: 8px;
+  margin: 2px 0 10px;
+}
+.add-extras .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---- Barcode scanner ---- */
+.scanner {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: #000;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: max(14px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+  gap: 12px;
+}
+.scanner-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.scanner-top h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+.scanner-view {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #111;
+}
+.scanner-view video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.scanner-frame {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 38%;
+  height: 24%;
+  border: 3px solid var(--accent);
+  border-radius: 14px;
+  box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.35);
+}
+.scanner-hint {
+  text-align: center;
+  color: #c8d0d8;
+  margin: 0;
+}
+.scanner-result {
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 18px;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+.scanner-result p {
+  margin: 0;
+}
+.scanner-result input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.scanner-error {
+  padding: 20px;
+}
+
+/* ---- Recipe sheet ---- */
+.recipe-drop textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 2px dashed var(--line-strong);
+  background: var(--bg);
+  color: var(--ink);
+  border-radius: 14px;
+  padding: 12px;
+  font: 500 0.98rem var(--body);
+  resize: vertical;
+}
+.recipe-drop.over textarea {
+  border-color: var(--accent);
+}
+.recipe-photos {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.recipe-photos li {
+  position: relative;
+}
+.recipe-photos img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+.recipe-photos button {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: var(--surface);
+  border-radius: 50%;
+}

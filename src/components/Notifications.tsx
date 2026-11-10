@@ -21,6 +21,7 @@ const LABELS: Record<PushKind, string> = {
   trip: 'Trips: started, joined, finished',
   receipts: 'A receipt is saved',
   budget: 'Spending passes 80% or 100% of the budget',
+  recap: 'Monthly recap on the 1st',
 };
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);

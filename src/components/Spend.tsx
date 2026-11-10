@@ -25,6 +25,8 @@ import {
 import type { Household, Item, Receipt } from '../types';
 import { CardSelect } from './CardSelect';
 import { ImportReceipts } from './ImportReceipts';
+import { RecapCard } from './RecapCard';
+import { SettleUp } from './SettleUp';
 import { ReceiptFlow } from './ReceiptFlow';
 import { Avatar, Sheet } from './ui';
 
@@ -95,6 +97,8 @@ export function Spend({
         }}
       />
 
+      <RecapCard household={household} receipts={receipts} onOpen={setMonth} />
+
       <div className="month-nav">
         <button
           className="btn small ghost"
@@ -145,6 +149,8 @@ export function Spend({
           Snap a receipt
         </button>
       </div>
+
+      <SettleUp household={household} uid={uid} receipts={receipts} />
 
       {summary.count > 0 && (
         <div className="card">

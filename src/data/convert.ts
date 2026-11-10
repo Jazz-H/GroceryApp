@@ -1,5 +1,13 @@
 import { Timestamp, type DocumentData, type DocumentSnapshot } from 'firebase/firestore';
-import type { ActivityEvent, CatalogEntry, Household, Item, Receipt, Trip } from '../types';
+import type {
+  ActivityEvent,
+  CatalogEntry,
+  Household,
+  Item,
+  Receipt,
+  Settlement,
+  Trip,
+} from '../types';
 import { isStoreId } from '../lib/stores';
 
 /** Firestore timestamps (including pending local ones) → epoch ms. */
@@ -61,6 +69,7 @@ export function toHousehold(snap: DocumentSnapshot): Household {
     zip: String(d.zip ?? ''),
     zoneOrder: d.zoneOrder ?? {},
     budgetCents: typeof d.budgetCents === 'number' && d.budgetCents > 0 ? d.budgetCents : null,
+    ...(typeof d.recapSentFor === 'string' ? { recapSentFor: d.recapSentFor } : {}),
   };
 }
 
@@ -129,5 +138,17 @@ export function toTrip(snap: DocumentSnapshot): Trip {
     participants: d.participants ?? [],
     status: d.status === 'ended' ? 'ended' : 'active',
     startedAt: ms(d.startedAt),
+  };
+}
+
+export function toSettlement(snap: DocumentSnapshot): Settlement {
+  const d = data(snap);
+  return {
+    id: snap.id,
+    from: String(d.from ?? ''),
+    to: String(d.to ?? ''),
+    cents: typeof d.cents === 'number' ? Math.round(d.cents) : 0,
+    by: String(d.by ?? ''),
+    at: ms(d.at),
   };
 }

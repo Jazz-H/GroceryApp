@@ -8,10 +8,19 @@ import type {
   Household,
   Item,
   Receipt,
+  Settlement,
   Trip,
   UserProfile,
 } from '../types';
-import { toActivity, toCatalog, toHousehold, toItem, toReceipt, toTrip } from './convert';
+import {
+  toActivity,
+  toCatalog,
+  toHousehold,
+  toItem,
+  toReceipt,
+  toSettlement,
+  toTrip,
+} from './convert';
 
 export type Loadable<T> =
   { status: 'loading' } | { status: 'ready'; value: T } | { status: 'error'; error: Error };
@@ -163,6 +172,21 @@ export function useReceiptsState(hid: string, max = 300): Receipt[] | null {
     [hid, max],
   );
   return receipts;
+}
+
+/** Settle-up payments between members, newest first. */
+export function useSettlements(hid: string): Settlement[] {
+  const [list, setList] = useState<Settlement[]>([]);
+  useEffect(
+    () =>
+      onSnapshot(
+        query(collection(db, 'households', hid, 'settlements'), orderBy('at', 'desc'), limit(100)),
+        (snap) => setList(snap.docs.map(toSettlement)),
+        () => setList([]),
+      ),
+    [hid],
+  );
+  return list;
 }
 
 /** Everything the household has added before, for "usuals" and restoring prices on re-add. */

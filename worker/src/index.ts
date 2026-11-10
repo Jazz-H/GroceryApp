@@ -9,7 +9,17 @@
  * whether the sender is a member. It writes the notification text itself (see messages.ts) and
  * sends Web Push to the other current members' phones, skipping snoozed phones and quiet hours.
  */
-import { cleanData, compose, KINDS, PREF_FOR, PREFS, type Kind, type Pref } from './messages';
+import {
+  cleanData,
+  compose,
+  KINDS,
+  PREF_FOR,
+  PREFS,
+  TO_EVERYONE,
+  type Kind,
+  type Pref,
+} from './messages';
+import { allowedRecipeUrl, parseRecipePage } from './recipe';
 import { importVapidPrivateKey, sendPush, type PushTarget, type Vapid } from './webpush';
 
 export { KINDS };
@@ -220,6 +230,8 @@ export async function handle(
   const url = new URL(request.url);
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
   if (url.pathname === '/health') return json(200, { ok: configured, configured }, cors);
+  if (url.pathname === '/recipe' && request.method === 'POST')
+    return handleRecipe(request, env, fetchFn, cors, now);
   if (url.pathname !== '/notify' || request.method !== 'POST')
     return json(404, { error: 'Not found' }, cors);
   if (!configured)
@@ -267,7 +279,7 @@ export async function handle(
     const targets = subs.filter((s) =>
       kind === 'test'
         ? s.uid === uid
-        : s.uid !== uid &&
+        : (s.uid !== uid || TO_EVERYONE.includes(kind)) &&
           s.prefs[PREF_FOR[kind]] !== false &&
           !(s.mutedUntil > now) &&
           !inQuietHours(s.quiet, now),
@@ -305,6 +317,56 @@ export async function handle(
   } catch (e) {
     // Always answer with CORS headers so the app can show what went wrong.
     return json(500, { error: `Relay error: ${(e as Error).message}`, code: 'relay-error' }, cors);
+  }
+}
+
+const RECIPE_LIMIT = 30;
+const recipeAt = new Map<string, number[]>();
+
+/**
+ * POST /recipe { url } → { title, ingredients[], text }. Fetches a recipe page for a signed-in
+ * user (checked by reading their own user doc with their token), so the app can read links
+ * that browsers can't fetch across sites.
+ */
+async function handleRecipe(
+  request: Request,
+  env: Env,
+  fetchFn: typeof fetch,
+  cors: Record<string, string>,
+  now: number,
+): Promise<Response> {
+  try {
+    const token = (request.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+    const uid = token ? uidFromToken(token) : null;
+    if (!uid) return json(401, { error: 'Sign in first' }, cors);
+    const body = (await request.json().catch(() => null)) as { url?: unknown } | null;
+    const target = typeof body?.url === 'string' ? allowedRecipeUrl(body.url) : null;
+    if (!target) return json(400, { error: 'That doesn’t look like a web link.' }, cors);
+
+    const recent = (recipeAt.get(uid) ?? []).filter((t) => now - t < WINDOW_MS);
+    if (recent.length >= RECIPE_LIMIT)
+      return json(429, { error: 'Too many links. Try again in a few minutes.' }, cors);
+    recipeAt.set(uid, [...recent, now]);
+
+    const base = env.FIRESTORE_BASE ?? 'https://firestore.googleapis.com/v1';
+    const me = await fetchFn(
+      `${base}/projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents/users/${uid}`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (me.status === 401 || me.status === 403) return json(401, { error: 'Sign in first' }, cors);
+
+    const page = await fetchFn(target.toString(), {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; StockedRecipeReader/1.0)',
+        Accept: 'text/html,application/xhtml+xml',
+      },
+      redirect: 'follow',
+    });
+    if (!page.ok) return json(502, { error: `The page answered ${page.status}.` }, cors);
+    const html = (await page.text()).slice(0, 3_000_000);
+    return json(200, parseRecipePage(html), cors);
+  } catch (e) {
+    return json(500, { error: `Couldn’t read that page: ${(e as Error).message}` }, cors);
   }
 }
 

@@ -2,6 +2,7 @@ import {
   arrayUnion,
   doc,
   getDoc,
+  runTransaction,
   setDoc,
   updateDoc,
   writeBatch,
@@ -96,4 +97,18 @@ export async function leaveHousehold(household: Household, uid: string) {
   });
   const cleared: UserProfile = { householdId: null };
   await setDoc(doc(db, 'users', uid), cleared, { merge: true });
+}
+
+/**
+ * Claims sending last month's recap. Whoever opens the app first in a new month wins; it
+ * returns false for everyone after, so the recap goes out once.
+ */
+export async function claimRecap(hid: string, month: string): Promise<boolean> {
+  const ref = doc(db, 'households', hid);
+  return runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists() || snap.data().recapSentFor === month) return false;
+    tx.update(ref, { recapSentFor: month });
+    return true;
+  });
 }

@@ -256,6 +256,41 @@ describe('push relay', () => {
     expect(net.pushes.map((p) => p.endpoint)).toEqual([alex.endpoint]);
   });
 
+  it('sends the monthly recap to everyone, sender included', async () => {
+    const env = await makeEnv();
+    const alex = phone('alex');
+    const sam = phone('sam');
+    const muted = phone('sam', { recap: false });
+    const net = fakeNetwork([alex, sam, muted]);
+    await handle(
+      notify(unsignedToken('alex'), {
+        householdId: 'h1',
+        kind: 'recap',
+        data: {
+          month: 'October',
+          cents: 66876,
+          receipts: 6,
+          topStore: 'target',
+          topCents: 66876,
+          budgetCents: 60000,
+        },
+      }),
+      env,
+      net.fetchFn,
+    );
+    expect(net.pushes.map((p) => p.endpoint).sort()).toEqual([alex.endpoint, sam.endpoint].sort());
+    expect(
+      decrypt(
+        net.pushes.find((p) => p.endpoint === sam.endpoint)!,
+        sam,
+      ),
+    ).toMatchObject({
+      title: 'October recap: $668.76 on groceries',
+      body: '6 receipts · most at Target ($668.76) · $68.76 over budget',
+      url: '/#spend',
+    });
+  });
+
   it('rate-limits a sender', async () => {
     const env = await makeEnv();
     const net = fakeNetwork([phone('alex')]);
@@ -339,6 +374,43 @@ describe('push relay', () => {
     );
     expect(res.status).toBe(204);
     expect(res.headers.get('Access-Control-Allow-Headers')).toContain('Authorization');
+  });
+
+  it('reads a recipe link for a signed-in user', async () => {
+    const env = await makeEnv();
+    const calls: string[] = [];
+    const fetchFn = (async (input: RequestInfo | URL) => {
+      const url = String(input);
+      calls.push(url);
+      if (url.includes('firestore.googleapis.com')) return new Response('{}');
+      return new Response(
+        '<script type="application/ld+json">{"@type":"Recipe","name":"Tacos","recipeIngredient":["1 lb beef","8 tortillas"]}</script>',
+      );
+    }) as typeof fetch;
+    const req = (token: string | null, url: string) =>
+      new Request('https://relay.example.com/recipe', {
+        method: 'POST',
+        headers: {
+          Origin: 'https://demo.web.app',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ url }),
+      });
+    const ok = await handle(
+      req(unsignedToken('alex'), 'https://cooking.example.com/tacos'),
+      env,
+      fetchFn,
+    );
+    expect(await ok.json()).toEqual({
+      title: 'Tacos',
+      ingredients: ['1 lb beef', '8 tortillas'],
+      text: '',
+    });
+    expect(calls[0]).toContain('/documents/users/alex');
+    expect((await handle(req(null, 'https://x.com'), env, fetchFn)).status).toBe(401);
+    expect(
+      (await handle(req(unsignedToken('alex'), 'http://127.0.0.1/'), env, fetchFn)).status,
+    ).toBe(400);
   });
 
   it('reads the uid from a Firebase token', () => {

@@ -523,3 +523,61 @@ export function budgetCrossed(
   }
   return null;
 }
+
+export interface PriceTrend {
+  store: ReceiptStore;
+  /** Change from the first to the latest price, e.g. 0.18 for +18%. */
+  change: number;
+  since: number;
+  firstCents: number;
+  latestCents: number;
+}
+
+/**
+ * How each store's price moved over the history, for stores with at least two prices at
+ * least two weeks apart. Biggest change first.
+ */
+export function priceTrends(points: PricePoint[]): PriceTrend[] {
+  const byStore = new Map<ReceiptStore, PricePoint[]>();
+  for (const p of points) byStore.set(p.store, [...(byStore.get(p.store) ?? []), p]);
+  const out: PriceTrend[] = [];
+  for (const [store, list] of byStore) {
+    const sorted = [...list].sort((a, b) => a.at - b.at);
+    const first = sorted[0];
+    const latest = sorted[sorted.length - 1];
+    if (sorted.length < 2 || latest.at - first.at < 14 * 86_400_000 || first.unitCents <= 0)
+      continue;
+    out.push({
+      store,
+      change: (latest.unitCents - first.unitCents) / first.unitCents,
+      since: first.at,
+      firstCents: first.unitCents,
+      latestCents: latest.unitCents,
+    });
+  }
+  return out.sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
+}
+
+export interface MonthRecap {
+  month: string;
+  cents: number;
+  /** Purchases, not counting shopper tips. */
+  receipts: number;
+  topStore: ReceiptStore | null;
+  topCents: number;
+}
+
+/** A month in one line: total, how many receipts, and where most of it went. */
+export function monthRecap(receipts: Receipt[], month: string): MonthRecap {
+  const s = summarizeMonth(receipts, month);
+  const purchases = receipts.filter(
+    (r) => monthKey(r.purchasedAt) === month && r.kind !== 'tip',
+  ).length;
+  return {
+    month,
+    cents: s.cents,
+    receipts: purchases,
+    topStore: s.byStore[0]?.key ?? null,
+    topCents: s.byStore[0]?.cents ?? 0,
+  };
+}

@@ -23,7 +23,9 @@ import { formatCents, lineCents } from '../lib/money';
 import { STORES, storeDef } from '../lib/stores';
 import { parseQuickAdd, type QuickAdd } from '../lib/text';
 import { suggestUsuals, type Usual } from '../lib/usuals';
+import { BarcodeScanner } from './BarcodeScanner';
 import { QuickList } from './QuickList';
+import { RecipeSheet } from './RecipeSheet';
 import { notify } from '../push';
 import type {
   ActivityEvent,
@@ -109,6 +111,8 @@ export function ListScreen({
   const [editing, setEditing] = useState<Item | null>(null);
   const [tripSheet, setTripSheet] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [recipeOpen, setRecipeOpen] = useState(false);
   const keyboardProxy = useRef<HTMLInputElement>(null);
 
   /** A tap on a blank line, the empty message or a group heading opens the add pop-up.
@@ -623,6 +627,32 @@ export function ListScreen({
           usuals={list === 'grocery' ? usuals : []}
           onPickUsual={addUsual}
           onClose={() => setAdding(false)}
+          onScan={() => {
+            setAdding(false);
+            setScanning(true);
+          }}
+          onRecipe={() => {
+            setAdding(false);
+            setRecipeOpen(true);
+          }}
+        />
+      )}
+      {scanning && (
+        <BarcodeScanner
+          hid={household.id}
+          onClose={() => setScanning(false)}
+          onName={(name) => {
+            setScanning(false);
+            void addEntries([{ name, qty: 1 }], store === 'all' ? 'ht' : store);
+          }}
+        />
+      )}
+      {recipeOpen && (
+        <RecipeSheet
+          items={visibleItems}
+          defaultStore={store === 'all' ? 'ht' : store}
+          onAdd={addEntries}
+          onClose={() => setRecipeOpen(false)}
         />
       )}
 
@@ -740,6 +770,8 @@ function AddSheet({
   usuals,
   onPickUsual,
   onClose,
+  onScan,
+  onRecipe,
 }: {
   defaultStore: StoreId;
   list: ListId;
@@ -747,6 +779,8 @@ function AddSheet({
   usuals: Usual[];
   onPickUsual: (u: Usual) => void;
   onClose: () => void;
+  onScan: () => void;
+  onRecipe: () => void;
 }) {
   const [text, setText] = useState('');
   const [target, setTarget] = useState<StoreId>(defaultStore);
@@ -792,6 +826,39 @@ function AddSheet({
         <p className="hint" id="add-sheet-hint">
           Separate items with commas. “2 milk” or “bread x3” sets the quantity.
         </p>
+        <div className="add-extras">
+          <button type="button" className="btn ghost small" onClick={onScan}>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M13 8v8M17 8v8" />
+            </svg>
+            Scan barcode
+          </button>
+          <button type="button" className="btn ghost small" onClick={onRecipe}>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M6 13.9A4 4 0 0 1 7.5 6a5 5 0 0 1 9 0A4 4 0 0 1 18 13.9V20H6z M6 17h12" />
+            </svg>
+            From a recipe
+          </button>
+        </div>
         <UsualsRow usuals={usuals} onPick={onPickUsual} />
         <div className="segmented small" role="group" aria-label="Store">
           {STORES.map((s) => (

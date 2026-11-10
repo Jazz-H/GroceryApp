@@ -17,6 +17,8 @@ import {
   toCsv,
   unitCents,
   monthLabel,
+  monthRecap,
+  priceTrends,
   budgetCrossed,
   cardsLabel,
   knownCards,
@@ -362,5 +364,43 @@ describe('budgetCrossed', () => {
     expect(budgetCrossed(50000, 55000, 60000)).toBeNull();
     expect(budgetCrossed(61000, 70000, 60000)).toBeNull();
     expect(budgetCrossed(0, 70000, null)).toBeNull();
+  });
+});
+
+describe('priceTrends', () => {
+  const day = 86_400_000;
+  it('compares the first and latest price per store, two weeks apart or more', () => {
+    const t = priceTrends([
+      { store: 'target', unitCents: 500, at: 0 },
+      { store: 'target', unitCents: 550, at: 20 * day },
+      { store: 'target', unitCents: 590, at: 40 * day },
+      { store: 'ht', unitCents: 600, at: 0 },
+      { store: 'ht', unitCents: 540, at: 30 * day },
+      { store: 'amazon', unitCents: 900, at: 0 },
+      { store: 'amazon', unitCents: 990, at: 3 * day }, // too close together
+    ]);
+    expect(t.map((x) => [x.store, Math.round(x.change * 100)])).toEqual([
+      ['target', 18],
+      ['ht', -10],
+    ]);
+  });
+});
+
+describe('monthRecap', () => {
+  it('totals the month, counts purchases (not tips) and finds the top store', () => {
+    const base = receipt('target', '2026-10-05', 10000);
+    const rs: Receipt[] = [
+      base,
+      { ...receipt('ht', '2026-10-09', 4000) },
+      { ...receipt('target', '2026-10-09', 500), kind: 'tip' },
+      receipt('target', '2026-11-01', 9999),
+    ];
+    expect(monthRecap(rs, '2026-10')).toEqual({
+      month: '2026-10',
+      cents: 14500,
+      receipts: 2,
+      topStore: 'target',
+      topCents: 10500,
+    });
   });
 });
