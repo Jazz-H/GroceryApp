@@ -28,7 +28,7 @@ export interface SaveResult {
  * Saves a reviewed receipt in one atomic batch:
  * - the receipt itself
  * - the price actually paid on each matched item (unless a newer price is already there)
- * - matched items that were still open get checked off
+ * - matched items that were still open get checked off (not for past receipts from a link)
  * - each match is remembered, so the same printed line matches by itself next time
  * - one activity entry
  */
@@ -37,6 +37,7 @@ export async function saveReceipt(
   uid: string,
   draft: ReceiptDraft,
   allItems: Item[],
+  { checkOff = true }: { checkOff?: boolean } = {},
 ): Promise<SaveResult> {
   const batch = writeBatch(db);
   const byId = new Map(allItems.map((i) => [i.id, i]));
@@ -74,7 +75,7 @@ export async function saveReceipt(
       }
       if (!item.stores.includes(store)) update.stores = arrayUnion(store);
     }
-    if (item.status !== 'checked') {
+    if (checkOff && item.status !== 'checked') {
       update.status = 'checked';
       update.checkedBy = uid;
       checked += 1;
