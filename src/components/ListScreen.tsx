@@ -19,7 +19,7 @@ import {
 import { startTrip } from '../data/trips';
 import { aisleLabel, buildBoard, itemsInView } from '../lib/aisles';
 import { cardLook, groupIntoCards, partnerAddsToday } from '../lib/cards';
-import { estimate, formatCents, lineCents } from '../lib/money';
+import { formatCents, lineCents } from '../lib/money';
 import { STORES, storeDef } from '../lib/stores';
 import { parseQuickAdd, type QuickAdd } from '../lib/text';
 import { suggestUsuals, type Usual } from '../lib/usuals';
@@ -230,7 +230,6 @@ export function ListScreen({
     [onList, store, sortByAisle, household.zoneOrder],
   );
   const blocks = useMemo(() => groupIntoCards(rows), [rows]);
-  const total = useMemo(() => estimate(onList, store), [onList, store]);
   const me = household.members[user.uid];
   const partnerNews = useMemo(() => {
     const counts = partnerAddsToday(activity, user.uid);
@@ -335,20 +334,12 @@ export function ListScreen({
     });
   }
 
-  const where = store === 'all' ? '' : ` at ${storeDef(store).name}`;
-  const summary = loading
-    ? 'Loading…'
-    : `${total.open} ${total.open === 1 ? 'item' : 'items'}${where}` +
-      (total.cents > 0 ? ` · about $${Math.round(total.cents / 100)}` : '') +
-      (total.missing ? ` · ${total.missing} unpriced` : '');
-
   return (
     <section className="list-screen">
       <header className="hello">
         <Avatar member={me} size={44} />
         <div className="hello-text">
           <h1>Hi {me?.name ?? 'there'}</h1>
-          <p>{summary}</p>
           {partnerNews && <p className="hello-news">{partnerNews}</p>}
         </div>
         {list === 'grocery' && !activeTrip && (
