@@ -457,3 +457,43 @@ export function latestByStore(points: PricePoint[]): PricePoint[] {
     if (!latest.has(p.store)) latest.set(p.store, p);
   return [...latest.values()].sort((a, b) => a.unitCents - b.unitCents);
 }
+
+// ---------- Cards ----------
+
+export interface KnownCard {
+  last4: string;
+  card: string;
+  /** Who usually pays with it: the member most often recorded as paying when it was used. */
+  owner: string | null;
+  count: number;
+}
+
+/** Every card seen on a receipt, most used first, with its likely owner. */
+export function knownCards(receipts: Receipt[]): KnownCard[] {
+  const byLast4 = new Map<string, { card: string; count: number; payers: Map<string, number> }>();
+  for (const r of receipts)
+    for (const p of r.payments ?? []) {
+      if (!/^\d{4}$/.test(p.last4)) continue;
+      const k = byLast4.get(p.last4) ?? { card: p.card, count: 0, payers: new Map() };
+      k.count += 1;
+      // Only count the payer when this card paid most of the receipt.
+      if (p.cents * 2 >= r.totalCents) k.payers.set(r.paidBy, (k.payers.get(r.paidBy) ?? 0) + 1);
+      byLast4.set(p.last4, k);
+    }
+  return [...byLast4]
+    .map(([last4, k]) => ({
+      last4,
+      card: k.card,
+      count: k.count,
+      owner: [...k.payers].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null,
+    }))
+    .sort((a, b) => b.count - a.count);
+}
+
+/** One payment covering the whole total, or none for "unknown". */
+export function singlePayment(
+  card: Pick<KnownCard, 'card' | 'last4'> | null,
+  totalCents: number,
+): ReceiptPayment[] | undefined {
+  return card ? [{ card: card.card, last4: card.last4, cents: totalCents }] : undefined;
+}

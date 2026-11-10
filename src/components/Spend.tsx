@@ -1,9 +1,18 @@
 import { useMemo, useState } from 'react';
 import { useAliases, useReceipts } from '../data/hooks';
-import { deleteReceipt, setBudget, setPaidByForAll, setReceiptPaidBy } from '../data/receipts';
+import {
+  deleteReceipt,
+  setBudget,
+  setPaidByForAll,
+  setReceiptPaidBy,
+  updateReceipts,
+} from '../data/receipts';
 import { formatCents, parsePrice } from '../lib/money';
 import {
   cardsLabel,
+  knownCards,
+  singlePayment,
+  type KnownCard,
   monthKey,
   monthLabel,
   monthTotals,
@@ -13,6 +22,7 @@ import {
   toCsv,
 } from '../lib/receipts';
 import type { Household, Item, Receipt } from '../types';
+import { CardSelect } from './CardSelect';
 import { ImportReceipts } from './ImportReceipts';
 import { ReceiptFlow } from './ReceiptFlow';
 import { Avatar, Sheet } from './ui';
@@ -33,6 +43,9 @@ export function Spend({
   const [adding, setAdding] = useState(false);
   const [open, setOpen] = useState<Receipt | null>(null);
   const [changingPayer, setChangingPayer] = useState(false);
+  const [settingCards, setSettingCards] = useState(false);
+  const cards = useMemo(() => knownCards(receipts), [receipts]);
+  const unknownCount = receipts.filter((r) => !r.payments?.length).length;
   const [toast, setToast] = useState<string | null>(null);
 
   const summary = useMemo(() => summarizeMonth(receipts, month), [receipts, month]);
@@ -203,6 +216,11 @@ export function Spend({
               </ul>
             </>
           )}
+          {unknownCount > 0 && (
+            <button className="btn link" onClick={() => setSettingCards(true)}>
+              Set card for {unknownCount} receipt{unknownCount === 1 ? '' : 's'} with no card…
+            </button>
+          )}
         </div>
       )}
 
@@ -289,8 +307,22 @@ export function Spend({
         <ReceiptDetail
           household={household}
           items={items}
+          cards={cards}
           receipt={receipts.find((r) => r.id === open.id) ?? open}
           onClose={() => setOpen(null)}
+        />
+      )}
+      {settingCards && (
+        <SetCards
+          household={household}
+          receipts={receipts}
+          cards={cards}
+          month={month}
+          onClose={() => setSettingCards(false)}
+          onDone={(msg) => {
+            setSettingCards(false);
+            showToast(msg);
+          }}
         />
       )}
       {changingPayer && (
@@ -414,11 +446,13 @@ function Budget({
 function ReceiptDetail({
   household,
   items,
+  cards,
   receipt,
   onClose,
 }: {
   household: Household;
   items: Item[];
+  cards: KnownCard[];
   receipt: Receipt;
   onClose: () => void;
 }) {
@@ -451,6 +485,30 @@ function ReceiptDetail({
           ))}
         </select>
       </label>
+      {(receipt.payments?.length ?? 0) <= 1 && (
+        <label className="note-label" htmlFor="rd-card">
+          Card
+          <CardSelect
+            id="rd-card"
+            cards={cards}
+            value={receipt.payments?.[0]?.last4 ?? ''}
+            valueName={receipt.payments?.[0]?.card}
+            onChange={(c) =>
+              updateReceipts(household.id, [
+                {
+                  id: receipt.id,
+                  patch: {
+                    payments: singlePayment(c, receipt.totalCents) ?? [],
+                    ...(c && cards.find((k) => k.last4 === c.last4)?.owner
+                      ? { paidBy: cards.find((k) => k.last4 === c.last4)!.owner! }
+                      : {}),
+                  },
+                },
+              ])
+            }
+          />
+        </label>
+      )}
       <ul className="rd-lines">
         {receipt.lines.map((l, i) => (
           <li key={i}>
@@ -623,6 +681,117 @@ function ChangePayer({
             : moving.length
               ? `Move ${moving.length} (${formatCents(cents)}) to ${name(to)}`
               : 'Nothing to move'}
+        </button>
+        <button className="btn ghost" onClick={onClose} disabled={busy}>
+          Cancel
+        </button>
+      </div>
+    </Sheet>
+  );
+}
+
+function SetCards({
+  household,
+  receipts,
+  cards,
+  month,
+  onClose,
+  onDone,
+}: {
+  household: Household;
+  receipts: Receipt[];
+  cards: KnownCard[];
+  month: string;
+  onClose: () => void;
+  onDone: (message: string) => void;
+}) {
+  const [card, setCard] = useState<Pick<KnownCard, 'card' | 'last4'> | null>(
+    cards[0] ? { card: cards[0].card, last4: cards[0].last4 } : null,
+  );
+  const [scope, setScope] = useState<'month' | 'all'>('all');
+  const owner = card ? (cards.find((c) => c.last4 === card.last4)?.owner ?? null) : null;
+  const [setPayer, setSetPayer] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const targets = receipts.filter(
+    (r) => !r.payments?.length && (scope === 'all' || monthKey(r.purchasedAt) === month),
+  );
+  const cents = targets.reduce((sum, r) => sum + r.totalCents, 0);
+
+  async function run() {
+    if (!card) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await updateReceipts(
+        household.id,
+        targets.map((r) => ({
+          id: r.id,
+          patch: {
+            payments: singlePayment(card, r.totalCents),
+            ...(setPayer && owner ? { paidBy: owner } : {}),
+          },
+        })),
+      );
+      onDone(
+        `Set •${card.last4} on ${targets.length} ${targets.length === 1 ? 'receipt' : 'receipts'}.`,
+      );
+    } catch {
+      setError('Couldn’t update them. Check your connection and try again.');
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Sheet
+      onClose={onClose}
+      labelledBy="sc-title"
+      title={
+        <h2 id="sc-title" className="sheet-title-plain">
+          Set card
+        </h2>
+      }
+    >
+      <p className="muted">For receipts that don’t say which card paid.</p>
+      <label className="note-label" htmlFor="sc-card">
+        Paid with
+        <CardSelect id="sc-card" cards={cards} value={card?.last4 ?? ''} onChange={setCard} />
+      </label>
+      {owner && (
+        <label className="check-label">
+          <input
+            type="checkbox"
+            checked={setPayer}
+            onChange={(e) => setSetPayer(e.target.checked)}
+          />{' '}
+          Also set who paid to {household.members[owner]?.name ?? 'its owner'}
+        </label>
+      )}
+      <div className="seg" role="radiogroup" aria-label="Which receipts">
+        <button role="radio" aria-checked={scope === 'all'} onClick={() => setScope('all')}>
+          All months
+        </button>
+        <button role="radio" aria-checked={scope === 'month'} onClick={() => setScope('month')}>
+          {monthLabel(month)}
+        </button>
+      </div>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="row-actions">
+        <button
+          className="btn primary"
+          onClick={run}
+          disabled={busy || !card || targets.length === 0}
+        >
+          {busy
+            ? 'Saving…'
+            : targets.length
+              ? `Set on ${targets.length} (${formatCents(cents)})`
+              : 'No receipts without a card'}
         </button>
         <button className="btn ghost" onClick={onClose} disabled={busy}>
           Cancel

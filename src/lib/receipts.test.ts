@@ -18,6 +18,8 @@ import {
   unitCents,
   monthLabel,
   cardsLabel,
+  knownCards,
+  singlePayment,
 } from './receipts';
 import { makeItem } from './testItems';
 
@@ -289,5 +291,51 @@ describe('monthLabel', () => {
   it('includes the year', () => {
     expect(monthLabel('2026-11')).toMatch(/2026$/);
     expect(monthLabel('2025-10', 'short')).toMatch(/’25$/);
+  });
+});
+
+describe('cards', () => {
+  it('reads payments from the receipt reader, keeping only the last 4 digits', () => {
+    const d = fromModel(
+      {
+        store: 'ht',
+        total: 20,
+        payments: [
+          { card: 'VISA', last4: '****1234', amount: 15 },
+          { card: 'Cash', last4: '', amount: 5 },
+          { card: '', last4: '' },
+        ],
+      },
+      'u1',
+    );
+    expect(d.payments).toEqual([
+      { card: 'VISA', last4: '1234', cents: 1500 },
+      { card: 'Cash', last4: '', cents: 500 },
+    ]);
+  });
+
+  it('knows each card and who usually pays with it', () => {
+    const base = { ...receipt('target', '2026-10-01', 1000) };
+    const rs: Receipt[] = [
+      { ...base, paidBy: 'm', payments: [{ card: 'Mastercard', last4: '8759', cents: 1000 }] },
+      { ...base, paidBy: 'm', payments: [{ card: 'Mastercard', last4: '8759', cents: 900 }] },
+      {
+        ...base,
+        paidBy: 'j',
+        payments: [
+          { card: 'Mastercard', last4: '8759', cents: 100 },
+          { card: 'Circle', last4: '3979', cents: 900 },
+        ],
+      },
+      { ...base, paidBy: 'x', payments: [{ card: 'Coupon', last4: '', cents: 50 }] },
+    ];
+    expect(knownCards(rs)).toEqual([
+      { last4: '8759', card: 'Mastercard', count: 3, owner: 'm' },
+      { last4: '3979', card: 'Circle', count: 1, owner: 'j' },
+    ]);
+    expect(singlePayment({ card: 'Circle', last4: '3979' }, 1234)).toEqual([
+      { card: 'Circle', last4: '3979', cents: 1234 },
+    ]);
+    expect(singlePayment(null, 1234)).toBeUndefined();
   });
 });

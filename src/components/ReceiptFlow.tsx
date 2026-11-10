@@ -6,12 +6,17 @@ import {
   checkTotals,
   dateToMs,
   fromModel,
+  knownCards,
   matchAll,
   msToDate,
   receiptStoreName,
+  singlePayment,
   TOLERANCE_CENTS,
+  type KnownCard,
   type ReceiptDraft,
 } from '../lib/receipts';
+import { useReceipts } from '../data/hooks';
+import { CardSelect } from './CardSelect';
 import type { Household, Item, ReceiptLine, ReceiptStore } from '../types';
 import { Sheet } from './ui';
 
@@ -204,6 +209,8 @@ export function ReceiptFlow({
   const [step, setStep] = useState<Step>({ kind: 'photos' });
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const allReceipts = useReceipts(household.id);
+  const cards = useMemo(() => knownCards(allReceipts), [allReceipts]);
   const fileInput = useRef<HTMLInputElement>(null);
 
   // ImageBitmaps hold decoded image memory and must be closed. Removing a
@@ -241,6 +248,9 @@ export function ReceiptFlow({
     try {
       const raw = await parseReceiptImages(photos.map(exportPhoto));
       const parsed = fromModel(raw, uid);
+      // A card seen before tells us who usually pays with it.
+      const owner = cards.find((c) => c.last4 === parsed.payments?.[0]?.last4)?.owner;
+      if (owner && parsed.payments?.length === 1) parsed.paidBy = owner;
       // Trust the store Gemini read, unless it couldn't tell: then use the trip's store.
       if (parsed.store === 'other' && initialStore) parsed.store = initialStore;
       const { draft, remembered } = matchAll(parsed, items, aliases);
@@ -263,8 +273,16 @@ export function ReceiptFlow({
     });
   }
 
-  async function save(draft: ReceiptDraft) {
+  async function save(edited: ReceiptDraft) {
     setBusy(true);
+    // One card pays the whole (possibly corrected) total; no payments means unknown.
+    const { payments, ...rest } = edited;
+    const draft: ReceiptDraft = payments?.length
+      ? {
+          ...rest,
+          payments: payments.length === 1 ? [{ ...payments[0], cents: rest.totalCents }] : payments,
+        }
+      : rest;
     try {
       const { priced, checked } = await saveReceipt(household.id, uid, draft, items);
       const parts = [`Saved ${formatCents(draft.totalCents)} at ${receiptStoreName(draft.store)}`];
@@ -309,9 +327,10 @@ export function ReceiptFlow({
           />
           {photos.length > 0 && (
             <p className="privacy">
-              <b>Hide card info:</b> drag across the card number, member number or anything else you
-              don’t want sent to Google. The black box is burned into the photo before it leaves
-              your phone.
+              <b>Hide anything private:</b> drag across a member number or anything else you don’t
+              want sent to Google. The black box is burned into the photo before it leaves your
+              phone. Receipts only print a card’s last 4 digits; Stocked keeps those so you can see
+              which card paid.
             </p>
           )}
           {photos.map((p, i) => (
@@ -366,6 +385,7 @@ export function ReceiptFlow({
         <Review
           household={household}
           items={items}
+          cards={cards}
           draft={step.draft}
           remembered={step.remembered}
           error={step.error}
@@ -384,6 +404,7 @@ const STORE_OPTIONS: ReceiptStore[] = ['ht', 'target', 'amazon', 'other'];
 function Review({
   household,
   items,
+  cards,
   draft,
   remembered,
   error,
@@ -394,6 +415,7 @@ function Review({
 }: {
   household: Household;
   items: Item[];
+  cards: KnownCard[];
   draft: ReceiptDraft;
   remembered: Set<number>;
   error?: string;
@@ -454,6 +476,28 @@ function Review({
               </option>
             ))}
           </select>
+        </label>
+        <label>
+          Card
+          {(draft.payments?.length ?? 0) > 1 ? (
+            <span className="mono">
+              {draft.payments!.map((p) => `•${p.last4 || p.card}`).join(' + ')}
+            </span>
+          ) : (
+            <CardSelect
+              id="receipt-card"
+              cards={cards}
+              value={draft.payments?.[0]?.last4 ?? ''}
+              valueName={draft.payments?.[0]?.card}
+              onChange={(c) => {
+                const owner = c && cards.find((k) => k.last4 === c.last4)?.owner;
+                set({
+                  payments: singlePayment(c, draft.totalCents),
+                  ...(owner ? { paidBy: owner } : {}),
+                });
+              }}
+            />
+          )}
         </label>
       </div>
 
