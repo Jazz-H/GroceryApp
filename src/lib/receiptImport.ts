@@ -83,6 +83,32 @@ export function findSaved(draft: ReceiptDraft, existing: Receipt[]): Receipt | u
   );
 }
 
+/** Every saved receipt for the same store, kind, day and total (duplicates included). */
+export function findAllSaved(draft: ReceiptDraft, existing: Receipt[]): Receipt[] {
+  const day = new Date(draft.purchasedAt).toDateString();
+  return existing.filter(
+    (r) =>
+      r.store === draft.store &&
+      (r.kind ?? null) === (draft.kind ?? null) &&
+      Math.abs(r.totalCents - draft.totalCents) <= 1 &&
+      new Date(r.purchasedAt).toDateString() === day,
+  );
+}
+
+/**
+ * Of several saved copies of one receipt, the one to keep: the one with cards, then the one
+ * with the most lines, then the oldest. The rest are duplicates.
+ */
+export function pickKeeper(copies: Receipt[]): { keep: Receipt; extra: Receipt[] } {
+  const sorted = [...copies].sort(
+    (a, b) =>
+      Number(!!b.payments?.length) - Number(!!a.payments?.length) ||
+      b.lines.length - a.lines.length ||
+      a.createdAt - b.createdAt,
+  );
+  return { keep: sorted[0], extra: sorted.slice(1) };
+}
+
 /** True when a receipt for the same store, day and total is already saved. */
 export function isDuplicate(draft: ReceiptDraft, existing: Receipt[]): boolean {
   return findSaved(draft, existing) !== undefined;

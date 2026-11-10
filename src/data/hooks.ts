@@ -142,7 +142,14 @@ export function useActiveTrips(hid: string): Trip[] {
 }
 
 export function useReceipts(hid: string, max = 300): Receipt[] {
-  const [receipts, setReceipts] = useState<Receipt[]>([]);
+  return useReceiptsState(hid, max) ?? EMPTY_RECEIPTS;
+}
+
+const EMPTY_RECEIPTS: Receipt[] = [];
+
+/** Receipts, or null until the first snapshot has arrived (so "none saved" isn't assumed). */
+export function useReceiptsState(hid: string, max = 300): Receipt[] | null {
+  const [receipts, setReceipts] = useState<Receipt[] | null>(null);
   useEffect(
     () =>
       onSnapshot(

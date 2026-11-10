@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   decodeReceiptsHash,
   encodeReceiptsLink,
+  findAllSaved,
   findSaved,
   isDuplicate,
   memberByName,
+  pickKeeper,
   receiptPatch,
 } from './receiptImport';
 import { dateToMs } from './receipts';
@@ -114,5 +116,28 @@ describe('payments in receipt links', () => {
     expect(findSaved(buy, [saved])).toBe(saved);
     expect(receiptPatch(buy, saved)).toEqual({ payments: buy.payments });
     expect(receiptPatch(buy, { ...saved, payments: buy.payments })).toBeNull();
+  });
+});
+
+describe('duplicates', () => {
+  it('finds every copy and keeps the one with cards', () => {
+    const [draft] = decodeReceiptsHash(
+      encodeReceiptsLink('x', [sample]).replace(/^x\//, ''),
+      'u1',
+    )!;
+    const base = { ...draft, createdBy: 'u1' } as Receipt;
+    const plain = { ...base, id: 'a', createdAt: 1 };
+    const withCard = {
+      ...base,
+      id: 'b',
+      createdAt: 2,
+      payments: [{ card: 'Visa', last4: '1234', cents: 16260 }],
+    };
+    const other = { ...base, id: 'c', totalCents: 100, createdAt: 0 };
+    const copies = findAllSaved(draft, [plain, withCard, other]);
+    expect(copies.map((r) => r.id)).toEqual(['a', 'b']);
+    const { keep, extra } = pickKeeper(copies);
+    expect(keep.id).toBe('b');
+    expect(extra.map((r) => r.id)).toEqual(['a']);
   });
 });
