@@ -2202,3 +2202,27 @@ textarea {
   background: var(--accent-ink);
   color: var(--accent);
 }
+
+/* ---- Spend: receipts from a link ---- */
+.import-receipts {
+  border-color: var(--accent);
+}
+.import-receipts-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+.import-receipts-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.import-receipts-list li:first-child {
+  border-top: 0;
+}
+.import-receipts-list li.dup {
+  opacity: 0.55;
+}

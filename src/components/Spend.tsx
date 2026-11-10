@@ -12,6 +12,7 @@ import {
   toCsv,
 } from '../lib/receipts';
 import type { Household, Item, Receipt } from '../types';
+import { ImportReceipts } from './ImportReceipts';
 import { ReceiptFlow } from './ReceiptFlow';
 import { Avatar, Sheet } from './ui';
 
@@ -64,6 +65,18 @@ export function Spend({
       <div className="spend-head">
         <h1 className="screen-title">Spending</h1>
       </div>
+
+      <ImportReceipts
+        household={household}
+        uid={uid}
+        items={items}
+        receipts={receipts}
+        aliases={aliases}
+        onDone={(msg, month) => {
+          if (month) setMonth(month);
+          showToast(msg);
+        }}
+      />
 
       <div className="month-nav">
         <button
