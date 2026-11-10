@@ -1,4 +1,4 @@
-import type { Receipt } from '../types';
+import type { Member, Receipt } from '../types';
 import { fromModel, monthKey, type ReceiptDraft } from './receipts';
 
 /**
@@ -6,7 +6,21 @@ import { fromModel, monthKey, type ReceiptDraft } from './receipts';
  * a server. Each receipt uses the same shape as the Gemini reader's answer (dollars), so
  * fromModel() validates and converts it.
  */
-export const MAX_LINK_RECEIPTS = 40;
+export const MAX_LINK_RECEIPTS = 100;
+
+/** A receipt from a link. `linkPayer` is set when the link names who paid (by first name). */
+export type LinkReceipt = ReceiptDraft & { linkPayer?: string };
+
+/** The member whose name (or first name) matches, ignoring case. */
+export function memberByName(name: string, members: Record<string, Member>): string | null {
+  const want = name.trim().toLowerCase();
+  if (!want) return null;
+  for (const [id, m] of Object.entries(members)) {
+    const full = (m.name ?? '').trim().toLowerCase();
+    if (full === want || full.split(/\s+/)[0] === want) return id;
+  }
+  return null;
+}
 
 function toB64url(text: string): string {
   let bin = '';
@@ -29,7 +43,11 @@ export function encodeReceiptsLink(origin: string, receipts: unknown[]): string 
 }
 
 /** Drafts from a "#receipts=" hash, or null when the hash isn't a valid receipt link. */
-export function decodeReceiptsHash(hash: string, paidBy: string): ReceiptDraft[] | null {
+export function decodeReceiptsHash(
+  hash: string,
+  paidBy: string,
+  members: Record<string, Member> = {},
+): LinkReceipt[] | null {
   const m = /^#?receipts=([A-Za-z0-9_-]+)$/.exec(hash);
   if (!m) return null;
   const json = fromB64url(m[1]);
@@ -43,20 +61,30 @@ export function decodeReceiptsHash(hash: string, paidBy: string): ReceiptDraft[]
   if (!Array.isArray(raw)) return null;
   const drafts = raw
     .slice(0, MAX_LINK_RECEIPTS)
-    .map((r) => fromModel(r, paidBy))
+    .map((r): LinkReceipt => {
+      const name = r && typeof r === 'object' ? (r as Record<string, unknown>).payer : null;
+      const payer = typeof name === 'string' ? memberByName(name, members) : null;
+      const draft = fromModel(r, payer ?? paidBy);
+      return payer ? { ...draft, linkPayer: payer } : draft;
+    })
     .filter((d) => d.totalCents > 0);
   return drafts.length ? drafts : null;
 }
 
-/** True when a receipt for the same store, day and total is already saved. */
-export function isDuplicate(draft: ReceiptDraft, existing: Receipt[]): boolean {
+/** The saved receipt for the same store, day and total, if there is one. */
+export function findSaved(draft: ReceiptDraft, existing: Receipt[]): Receipt | undefined {
   const day = new Date(draft.purchasedAt).toDateString();
-  return existing.some(
+  return existing.find(
     (r) =>
       r.store === draft.store &&
       Math.abs(r.totalCents - draft.totalCents) <= 1 &&
       new Date(r.purchasedAt).toDateString() === day,
   );
+}
+
+/** True when a receipt for the same store, day and total is already saved. */
+export function isDuplicate(draft: ReceiptDraft, existing: Receipt[]): boolean {
+  return findSaved(draft, existing) !== undefined;
 }
 
 /** "November 2026" style list of months a set of drafts covers, for the confirm card. */

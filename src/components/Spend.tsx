@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useAliases, useReceipts } from '../data/hooks';
-import { deleteReceipt, setBudget, setReceiptPaidBy } from '../data/receipts';
+import { deleteReceipt, setBudget, setPaidByForAll, setReceiptPaidBy } from '../data/receipts';
 import { formatCents, parsePrice } from '../lib/money';
 import {
   monthKey,
@@ -31,6 +31,7 @@ export function Spend({
   const [month, setMonth] = useState(thisMonth);
   const [adding, setAdding] = useState(false);
   const [open, setOpen] = useState<Receipt | null>(null);
+  const [changingPayer, setChangingPayer] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const summary = useMemo(() => summarizeMonth(receipts, month), [receipts, month]);
@@ -168,6 +169,9 @@ export function Spend({
                   );
                 })}
               </ul>
+              <button className="btn link" onClick={() => setChangingPayer(true)}>
+                Change who paid…
+              </button>
             </>
           )}
         </div>
@@ -258,6 +262,19 @@ export function Spend({
           onClose={() => setOpen(null)}
         />
       )}
+      {changingPayer && (
+        <ChangePayer
+          household={household}
+          receipts={receipts}
+          month={month}
+          onClose={() => setChangingPayer(false)}
+          onDone={(msg) => {
+            setChangingPayer(false);
+            showToast(msg);
+          }}
+        />
+      )}
+
       {toast && (
         <div className="toast" role="status">
           {toast}
@@ -458,6 +475,112 @@ function ReceiptDetail({
             </button>
           </>
         )}
+      </div>
+    </Sheet>
+  );
+}
+
+function ChangePayer({
+  household,
+  receipts,
+  month,
+  onClose,
+  onDone,
+}: {
+  household: Household;
+  receipts: Receipt[];
+  month: string;
+  onClose: () => void;
+  onDone: (message: string) => void;
+}) {
+  const ids = household.memberIds;
+  const counts = (id: string) => receipts.filter((r) => r.paidBy === id).length;
+  // Start from whoever has the most receipts, moving them to someone else.
+  const busiest = [...ids].sort((a, b) => counts(b) - counts(a))[0] ?? '';
+  const [from, setFrom] = useState(busiest);
+  const [to, setTo] = useState(ids.find((id) => id !== busiest) ?? '');
+  const [scope, setScope] = useState<'month' | 'all'>('all');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const name = (id: string) => household.members[id]?.name ?? 'Member';
+
+  const moving = receipts.filter(
+    (r) => r.paidBy === from && (scope === 'all' || monthKey(r.purchasedAt) === month),
+  );
+  const cents = moving.reduce((sum, r) => sum + r.totalCents, 0);
+
+  async function run() {
+    setBusy(true);
+    setError(null);
+    try {
+      await setPaidByForAll(household.id, moving, to);
+      onDone(
+        `Moved ${moving.length} ${moving.length === 1 ? 'receipt' : 'receipts'} to ${name(to)}.`,
+      );
+    } catch {
+      setError('Couldn’t change them. Check your connection and try again.');
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Sheet
+      onClose={onClose}
+      labelledBy="cp-title"
+      title={
+        <h2 id="cp-title" className="sheet-title-plain">
+          Change who paid
+        </h2>
+      }
+    >
+      <label className="note-label">
+        Receipts paid by
+        <select value={from} onChange={(e) => setFrom(e.target.value)}>
+          {ids.map((id) => (
+            <option key={id} value={id}>
+              {name(id)} ({counts(id)})
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="note-label">
+        Should be paid by
+        <select value={to} onChange={(e) => setTo(e.target.value)}>
+          {ids.map((id) => (
+            <option key={id} value={id}>
+              {name(id)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="seg" role="radiogroup" aria-label="Which receipts">
+        <button role="radio" aria-checked={scope === 'all'} onClick={() => setScope('all')}>
+          All months
+        </button>
+        <button role="radio" aria-checked={scope === 'month'} onClick={() => setScope('month')}>
+          {monthLabel(month)}
+        </button>
+      </div>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="row-actions">
+        <button
+          className="btn primary"
+          onClick={run}
+          disabled={busy || from === to || moving.length === 0}
+        >
+          {busy
+            ? 'Moving…'
+            : moving.length
+              ? `Move ${moving.length} (${formatCents(cents)}) to ${name(to)}`
+              : 'Nothing to move'}
+        </button>
+        <button className="btn ghost" onClick={onClose} disabled={busy}>
+          Cancel
+        </button>
       </div>
     </Sheet>
   );

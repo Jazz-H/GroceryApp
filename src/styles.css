@@ -1844,7 +1844,8 @@ textarea {
   font-size: 0.88rem;
   color: var(--muted);
 }
-.seg button[aria-selected='true'] {
+.seg button[aria-selected='true'],
+.seg button[aria-checked='true'] {
   background: var(--chip);
   color: var(--ink);
 }
@@ -2225,4 +2226,57 @@ textarea {
 }
 .import-receipts-list li.dup {
   opacity: 0.55;
+}
+
+.sheet .seg {
+  margin: 4px 0 12px;
+}
+
+/* ---- List: Quick add tab ---- */
+.seg:has(> :nth-child(3)) {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.quick-search {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 14px;
+  padding: 12px 14px;
+  font: 500 1rem var(--body);
+}
+.list-card .quick-it {
+  gap: 10px;
+}
+.quick-store {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.quick-add {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 11px;
+  background: var(--chip);
+  color: var(--accent);
+  font: 700 1.3rem var(--body);
+  display: grid;
+  place-items: center;
+}
+.quick-add:active {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.quick-added {
+  flex: none;
+  width: 54px;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--good);
+}
+.quick-it.on .nm {
+  color: var(--muted);
 }
