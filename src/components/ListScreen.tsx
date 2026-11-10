@@ -23,6 +23,7 @@ import { estimate, formatCents, lineCents } from '../lib/money';
 import { STORES, storeDef } from '../lib/stores';
 import { parseQuickAdd, type QuickAdd } from '../lib/text';
 import { suggestUsuals, type Usual } from '../lib/usuals';
+import { QuickList } from './QuickList';
 import { notify } from '../push';
 import type {
   ActivityEvent,
@@ -99,6 +100,8 @@ export function ListScreen({
   onAddHandled?: () => void;
 }) {
   const [list, setList] = useState<ListId>('grocery');
+  // The quick list adds to Grocery, so it keeps `list` on 'grocery' while it's showing.
+  const [quick, setQuick] = useState(false);
   const [store, setStoreState] = useState<StoreFilter>(() => readPref('fb.store', 'all', FILTERS));
   const [sortByAisle, setSortState] = useState(
     () => readPref('fb.sort', 'off', ['on', 'off'] as const) === 'on',
@@ -357,10 +360,28 @@ export function ListScreen({
 
       <div className="seg" role="tablist" aria-label="List">
         {(['grocery', 'nice'] as const).map((l) => (
-          <button key={l} role="tab" aria-selected={list === l} onClick={() => setList(l)}>
+          <button
+            key={l}
+            role="tab"
+            aria-selected={!quick && list === l}
+            onClick={() => {
+              setQuick(false);
+              setList(l);
+            }}
+          >
             {l === 'grocery' ? 'Grocery' : 'Nice-to-have'}
           </button>
         ))}
+        <button
+          role="tab"
+          aria-selected={quick}
+          onClick={() => {
+            setQuick(true);
+            setList('grocery');
+          }}
+        >
+          Quick add
+        </button>
       </div>
 
       <div className="store-pills">
@@ -392,201 +413,211 @@ export function ListScreen({
           focuses this hidden field and the add pop-up's field takes over from it. */}
       <input ref={keyboardProxy} className="keyboard-proxy" aria-hidden="true" tabIndex={-1} />
 
-      <div className="board cards" aria-live="polite" onClick={onBoardTap}>
-        {list === 'grocery' && <UsualsRow usuals={usuals} onPick={addUsual} />}
+      {quick ? (
+        <QuickList
+          catalog={catalog}
+          items={visibleItems}
+          store={store}
+          onAdd={(e) => addEntries([{ name: e.name, qty: 1 }], e.store)}
+        />
+      ) : (
+        <div className="board cards" aria-live="polite" onClick={onBoardTap}>
+          {list === 'grocery' && <UsualsRow usuals={usuals} onPick={addUsual} />}
 
-        {showPickup && (
-          <div className="pickup-bar">
-            {pickupMode ? (
-              <>
-                <span>Find each item on Target, then mark it Added.</span>
-                <button
-                  className="btn small primary"
-                  disabled={!cartItems.length}
-                  onClick={onOrderPlaced}
-                >
-                  Order placed ({cartItems.length})
-                </button>
-                <button className="btn small ghost" onClick={() => setPickupMode(false)}>
-                  Done
-                </button>
-              </>
-            ) : (
-              <>
-                <span>Ordering for pickup?</span>
-                <button className="btn small ghost" onClick={() => setPickupMode(true)}>
-                  Build pickup order
-                </button>
-              </>
-            )}
-          </div>
-        )}
-
-        {blocks.length === 0 && (
-          <p className="empty">
-            {loading
-              ? 'Loading the list…'
-              : list === 'grocery'
-                ? store === 'all'
-                  ? 'Nothing on the list. Tap + to add something.'
-                  : `Nothing for ${storeDef(store).name} yet. Tap + to add something.`
-                : 'Nothing on the nice-to-have list yet. Tap + to add something.'}
-          </p>
-        )}
-
-        {blocks.map((block) => {
-          if (block.kind === 'store')
-            return (
-              <h2 className="store-head" key={block.key}>
-                {block.label}
-              </h2>
-            );
-          const look = cardLook(block.title);
-          const open = block.rows.filter((r) => r.item.status === 'open').length;
-          return (
-            <section className="card list-card" key={block.key}>
-              {block.title && (
-                <div className="card-head">
-                  <span
-                    className="card-icon"
-                    style={{ background: look.tint, color: look.ink }}
-                    aria-hidden="true"
+          {showPickup && (
+            <div className="pickup-bar">
+              {pickupMode ? (
+                <>
+                  <span>Find each item on Target, then mark it Added.</span>
+                  <button
+                    className="btn small primary"
+                    disabled={!cartItems.length}
+                    onClick={onOrderPlaced}
                   >
-                    <svg
-                      width="18"
-                      height="18"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.1"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d={look.icon} />
-                    </svg>
-                  </span>
-                  <h3 className="grp">{block.title}</h3>
-                  {block.ordered ? (
-                    <button
-                      className="btn small ghost"
-                      onClick={() =>
-                        pickUpOrder(
-                          household.id,
-                          user.uid,
-                          orderedInView,
-                          store === 'all' ? (orderedInView[0]?.stores[0] ?? 'target') : store,
-                        )
-                      }
-                    >
-                      Picked up
-                    </button>
-                  ) : (
-                    <span className="card-count">{open || '✓'}</span>
-                  )}
-                </div>
+                    Order placed ({cartItems.length})
+                  </button>
+                  <button className="btn small ghost" onClick={() => setPickupMode(false)}>
+                    Done
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span>Ordering for pickup?</span>
+                  <button className="btn small ghost" onClick={() => setPickupMode(true)}>
+                    Build pickup order
+                  </button>
+                </>
               )}
-              {block.rows.map((row) => {
-                const { item } = row;
-                const author = household.members[item.createdBy];
-                const line = lineCents(item, row.store);
-                const aisle = item.storeInfo[row.store]?.aisle?.label;
-                const checker = item.checkedBy
-                  ? household.members[item.checkedBy]?.name
-                  : undefined;
-                return (
-                  <div
-                    className={`it marker${item.status === 'checked' ? ' done' : ''}${item.status === 'ordered' ? ' is-ordered' : ''}`}
-                    key={item.id}
-                    style={markerStyle(
-                      (item.checkedBy && household.members[item.checkedBy]?.color) || author?.color,
-                    )}
-                  >
-                    <button
-                      className="ck"
-                      aria-label={`${item.status === 'checked' ? 'Uncheck' : 'Check off'} ${item.name}`}
-                      aria-pressed={item.status === 'checked'}
-                      onClick={() =>
-                        setChecked(
-                          household.id,
-                          user.uid,
-                          item,
-                          item.status !== 'checked',
-                          store === 'all' ? undefined : store,
-                        )
-                      }
-                      title={checker ? `Checked by ${checker}` : undefined}
-                    />
-                    <button className="nm" onClick={() => setEditing(item)}>
-                      {item.name}
-                      {item.qty > 1 && <span className="qty"> ×{item.qty}</span>}
-                    </button>
-                    <span className="meta">
-                      {pickupMode && showPickup && item.status === 'open' && (
-                        <>
-                          <a
-                            className="find"
-                            href={targetSearchUrl(item.name)}
-                            target="_blank"
-                            rel="noreferrer"
-                            aria-label={'Find ' + item.name + ' on Target.com'}
-                          >
-                            Find ↗
-                          </a>
-                          <button
-                            className="cart"
-                            aria-pressed={cart.has(item.id)}
-                            aria-label={item.name + ' added to the Target cart'}
-                            onClick={() => {
-                              const next = new Set(cart);
-                              if (next.has(item.id)) next.delete(item.id);
-                              else next.add(item.id);
-                              setCart(next);
-                            }}
-                          >
-                            {cart.has(item.id) ? '✓ Added' : 'Added?'}
-                          </button>
-                        </>
-                      )}
-                      {store === 'all' && !sortByAisle && (
-                        <span className="mag">{storeDef(item.stores[0]).short}</span>
-                      )}
-                      {aisle && !sortByAisle && <span className="ai">{aisleLabel(aisle)}</span>}
-                      {list === 'nice' && (
-                        <button
-                          className="to-grocery"
-                          onClick={() => moveItem(household.id, user.uid, item, 'grocery')}
-                          aria-label={`Move ${item.name} to Grocery`}
-                          title="Move to Grocery"
-                        >
-                          → Grocery
-                        </button>
-                      )}
-                      <span
-                        className="who"
-                        title={author ? `Added by ${author.name}` : undefined}
-                        aria-label={author ? `Added by ${author.name}` : undefined}
-                      >
-                        {(author?.name ?? '?').charAt(0).toUpperCase()}
-                      </span>
-                      <span className={`pr${line == null ? ' none' : ''}`}>
-                        {line == null ? '–' : formatCents(line)}
-                      </span>
-                    </span>
-                  </div>
-                );
-              })}
-            </section>
-          );
-        })}
+            </div>
+          )}
 
-        {checkedInView.length > 0 && (
-          <div className="clear-row">
-            <button className="btn link" onClick={() => removeWithUndo(checkedInView)}>
-              Clear checked ({checkedInView.length})
-            </button>
-          </div>
-        )}
-      </div>
+          {blocks.length === 0 && (
+            <p className="empty">
+              {loading
+                ? 'Loading the list…'
+                : list === 'grocery'
+                  ? store === 'all'
+                    ? 'Nothing on the list. Tap + to add something.'
+                    : `Nothing for ${storeDef(store).name} yet. Tap + to add something.`
+                  : 'Nothing on the nice-to-have list yet. Tap + to add something.'}
+            </p>
+          )}
+
+          {blocks.map((block) => {
+            if (block.kind === 'store')
+              return (
+                <h2 className="store-head" key={block.key}>
+                  {block.label}
+                </h2>
+              );
+            const look = cardLook(block.title);
+            const open = block.rows.filter((r) => r.item.status === 'open').length;
+            return (
+              <section className="card list-card" key={block.key}>
+                {block.title && (
+                  <div className="card-head">
+                    <span
+                      className="card-icon"
+                      style={{ background: look.tint, color: look.ink }}
+                      aria-hidden="true"
+                    >
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.1"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d={look.icon} />
+                      </svg>
+                    </span>
+                    <h3 className="grp">{block.title}</h3>
+                    {block.ordered ? (
+                      <button
+                        className="btn small ghost"
+                        onClick={() =>
+                          pickUpOrder(
+                            household.id,
+                            user.uid,
+                            orderedInView,
+                            store === 'all' ? (orderedInView[0]?.stores[0] ?? 'target') : store,
+                          )
+                        }
+                      >
+                        Picked up
+                      </button>
+                    ) : (
+                      <span className="card-count">{open || '✓'}</span>
+                    )}
+                  </div>
+                )}
+                {block.rows.map((row) => {
+                  const { item } = row;
+                  const author = household.members[item.createdBy];
+                  const line = lineCents(item, row.store);
+                  const aisle = item.storeInfo[row.store]?.aisle?.label;
+                  const checker = item.checkedBy
+                    ? household.members[item.checkedBy]?.name
+                    : undefined;
+                  return (
+                    <div
+                      className={`it marker${item.status === 'checked' ? ' done' : ''}${item.status === 'ordered' ? ' is-ordered' : ''}`}
+                      key={item.id}
+                      style={markerStyle(
+                        (item.checkedBy && household.members[item.checkedBy]?.color) ||
+                          author?.color,
+                      )}
+                    >
+                      <button
+                        className="ck"
+                        aria-label={`${item.status === 'checked' ? 'Uncheck' : 'Check off'} ${item.name}`}
+                        aria-pressed={item.status === 'checked'}
+                        onClick={() =>
+                          setChecked(
+                            household.id,
+                            user.uid,
+                            item,
+                            item.status !== 'checked',
+                            store === 'all' ? undefined : store,
+                          )
+                        }
+                        title={checker ? `Checked by ${checker}` : undefined}
+                      />
+                      <button className="nm" onClick={() => setEditing(item)}>
+                        {item.name}
+                        {item.qty > 1 && <span className="qty"> ×{item.qty}</span>}
+                      </button>
+                      <span className="meta">
+                        {pickupMode && showPickup && item.status === 'open' && (
+                          <>
+                            <a
+                              className="find"
+                              href={targetSearchUrl(item.name)}
+                              target="_blank"
+                              rel="noreferrer"
+                              aria-label={'Find ' + item.name + ' on Target.com'}
+                            >
+                              Find ↗
+                            </a>
+                            <button
+                              className="cart"
+                              aria-pressed={cart.has(item.id)}
+                              aria-label={item.name + ' added to the Target cart'}
+                              onClick={() => {
+                                const next = new Set(cart);
+                                if (next.has(item.id)) next.delete(item.id);
+                                else next.add(item.id);
+                                setCart(next);
+                              }}
+                            >
+                              {cart.has(item.id) ? '✓ Added' : 'Added?'}
+                            </button>
+                          </>
+                        )}
+                        {store === 'all' && !sortByAisle && (
+                          <span className="mag">{storeDef(item.stores[0]).short}</span>
+                        )}
+                        {aisle && !sortByAisle && <span className="ai">{aisleLabel(aisle)}</span>}
+                        {list === 'nice' && (
+                          <button
+                            className="to-grocery"
+                            onClick={() => moveItem(household.id, user.uid, item, 'grocery')}
+                            aria-label={`Move ${item.name} to Grocery`}
+                            title="Move to Grocery"
+                          >
+                            → Grocery
+                          </button>
+                        )}
+                        <span
+                          className="who"
+                          title={author ? `Added by ${author.name}` : undefined}
+                          aria-label={author ? `Added by ${author.name}` : undefined}
+                        >
+                          {(author?.name ?? '?').charAt(0).toUpperCase()}
+                        </span>
+                        <span className={`pr${line == null ? ' none' : ''}`}>
+                          {line == null ? '–' : formatCents(line)}
+                        </span>
+                      </span>
+                    </div>
+                  );
+                })}
+              </section>
+            );
+          })}
+
+          {checkedInView.length > 0 && (
+            <div className="clear-row">
+              <button className="btn link" onClick={() => removeWithUndo(checkedInView)}>
+                Clear checked ({checkedInView.length})
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {adding && (
         <AddSheet
