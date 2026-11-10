@@ -291,6 +291,44 @@ describe('push relay', () => {
     });
   });
 
+  it('sends the weekly recap to everyone with the weekly switch on', async () => {
+    const env = await makeEnv();
+    const alex = phone('alex');
+    const sam = phone('sam');
+    const off = phone('sam', { weekly: false });
+    const net = fakeNetwork([alex, sam, off]);
+    await handle(
+      notify(unsignedToken('alex'), {
+        householdId: 'h1',
+        kind: 'week_recap',
+        data: {
+          week: 'Nov 2–8',
+          cents: 15420,
+          receipts: 3,
+          topStore: 'ht',
+          topCents: 9800,
+          prevCents: 12000,
+          month: 'November',
+          monthCents: 31000,
+          budgetCents: 80000,
+        },
+      }),
+      env,
+      net.fetchFn,
+    );
+    expect(net.pushes.map((p) => p.endpoint).sort()).toEqual([alex.endpoint, sam.endpoint].sort());
+    expect(
+      decrypt(
+        net.pushes.find((p) => p.endpoint === sam.endpoint)!,
+        sam,
+      ),
+    ).toMatchObject({
+      title: 'Week of Nov 2–8: $154.20 on groceries',
+      body: '3 receipts · most at Harris Teeter ($98.00) · $34.20 more than the week before · November so far: $310.00 of $800.00',
+      url: '/#spend',
+    });
+  });
+
   it('rate-limits a sender', async () => {
     const env = await makeEnv();
     const net = fakeNetwork([phone('alex')]);

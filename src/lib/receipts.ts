@@ -567,6 +567,76 @@ export interface MonthRecap {
   topCents: number;
 }
 
+/** Local midnight on the Monday of the week containing ms. */
+export function weekStart(ms: number): number {
+  const d = new Date(ms);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d.getTime();
+}
+
+/** Moves a week start by whole weeks (by calendar days, so clock changes don't drift it). */
+export function shiftWeek(start: number, by: number): number {
+  const d = new Date(start);
+  d.setDate(d.getDate() + by * 7);
+  return d.getTime();
+}
+
+/** "2026-11-02", the Monday that names a week. */
+export function weekKey(start: number): string {
+  const d = new Date(start);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+/** "Nov 2–8", or "Oct 27–Nov 2" across a month. */
+export function weekLabel(start: number): string {
+  const end = new Date(shiftWeek(start, 1) - 1);
+  const s = new Date(start);
+  const month = (d: Date) => d.toLocaleDateString('en-US', { month: 'short' });
+  return s.getMonth() === end.getMonth()
+    ? `${month(s)} ${s.getDate()}–${end.getDate()}`
+    : `${month(s)} ${s.getDate()}–${month(end)} ${end.getDate()}`;
+}
+
+export interface WeekRecap {
+  /** Monday of the week. */
+  start: number;
+  cents: number;
+  /** Purchases, not counting shopper tips. */
+  receipts: number;
+  topStore: ReceiptStore | null;
+  topCents: number;
+  /** The week before, for comparison. */
+  prevCents: number;
+}
+
+/** A week (Monday to Sunday) in one line, compared with the week before. */
+export function weekRecap(receipts: Receipt[], start: number): WeekRecap {
+  const end = shiftWeek(start, 1);
+  const prevStart = shiftWeek(start, -1);
+  const byStore = new Map<ReceiptStore, number>();
+  let cents = 0;
+  let count = 0;
+  let prevCents = 0;
+  for (const r of receipts) {
+    if (r.purchasedAt >= prevStart && r.purchasedAt < start) prevCents += r.totalCents;
+    if (r.purchasedAt < start || r.purchasedAt >= end) continue;
+    cents += r.totalCents;
+    if (r.kind === 'tip') continue;
+    count++;
+    byStore.set(r.store, (byStore.get(r.store) ?? 0) + r.totalCents);
+  }
+  const top = [...byStore].sort((a, b) => b[1] - a[1])[0];
+  return {
+    start,
+    cents,
+    receipts: count,
+    topStore: top?.[0] ?? null,
+    topCents: top?.[1] ?? 0,
+    prevCents,
+  };
+}
+
 /** A month in one line: total, how many receipts, and where most of it went. */
 export function monthRecap(receipts: Receipt[], month: string): MonthRecap {
   const s = summarizeMonth(receipts, month);

@@ -100,15 +100,19 @@ export async function leaveHousehold(household: Household, uid: string) {
 }
 
 /**
- * Claims sending last month's recap. Whoever opens the app first in a new month wins; it
- * returns false for everyone after, so the recap goes out once.
+ * Claims sending last month's (or last week's) recap. Whoever opens the app first in the new
+ * period wins; it returns false for everyone after, so the recap goes out once.
  */
-export async function claimRecap(hid: string, month: string): Promise<boolean> {
+export async function claimRecap(
+  hid: string,
+  period: string,
+  field: 'recapSentFor' | 'weekRecapSentFor' = 'recapSentFor',
+): Promise<boolean> {
   const ref = doc(db, 'households', hid);
   return runTransaction(db, async (tx) => {
     const snap = await tx.get(ref);
-    if (!snap.exists() || snap.data().recapSentFor === month) return false;
-    tx.update(ref, { recapSentFor: month });
+    if (!snap.exists() || snap.data()[field] === period) return false;
+    tx.update(ref, { [field]: period });
     return true;
   });
 }

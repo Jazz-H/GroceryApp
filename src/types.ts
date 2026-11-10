@@ -152,6 +152,8 @@ export interface Household {
   budgetCents: number | null;
   /** The month ("2026-10") whose recap has been sent, so it goes out once. */
   recapSentFor?: string;
+  /** The week (its Monday, "2026-11-02") whose weekly recap has been sent. */
+  weekRecapSentFor?: string;
 }
 
 export type TripMode = 'together' | 'solo';
