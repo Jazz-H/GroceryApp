@@ -14,8 +14,12 @@ lines: every purchased product, in printed order.
   total: what that line cost in dollars AFTER any discount printed directly under it (VIC, Circle, coupons). Fold those discounts into the line instead of listing them separately.
 subtotal, tax, total: in dollars, as printed (0 if not printed).
 savings: total discounts in dollars as a positive number (0 if none).
+payments: how it was paid, one entry per tender line near the bottom (e.g. "VISA ****1234  $20.00").
+  card: the card or tender name as printed, e.g. "Visa", "Target Circle Card", "Gift card", "Cash".
+  last4: ONLY the last 4 digits as printed after the asterisks or X's, or "" if none are printed.
+  amount: dollars charged to it.
 
-Include bag fees and bottle deposits as lines only if they were charged. Never include card numbers, member or loyalty numbers, names, addresses, phone numbers, or payment lines. Do not invent lines you can't read.`;
+Include bag fees and bottle deposits as lines only if they were charged. Never return more than the last 4 digits of any card, and never include member or loyalty numbers, names, addresses or phone numbers. Do not invent lines you can't read.`;
 
 async function responseSchema() {
   const { Schema } = await import('firebase/ai');
@@ -38,14 +42,24 @@ async function responseSchema() {
       tax: money(),
       savings: money(),
       total: money(),
+      payments: Schema.array({
+        items: Schema.object({
+          properties: {
+            card: Schema.string(),
+            last4: Schema.string(),
+            amount: money(),
+          },
+        }),
+      }),
     },
+    optionalProperties: ['payments'],
   });
 }
 
 export class ParseError extends Error {}
 
 /**
- * Sends receipt photos (base64 JPEG, card info already blacked out) to Gemini through
+ * Sends receipt photos (base64 JPEG, with anything the user blacked out burned in) to Gemini through
  * Firebase AI Logic and returns its raw JSON answer. Against the local emulators there's no
  * Gemini, so a sample receipt comes back instead.
  */
@@ -111,6 +125,7 @@ function sampleReceipt() {
           tax: 1.62,
           savings: 2.5,
           total: 33.69,
+          payments: [{ card: 'Visa', last4: '4242', amount: 33.69 }],
         }),
       600,
     ),
