@@ -2039,6 +2039,11 @@ textarea {
   line-height: 1.25;
   padding: 10px 0;
   color: var(--ink);
+  /* Long names wrap onto more lines instead of being cut off with "…". */
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
 }
 .list-card .it.done .nm {
   color: var(--muted);
@@ -2645,4 +2650,61 @@ textarea {
 }
 .trend svg {
   flex: none;
+}
+
+/* ---- Recap report ---- */
+.report-hero {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-bottom: 4px;
+}
+.report-hero .trend {
+  margin: 0;
+}
+.insights {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.insights li {
+  position: relative;
+  padding-left: 18px;
+  line-height: 1.4;
+}
+.insights li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.55em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.report-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.report-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.report-list li:first-child {
+  border-top: 0;
+}
+.report-list .trend {
+  margin: 0;
+  flex: none;
+}
+.report .section-label {
+  margin-top: 22px;
 }

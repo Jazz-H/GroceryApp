@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAliases, useReceiptsState } from '../data/hooks';
 import {
   deleteReceipt,
@@ -19,6 +19,8 @@ import {
   receiptStoreName,
   shortCardName,
   shiftMonth,
+  shiftWeek,
+  weekStart,
   summarizeMonth,
   toCsv,
 } from '../lib/receipts';
@@ -26,9 +28,19 @@ import type { Household, Item, Receipt } from '../types';
 import { CardSelect } from './CardSelect';
 import { ImportReceipts } from './ImportReceipts';
 import { RecapCard } from './RecapCard';
+import { RecapReport } from './RecapReport';
+import { monthPeriod, weekPeriod } from '../lib/recapReport';
 import { SettleUp } from './SettleUp';
 import { ReceiptFlow } from './ReceiptFlow';
 import { Avatar, Sheet } from './ui';
+
+type RecapLink = { kind: 'week' | 'month'; at: number } | null;
+
+function recapFromHash(): RecapLink {
+  const h = location.hash;
+  const kind = h === '#recap-week' ? 'week' : h === '#recap-month' ? 'month' : null;
+  return kind && { kind, at: Date.now() };
+}
 
 export function Spend({
   household,
@@ -51,6 +63,28 @@ export function Spend({
   const cards = useMemo(() => knownCards(receipts), [receipts]);
   const unknownCount = receipts.filter((r) => !r.payments?.length).length;
   const [toast, setToast] = useState<string | null>(null);
+  // Tapping a recap notification opens #recap-week or #recap-month: show that card.
+  const [recapLink, setRecapLink] = useState(recapFromHash);
+  useEffect(() => {
+    const onHash = () => {
+      const link = recapFromHash();
+      if (link) setRecapLink(link);
+    };
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+  const [report, setReport] = useState<'week' | 'month' | null>(() => recapLink?.kind ?? null);
+  useEffect(() => {
+    if (!recapLink) return;
+    window.history.replaceState(null, '', '#spend');
+    setReport(recapLink.kind);
+  }, [recapLink]);
+  const reportPeriod = useMemo(() => {
+    if (!report) return null;
+    return report === 'week'
+      ? weekPeriod(shiftWeek(weekStart(Date.now()), -1))
+      : monthPeriod(shiftMonth(monthKey(Date.now()), -1));
+  }, [report]);
 
   const summary = useMemo(() => summarizeMonth(receipts, month), [receipts, month]);
   const previous = useMemo(
@@ -97,7 +131,31 @@ export function Spend({
         }}
       />
 
-      <RecapCard household={household} receipts={receipts} onOpen={setMonth} />
+      <RecapCard
+        kind="week"
+        household={household}
+        receipts={receipts}
+        key={`week-${recapLink?.kind === 'week' ? recapLink.at : 0}`}
+        forced={recapLink?.kind === 'week'}
+        onReport={setReport}
+      />
+      <RecapCard
+        kind="month"
+        household={household}
+        receipts={receipts}
+        key={`month-${recapLink?.kind === 'month' ? recapLink.at : 0}`}
+        forced={recapLink?.kind === 'month'}
+        onReport={setReport}
+      />
+      {reportPeriod && (
+        <RecapReport
+          period={reportPeriod}
+          household={household}
+          receipts={receipts}
+          onSeeMonth={setMonth}
+          onClose={() => setReport(null)}
+        />
+      )}
 
       <div className="month-nav">
         <button

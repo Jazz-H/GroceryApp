@@ -45,7 +45,7 @@ const TABS: { id: Tab; label: string }[] = [
 function tabFromHash(): Tab {
   const h = location.hash.replace('#', '');
   if (h.startsWith('import=')) return 'settings';
-  if (h.startsWith('receipts=')) return 'spend';
+  if (h.startsWith('receipts=') || h.startsWith('recap-')) return 'spend';
   return h === 'us' || h === 'settings' || h === 'spend' ? h : 'list';
 }
 

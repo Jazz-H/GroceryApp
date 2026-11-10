@@ -287,7 +287,7 @@ describe('push relay', () => {
     ).toMatchObject({
       title: 'October recap: $668.76 on groceries',
       body: '6 receipts · most at Target ($668.76) · $68.76 over budget',
-      url: '/#spend',
+      url: '/#recap-month',
     });
   });
 
@@ -325,7 +325,7 @@ describe('push relay', () => {
     ).toMatchObject({
       title: 'Week of Nov 2–8: $154.20 on groceries',
       body: '3 receipts · most at Harris Teeter ($98.00) · $34.20 more than the week before · November so far: $310.00 of $800.00',
-      url: '/#spend',
+      url: '/#recap-week',
     });
   });
 

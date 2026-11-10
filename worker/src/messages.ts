@@ -196,7 +196,7 @@ export function compose(kind: Kind, d: NotifyData, actor: string, senderUid: str
         title: `${d.week ? `Week of ${d.week}` : 'Last week'}: ${money(d.cents ?? 0)} on groceries`,
         body: parts.join(' · ') || 'Open Spend for the details.',
         tag: `week-recap-${d.week ?? ''}`,
-        url: '/#spend',
+        url: '/#recap-week',
       };
     }
     case 'recap': {
@@ -215,7 +215,7 @@ export function compose(kind: Kind, d: NotifyData, actor: string, senderUid: str
         title: `${month} recap: ${money(d.cents ?? 0)} on groceries`,
         body: parts.join(' · ') || 'Open Spend for the details.',
         tag: `recap-${month}`,
-        url: '/#spend',
+        url: '/#recap-month',
       };
     }
     case 'test':
