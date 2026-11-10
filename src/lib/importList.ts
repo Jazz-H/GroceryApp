@@ -92,3 +92,24 @@ export function parseImport(text: string, defaultStore: StoreId): QuickAdd[] {
   }
   return out.slice(0, MAX_IMPORT);
 }
+
+/** Import links carry the list after "#import=" as base64url UTF-8, so it never reaches a server. */
+export function encodeImportLink(origin: string, text: string): string {
+  const bytes = new TextEncoder().encode(text);
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  const b64 = btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return `${origin}/#import=${b64}`;
+}
+
+export function decodeImportHash(hash: string): string | null {
+  const m = /^#?import=([A-Za-z0-9_-]+)$/.exec(hash);
+  if (!m) return null;
+  try {
+    const b64 = m[1].replace(/-/g, '+').replace(/_/g, '/');
+    const bin = atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4));
+    return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+  } catch {
+    return null;
+  }
+}

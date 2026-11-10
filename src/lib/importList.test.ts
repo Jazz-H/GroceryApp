@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseImport, splitCsvLine } from './importList';
+import { decodeImportHash, encodeImportLink, parseImport, splitCsvLine } from './importList';
 
 describe('splitCsvLine', () => {
   it('keeps quoted commas', () => {
@@ -51,5 +51,18 @@ describe('parseImport', () => {
   it('caps very long imports', () => {
     const many = Array.from({ length: 150 }, (_, i) => `item ${i}x`).join('\n');
     expect(parseImport(many, 'ht')).toHaveLength(100);
+  });
+});
+
+describe('import links', () => {
+  it('round-trips text with commas, quotes and symbols', () => {
+    const text = 'name,price\n"Toilet paper, 24 rolls",39.99\nChobani · yogurt,5.99';
+    const link = encodeImportLink('https://fridgeboard-642b9.web.app', text);
+    expect(link.startsWith('https://fridgeboard-642b9.web.app/#import=')).toBe(true);
+    expect(decodeImportHash(new URL(link).hash)).toBe(text);
+  });
+  it('ignores other hashes and junk', () => {
+    expect(decodeImportHash('#settings')).toBeNull();
+    expect(decodeImportHash('#import=!!!')).toBeNull();
   });
 });

@@ -19,6 +19,7 @@ const TABS: { id: Tab; label: string }[] = [
 
 function tabFromHash(): Tab {
   const h = location.hash.replace('#', '');
+  if (h.startsWith('import=')) return 'settings';
   return h === 'us' || h === 'settings' ? h : 'list';
 }
 

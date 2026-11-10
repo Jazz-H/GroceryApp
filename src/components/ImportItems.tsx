@@ -1,6 +1,6 @@
-import { useMemo, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { addItems } from '../data/items';
-import { parseImport, MAX_IMPORT } from '../lib/importList';
+import { decodeImportHash, parseImport, MAX_IMPORT } from '../lib/importList';
 import { formatCents } from '../lib/money';
 import { STORES, storeDef } from '../lib/stores';
 import { notify } from '../push';
@@ -15,7 +15,15 @@ export function ImportItems({
   uid: string;
   items: Item[];
 }) {
-  const [text, setText] = useState('');
+  // An import link (#import=...) prefills the box; the hash is cleared so it isn't reused.
+  const [text, setText] = useState(() => decodeImportHash(location.hash) ?? '');
+  const fromLink = useRef(text.length > 0);
+  const cardRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!fromLink.current) return;
+    history.replaceState(null, '', '#settings');
+    cardRef.current?.scrollIntoView({ block: 'start' });
+  }, []);
   const [store, setStore] = useState<StoreId>('target');
   const [list, setList] = useState<ListId>('grocery');
   const [busy, setBusy] = useState(false);
@@ -69,8 +77,11 @@ export function ImportItems({
   }
 
   return (
-    <div className="card">
+    <div className="card" ref={cardRef}>
       <h2>Import items</h2>
+      {fromLink.current && text && (
+        <p className="hint">Filled in from your import link. Check the preview, then tap Add.</p>
+      )}
       <p className="muted">
         Paste a list (one item per line, an optional price at the end, like “Bananas, 0.29”) or
         choose a CSV file with a <code>name</code> column and optional <code>price</code>,{' '}
