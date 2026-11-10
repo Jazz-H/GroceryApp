@@ -121,6 +121,18 @@ export async function setPaidByForAll(hid: string, list: Receipt[], paidBy: stri
   }
 }
 
+/** Applies small field changes (payer, payments) to saved receipts, 400 per batch. */
+export async function updateReceipts(
+  hid: string,
+  updates: { id: string; patch: Partial<Pick<Receipt, 'paidBy' | 'payments'>> }[],
+) {
+  for (let i = 0; i < updates.length; i += 400) {
+    const batch = writeBatch(db);
+    for (const u of updates.slice(i, i + 400)) batch.update(doc(receipts(hid), u.id), u.patch);
+    await batch.commit();
+  }
+}
+
 /** Removes a receipt from spending. Prices it set on items stay. */
 export async function deleteReceipt(hid: string, receipt: Receipt) {
   await deleteDoc(doc(receipts(hid), receipt.id));

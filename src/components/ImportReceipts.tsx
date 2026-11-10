@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react';
-import { saveReceipt, setPaidByForAll } from '../data/receipts';
+import { saveReceipt, updateReceipts } from '../data/receipts';
 import { formatCents } from '../lib/money';
-import { decodeReceiptsHash, findSaved, type LinkReceipt } from '../lib/receiptImport';
-import { matchAll, monthKey, receiptStoreName } from '../lib/receipts';
+import {
+  decodeReceiptsHash,
+  findSaved,
+  receiptPatch,
+  type LinkReceipt,
+} from '../lib/receiptImport';
+import { cardsLabel, matchAll, monthKey, receiptStoreName } from '../lib/receipts';
 import type { Household, Item, Receipt } from '../types';
 
 const dateFmt = new Intl.DateTimeFormat(undefined, {
@@ -55,7 +60,8 @@ export function ImportReceipts({
   if (!drafts) return null;
   const rows = drafts.map((d) => {
     const saved = findSaved(d, receipts);
-    const fix = saved && d.linkPayer && saved.paidBy !== d.linkPayer ? saved : null;
+    const patch = saved ? receiptPatch(d, saved) : null;
+    const fix = saved && patch ? { saved, patch } : null;
     return { d, saved, fix };
   });
   const fresh = rows.filter((r) => !r.saved).map((r) => r.d);
@@ -73,20 +79,18 @@ export function ImportReceipts({
         const r = await saveReceipt(household.id, uid, draft, items, { checkOff: false });
         priced += r.priced;
       }
-      // Fix the payer on receipts that were already saved, one batch per payer.
-      const byPayer = new Map<string, Receipt[]>();
-      for (const { d, fix } of fixes)
-        byPayer.set(d.linkPayer!, [...(byPayer.get(d.linkPayer!) ?? []), fix!]);
-      for (const [payer, list] of byPayer) await setPaidByForAll(household.id, list, payer);
+      // Receipts already saved get the link's payer and cards.
+      await updateReceipts(
+        household.id,
+        fixes.map(({ fix }) => ({ id: fix!.saved.id, patch: fix!.patch })),
+      );
       const parts = [];
       if (fresh.length)
         parts.push(
           `Added ${fresh.length} ${fresh.length === 1 ? 'receipt' : 'receipts'} (${formatCents(total)})`,
         );
       if (fixes.length)
-        parts.push(
-          `set who paid on ${fixes.length} ${fixes.length === 1 ? 'receipt' : 'receipts'}`,
-        );
+        parts.push(`updated ${fixes.length} saved ${fixes.length === 1 ? 'receipt' : 'receipts'}`);
       if (priced) parts.push(`updated ${priced} ${priced === 1 ? 'price' : 'prices'}`);
       const msg = parts.join(', ');
       const latest = Math.max(...[...fresh, ...fixes.map((f) => f.d)].map((d) => d.purchasedAt));
@@ -105,7 +109,7 @@ export function ImportReceipts({
         {fresh.length
           ? `Add ${fresh.length} past ${fresh.length === 1 ? 'receipt' : 'receipts'}?`
           : fixes.length
-            ? `Set who paid on ${fixes.length} ${fixes.length === 1 ? 'receipt' : 'receipts'}?`
+            ? `Update ${fixes.length} saved ${fixes.length === 1 ? 'receipt' : 'receipts'}?`
             : 'Already added'}
       </h2>
       <ul className="import-receipts-list">
@@ -116,14 +120,16 @@ export function ImportReceipts({
           return (
             <li key={i} className={dup ? 'dup' : undefined}>
               <span>
-                <b>{receiptStoreName(d.store)}</b>
+                <b>{d.kind === 'tip' ? 'Shopper tip' : receiptStoreName(d.store)}</b>
                 <span className="muted">
                   {' '}
                   {dateFmt.format(d.purchasedAt)}
                   {d.lines.length > 0 &&
                     ` · ${d.lines.length} ${d.lines.length === 1 ? 'item' : 'items'}`}
+                  {cardsLabel(d) && ` · ${cardsLabel(d)}`}
                   {d.linkPayer && ` · ${name(d.linkPayer)}`}
-                  {fix ? ` (was ${name(fix.paidBy)})` : dup && ' · already saved'}
+                  {fix?.patch.paidBy && ` (was ${name(fix.saved.paidBy)})`}
+                  {dup && ' · already saved'}
                 </span>
               </span>
               <span className="mono">{formatCents(d.totalCents)}</span>

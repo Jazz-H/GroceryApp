@@ -77,6 +77,7 @@ export function findSaved(draft: ReceiptDraft, existing: Receipt[]): Receipt | u
   return existing.find(
     (r) =>
       r.store === draft.store &&
+      (r.kind ?? null) === (draft.kind ?? null) &&
       Math.abs(r.totalCents - draft.totalCents) <= 1 &&
       new Date(r.purchasedAt).toDateString() === day,
   );
@@ -85,6 +86,18 @@ export function findSaved(draft: ReceiptDraft, existing: Receipt[]): Receipt | u
 /** True when a receipt for the same store, day and total is already saved. */
 export function isDuplicate(draft: ReceiptDraft, existing: Receipt[]): boolean {
   return findSaved(draft, existing) !== undefined;
+}
+
+/** What a link would change on an already-saved receipt: its payer and/or its payments. */
+export function receiptPatch(
+  draft: LinkReceipt,
+  saved: Receipt,
+): Partial<Pick<Receipt, 'paidBy' | 'payments'>> | null {
+  const patch: Partial<Pick<Receipt, 'paidBy' | 'payments'>> = {};
+  if (draft.linkPayer && saved.paidBy !== draft.linkPayer) patch.paidBy = draft.linkPayer;
+  if (draft.payments?.length && JSON.stringify(draft.payments) !== JSON.stringify(saved.payments))
+    patch.payments = draft.payments;
+  return Object.keys(patch).length ? patch : null;
 }
 
 /** "November 2026" style list of months a set of drafts covers, for the confirm card. */

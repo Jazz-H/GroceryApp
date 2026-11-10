@@ -83,8 +83,20 @@ export interface CatalogEntry {
   storeInfo: Partial<Record<StoreId, StoreInfo>>;
 }
 
+/** One way a receipt was paid, e.g. "Target Mastercard" *8759 for $19.50. */
+export interface ReceiptPayment {
+  card: string;
+  /** Last 4 digits, or "" for coupons and other non-card payments. */
+  last4: string;
+  cents: number;
+}
+
 export interface Receipt {
   id: string;
+  /** "tip" for a shopper tip paid after a delivery; purchases leave it unset. */
+  kind?: 'tip';
+  /** How it was paid, when known. Amounts add up to the total. */
+  payments?: ReceiptPayment[];
   store: ReceiptStore;
   /** Purchase date, epoch ms at local noon. */
   purchasedAt: number;

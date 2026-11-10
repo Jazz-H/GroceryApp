@@ -17,6 +17,7 @@ import {
   toCsv,
   unitCents,
   monthLabel,
+  cardsLabel,
 } from './receipts';
 import { makeItem } from './testItems';
 
@@ -209,9 +210,43 @@ describe('spending', () => {
   it('exports CSV with quoting', () => {
     const csv = toCsv([receipts[3]], { alex: { name: 'Alex', color: '' } });
     expect(csv.split('\n')).toEqual([
-      'Date,Store,Paid by,Item,Printed as,Qty,Line total,Receipt total',
-      '2026-09-15,Harris Teeter,Alex,"Milk ""2%""","Milk, 2%",1,40.00,40.00',
+      'Date,Store,Paid by,Cards,Item,Printed as,Qty,Line total,Receipt total',
+      '2026-09-15,Harris Teeter,Alex,,"Milk ""2%""","Milk, 2%",1,40.00,40.00',
     ]);
+  });
+
+  it('exports cards, tips and total-only receipts', () => {
+    const tip: Receipt = {
+      ...receipts[3],
+      kind: 'tip',
+      lines: [],
+      totalCents: 500,
+      payments: [{ card: 'Target Mastercard', last4: '8759', cents: 500 }],
+    };
+    expect(toCsv([tip], { alex: { name: 'Alex', color: '' } }).split('\n')[1]).toBe(
+      '2026-09-15,Harris Teeter,Alex,Target Mastercard *8759 5.00,Shopper tip,,1,5.00,5.00',
+    );
+  });
+
+  it('totals by card, with uncovered amounts as unknown', () => {
+    const split: Receipt = {
+      ...receipts[3],
+      totalCents: 5454,
+      payments: [
+        { card: 'Target Mastercard', last4: '8759', cents: 1950 },
+        { card: 'Target Circle Credit Card', last4: '3979', cents: 3004 },
+      ],
+    };
+    const tip: Receipt = { ...receipts[3], kind: 'tip', totalCents: 500, payments: [] };
+    const s = summarizeMonth([split, tip], '2026-09');
+    expect(s.byCard).toEqual([
+      { key: '3979', cents: 3004 },
+      { key: '8759', cents: 1950 },
+      { key: '', cents: 1000 },
+    ]);
+    expect(s.cardNames['8759']).toBe('Target Mastercard');
+    expect(s.tipsCents).toBe(500);
+    expect(cardsLabel(split)).toBe('•8759 + •3979');
   });
 });
 

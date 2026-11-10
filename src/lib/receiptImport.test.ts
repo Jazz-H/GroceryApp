@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { decodeReceiptsHash, encodeReceiptsLink, isDuplicate, memberByName } from './receiptImport';
+import {
+  decodeReceiptsHash,
+  encodeReceiptsLink,
+  findSaved,
+  isDuplicate,
+  memberByName,
+  receiptPatch,
+} from './receiptImport';
 import { dateToMs } from './receipts';
 import type { Receipt } from '../types';
 
@@ -73,5 +80,39 @@ describe('payers in receipt links', () => {
     expect(a).toMatchObject({ paidBy: 'm', linkPayer: 'm' });
     expect(b.paidBy).toBe('j');
     expect(b.linkPayer).toBeUndefined();
+  });
+});
+
+describe('payments in receipt links', () => {
+  it('reads payments and tips, and patches saved receipts', () => {
+    const link = encodeReceiptsLink('x', [
+      {
+        ...sample,
+        payments: [
+          { card: 'Target Mastercard', last4: '*8759', amount: 100 },
+          { card: 'Target Circle Credit Card', last4: '3979', amount: 62.6 },
+        ],
+      },
+      { store: 'target', date: '2026-11-08', total: 5, kind: 'tip' },
+    ]);
+    const [buy, tip] = decodeReceiptsHash(link.slice(link.indexOf('#')), 'u1')!;
+    expect(buy.payments).toEqual([
+      { card: 'Target Mastercard', last4: '8759', cents: 10000 },
+      { card: 'Target Circle Credit Card', last4: '3979', cents: 6260 },
+    ]);
+    expect(tip.kind).toBe('tip');
+
+    const saved = {
+      ...buy,
+      payments: undefined,
+      id: 'r1',
+      createdBy: 'u1',
+      createdAt: 0,
+    } as Receipt;
+    // A tip never matches a purchase on the same day.
+    expect(findSaved(tip, [saved])).toBeUndefined();
+    expect(findSaved(buy, [saved])).toBe(saved);
+    expect(receiptPatch(buy, saved)).toEqual({ payments: buy.payments });
+    expect(receiptPatch(buy, { ...saved, payments: buy.payments })).toBeNull();
   });
 });
