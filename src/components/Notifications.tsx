@@ -122,7 +122,9 @@ export function Notifications({ household, uid }: { household: Household; uid: s
       <h2>Notifications</h2>
       {support === 'not-configured' && (
         <p className="muted">
-          Notifications need the free push relay set up once. See “Notifications” in the README.
+          Notifications need a free relay set up once. It takes about 5 minutes and works from a
+          phone: follow docs/NOTIFICATIONS-FROM-PHONE.md in the GroceryApp repo, or ask Claude to
+          walk you through it.
         </p>
       )}
       {support === 'needs-install' && (

@@ -77,6 +77,10 @@ jobs:
       - id: vars
         run: |
           args=""
+          # Fall back to the public key committed in push-config.json.
+          if [ -z "$VAPID_PUBLIC_KEY" ] && [ -f push-config.json ]; then
+            VAPID_PUBLIC_KEY=$(node -p "require('./push-config.json').publicKey || ''")
+          fi
           if [ -n "$VAPID_PUBLIC_KEY" ]; then args="$args --var VAPID_PUBLIC_KEY:$VAPID_PUBLIC_KEY"; fi
           if [ -n "$VAPID_SUBJECT" ]; then args="$args --var VAPID_SUBJECT:$VAPID_SUBJECT"; fi
           echo "args=$args" >> "$GITHUB_OUTPUT"

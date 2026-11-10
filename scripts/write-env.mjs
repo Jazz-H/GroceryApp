@@ -1,7 +1,7 @@
 // Writes .env.production.local for CI builds.
 // The Firebase web config is public (it ships inside the app), so CI reads it from the
 // project's own Hosting endpoint unless repository variables already provide it.
-import { writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 
 const project = process.env.FIREBASE_PROJECT_ID || 'fridgeboard-642b9';
 let cfg = {
@@ -28,8 +28,13 @@ const lines = [
   `VITE_FIREBASE_MESSAGING_SENDER_ID=${cfg.messagingSenderId ?? ''}`,
   'VITE_USE_EMULATORS=false',
 ];
-if (process.env.VITE_VAPID_PUBLIC_KEY)
-  lines.push(`VITE_VAPID_PUBLIC_KEY=${process.env.VITE_VAPID_PUBLIC_KEY}`);
-if (process.env.VITE_PUSH_URL) lines.push(`VITE_PUSH_URL=${process.env.VITE_PUSH_URL}`);
+// Notifications: repository variables win; otherwise the public values committed in
+// push-config.json (written after the "Set up notifications" workflow).
+let push = {};
+if (existsSync('push-config.json')) push = JSON.parse(readFileSync('push-config.json', 'utf8'));
+const vapidKey = process.env.VITE_VAPID_PUBLIC_KEY || push.publicKey;
+const pushUrl = process.env.VITE_PUSH_URL || push.url;
+if (vapidKey) lines.push(`VITE_VAPID_PUBLIC_KEY=${vapidKey}`);
+if (pushUrl) lines.push(`VITE_PUSH_URL=${pushUrl}`);
 writeFileSync('.env.production.local', lines.join('\n') + '\n');
 console.log(`Wrote .env.production.local for ${project}`);
