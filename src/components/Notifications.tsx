@@ -173,7 +173,7 @@ export function Notifications({ household, uid }: { household: Household; uid: s
             ))}
           </div>
 
-          <h3 className="sub-head">Snooze</h3>
+          <h3 className="label section-label">Snooze</h3>
           {snoozed ? (
             <div className="row-actions">
               <span className="muted">
@@ -184,22 +184,22 @@ export function Notifications({ household, uid }: { household: Household; uid: s
                   minute: '2-digit',
                 })}
               </span>
-              <button className="btn small ghost" onClick={() => snooze(0)}>
+              <button className="btn ghost" onClick={() => snooze(0)}>
                 Unsnooze
               </button>
             </div>
           ) : (
             <div className="row-actions">
-              <button className="btn small ghost" onClick={() => snooze(Date.now() + 3_600_000)}>
+              <button className="btn ghost" onClick={() => snooze(Date.now() + 3_600_000)}>
                 1 hour
               </button>
-              <button className="btn small ghost" onClick={() => snooze(nextMorning())}>
+              <button className="btn ghost" onClick={() => snooze(nextMorning())}>
                 Until 8 AM
               </button>
             </div>
           )}
 
-          <h3 className="sub-head">Quiet hours</h3>
+          <h3 className="label section-label">Quiet hours</h3>
           <label className="toggle" htmlFor="quiet-on">
             <span>No notifications overnight</span>
             <input
@@ -263,7 +263,7 @@ export function Notifications({ household, uid }: { household: Household; uid: s
 
       {devices.length > 0 && (
         <>
-          <h3 className="sub-head">Phones getting notifications</h3>
+          <h3 className="label section-label">Phones getting notifications</h3>
           <ul className="devices">
             {devices.map((d) => (
               <li key={d.id}>

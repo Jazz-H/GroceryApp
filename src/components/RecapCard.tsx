@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { formatCents } from '../lib/money';
 import { monthKey, monthLabel, monthRecap, receiptStoreName, shiftMonth } from '../lib/receipts';
 import type { Household, Receipt } from '../types';
+import { CloseIcon } from './icons';
 
 const KEY = 'fb.recapSeen';
 
@@ -45,8 +46,8 @@ export function RecapCard({
     <div className="card recap" role="region" aria-label={`${name} recap`}>
       <div className="recap-head">
         <h2>{name} recap</h2>
-        <button className="btn link small" onClick={dismiss} aria-label="Dismiss recap">
-          ✕
+        <button className="btn icon" onClick={dismiss} aria-label="Dismiss recap">
+          <CloseIcon />
         </button>
       </div>
       <div className="recap-big mono">{formatCents(r.cents)}</div>
@@ -60,7 +61,7 @@ export function RecapCard({
           : ''}
       </p>
       <div className="row-actions">
-        <button className="btn ghost small" onClick={() => onOpen(last)}>
+        <button className="btn ghost" onClick={() => onOpen(last)}>
           See {name}
         </button>
       </div>

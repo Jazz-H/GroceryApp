@@ -23,7 +23,16 @@
   --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
 
   --row: 34px;
+  /* Corner and size scale, shared by every component. */
+  --radius-sm: 10px;
+  --radius-md: 14px;
   --radius-card: 22px;
+  --tap: 44px;
+  /* Store colors for charts: not reused for good/bad meaning. */
+  --store-target: #9dbbff;
+  --store-ht: #6fd39b;
+  --store-amazon: #ffcf66;
+  --store-other: #c7a6ff;
   color-scheme: dark;
 }
 
@@ -185,6 +194,16 @@ code {
   padding: 13px 22px;
   font-size: 1rem;
   border-radius: 14px;
+}
+.btn.icon {
+  width: var(--tap);
+  height: var(--tap);
+  padding: 0;
+  border-radius: var(--radius-md);
+  color: var(--muted);
+}
+.btn.icon:hover {
+  color: var(--ink);
 }
 .btn.invert {
   background: var(--bg);
@@ -2330,11 +2349,30 @@ textarea {
   padding: 10px 0;
 }
 .check-label input[type='checkbox'] {
-  width: 20px;
-  height: 20px;
+  appearance: none;
+  width: 24px;
+  height: 24px;
   flex: none;
   margin: 0;
-  accent-color: var(--accent);
+  padding: 0;
+  border: 2px solid var(--line-strong);
+  border-radius: 8px;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.check-label input[type='checkbox']:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.check-label input[type='checkbox']:checked::after {
+  content: '';
+  width: 6px;
+  height: 11px;
+  border: solid var(--accent-ink);
+  border-width: 0 2.5px 2.5px 0;
+  transform: translateY(-1px) rotate(45deg);
 }
 .sheet .check-label,
 .clear-list .check-label {
@@ -2346,13 +2384,8 @@ textarea {
 }
 
 /* ---- Settings: notifications ---- */
-.sub-head {
-  margin: 14px 0 6px;
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
+.section-label {
+  margin: 16px 0 6px;
 }
 .quiet-hours {
   display: flex;
@@ -2411,12 +2444,12 @@ textarea {
 .price-chart {
   margin: 6px 0 10px;
 }
-.price-chart svg {
+.price-chart > svg {
   width: 100%;
   height: auto;
   background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 }
 .price-chart figcaption {
   display: flex;
@@ -2438,6 +2471,9 @@ textarea {
   margin-right: 4px;
 }
 .trend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin: 4px 0 0;
   font-size: 0.88rem;
 }
@@ -2456,6 +2492,7 @@ textarea {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin: -8px -8px 0 0;
 }
 .recap-big {
   font-size: 1.8rem;
@@ -2479,8 +2516,8 @@ textarea {
   position: fixed;
   inset: 0;
   z-index: 60;
-  background: #000;
-  color: #fff;
+  background: var(--bg);
+  color: var(--ink);
   display: flex;
   flex-direction: column;
   padding: max(14px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
@@ -2499,9 +2536,9 @@ textarea {
   position: relative;
   flex: 1;
   min-height: 0;
-  border-radius: 18px;
+  border-radius: var(--radius-card);
   overflow: hidden;
-  background: #111;
+  background: var(--surface);
 }
 .scanner-view video {
   width: 100%;
@@ -2515,21 +2552,29 @@ textarea {
   top: 38%;
   height: 24%;
   border: 3px solid var(--accent);
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   box-shadow: 0 0 0 999px rgba(0, 0, 0, 0.35);
 }
-.scanner-hint {
+.scanner-hint,
+.scanner-starting {
   text-align: center;
-  color: #c8d0d8;
+  color: var(--muted);
   margin: 0;
+}
+.scanner-starting {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
 }
 .scanner-result {
   background: var(--surface);
   color: var(--ink);
-  border-radius: 18px;
-  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  padding: 16px;
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 .scanner-result p {
   margin: 0;
@@ -2549,7 +2594,7 @@ textarea {
   border: 2px dashed var(--line-strong);
   background: var(--bg);
   color: var(--ink);
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   padding: 12px;
   font: 500 0.98rem var(--body);
   resize: vertical;
@@ -2572,13 +2617,32 @@ textarea {
   width: 72px;
   height: 72px;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--line);
 }
-.recipe-photos button {
+.thumb-remove {
   position: absolute;
-  top: -6px;
-  right: -6px;
-  background: var(--surface);
+  top: -8px;
+  right: -8px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
   border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+}
+/* Bigger than it looks, so it's easy to tap. */
+.thumb-remove::before {
+  content: '';
+  position: absolute;
+  inset: -9px;
+}
+
+.recipe-drop .row-actions {
+  margin: 4px 0 14px;
+}
+.trend svg {
+  flex: none;
 }

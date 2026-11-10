@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { lookupBarcode, rememberBarcode } from '../data/barcodes';
 import { isProductCode, normalizeCode } from '../lib/barcode';
+import { CloseIcon } from './icons';
 
 const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e'];
 
@@ -57,6 +58,7 @@ export function BarcodeScanner({
   const [error, setError] = useState<string | null>(null);
   const [found, setFound] = useState<Found | null>(null);
   const [name, setName] = useState('');
+  const [ready, setReady] = useState(false);
   const paused = useRef(false);
 
   useEffect(() => {
@@ -72,6 +74,7 @@ export function BarcodeScanner({
         if (!alive || !video.current) return;
         video.current.srcObject = stream;
         await video.current.play().catch(() => undefined);
+        if (alive) setReady(true);
         const detector = await makeDetector();
         const tick = async () => {
           if (!alive) return;
@@ -137,8 +140,8 @@ export function BarcodeScanner({
     <div className="scanner" role="dialog" aria-modal="true" aria-labelledby="scanner-title">
       <div className="scanner-top">
         <h2 id="scanner-title">Scan a barcode</h2>
-        <button className="btn ghost small" onClick={onClose}>
-          Close
+        <button className="btn icon" onClick={onClose} aria-label="Close scanner">
+          <CloseIcon />
         </button>
       </div>
       {error ? (
@@ -148,7 +151,12 @@ export function BarcodeScanner({
       ) : (
         <div className="scanner-view">
           <video ref={video} playsInline muted aria-label="Camera" />
-          {!found && <div className="scanner-frame" aria-hidden="true" />}
+          {!found && ready && <div className="scanner-frame" aria-hidden="true" />}
+          {!ready && (
+            <p className="scanner-starting" role="status">
+              Starting the camera…
+            </p>
+          )}
         </div>
       )}
       {!found && !error && (

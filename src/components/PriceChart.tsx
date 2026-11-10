@@ -1,12 +1,13 @@
 import { formatCents } from '../lib/money';
 import { receiptStoreName, type PricePoint, type PriceTrend } from '../lib/receipts';
 import type { ReceiptStore } from '../types';
+import { TrendIcon } from './icons';
 
 const COLORS: Record<ReceiptStore, string> = {
-  target: '#ff8a80',
-  ht: '#6fd39b',
-  amazon: '#ffcf66',
-  other: '#9dbbff',
+  target: 'var(--store-target)',
+  ht: 'var(--store-ht)',
+  amazon: 'var(--store-amazon)',
+  other: 'var(--store-other)',
 };
 
 const W = 300;
@@ -38,7 +39,7 @@ export function PriceChart({ points, trends }: { points: PricePoint[]; trends: P
         {stores.map((s) => {
           const mine = points.filter((p) => p.store === s).sort((a, b) => a.at - b.at);
           return (
-            <g key={s} stroke={COLORS[s]} fill={COLORS[s]}>
+            <g key={s} style={{ stroke: COLORS[s], fill: COLORS[s] }}>
               {mine.length > 1 && (
                 <polyline
                   fill="none"
@@ -74,6 +75,7 @@ export function PriceChart({ points, trends }: { points: PricePoint[]; trends: P
           key={t.store}
           className={`trend ${t.change > 0.005 ? 'up' : t.change < -0.005 ? 'down' : ''}`}
         >
+          {Math.abs(t.change) >= 0.005 && <TrendIcon up={t.change > 0} />}
           {receiptStoreName(t.store)}:{' '}
           {Math.abs(t.change) < 0.005
             ? 'same price'

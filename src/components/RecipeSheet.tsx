@@ -3,6 +3,7 @@ import { parseRecipe, RecipeError, type ParsedRecipe } from '../data/recipeParse
 import { STORES } from '../lib/stores';
 import { normalizeName, type QuickAdd } from '../lib/text';
 import type { Item, StoreId } from '../types';
+import { CameraIcon, CloseIcon } from './icons';
 import { Sheet } from './ui';
 
 /** A photo as base64 JPEG, at most 1600px on its long side. */
@@ -149,9 +150,13 @@ export function RecipeSheet({
             onChange={(e) => setText(e.target.value)}
             placeholder="Paste a recipe link, or the ingredients, or drop a photo here"
           />
+          <p className="hint">
+            Works with most recipe sites, a screenshot, or a photo of a recipe card.
+          </p>
           <div className="row-actions">
             <button type="button" className="btn ghost" onClick={() => fileInput.current?.click()}>
-              📷 Photo or screenshot
+              <CameraIcon />
+              Photo or screenshot
             </button>
             <input
               ref={fileInput}
@@ -172,11 +177,11 @@ export function RecipeSheet({
                   <img src={`data:image/jpeg;base64,${p.data}`} alt={`Recipe photo ${i + 1}`} />
                   <button
                     type="button"
-                    className="btn link small"
+                    className="thumb-remove"
                     aria-label={`Remove photo ${i + 1}`}
                     onClick={() => setPhotos((all) => all.filter((_, j) => j !== i))}
                   >
-                    ✕
+                    <CloseIcon size={14} />
                   </button>
                 </li>
               ))}
@@ -185,6 +190,11 @@ export function RecipeSheet({
           {error && (
             <p className="error" role="alert">
               {error}
+            </p>
+          )}
+          {busy && (
+            <p className="hint" role="status">
+              Reading the recipe. This takes a few seconds…
             </p>
           )}
           <div className="sheet-actions">

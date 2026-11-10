@@ -24,6 +24,7 @@ import { STORES, storeDef } from '../lib/stores';
 import { parseQuickAdd, type QuickAdd } from '../lib/text';
 import { suggestUsuals, type Usual } from '../lib/usuals';
 import { BarcodeScanner } from './BarcodeScanner';
+import { BarcodeIcon, RecipeIcon } from './icons';
 import { QuickList } from './QuickList';
 import { RecipeSheet } from './RecipeSheet';
 import { notify } from '../push';
@@ -827,35 +828,12 @@ function AddSheet({
           Separate items with commas. “2 milk” or “bread x3” sets the quantity.
         </p>
         <div className="add-extras">
-          <button type="button" className="btn ghost small" onClick={onScan}>
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              aria-hidden="true"
-            >
-              <path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M7 8v8M10 8v8M13 8v8M17 8v8" />
-            </svg>
+          <button type="button" className="btn ghost" onClick={onScan}>
+            <BarcodeIcon />
             Scan barcode
           </button>
-          <button type="button" className="btn ghost small" onClick={onRecipe}>
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M6 13.9A4 4 0 0 1 7.5 6a5 5 0 0 1 9 0A4 4 0 0 1 18 13.9V20H6z M6 17h12" />
-            </svg>
+          <button type="button" className="btn ghost" onClick={onRecipe}>
+            <RecipeIcon />
             From a recipe
           </button>
         </div>
