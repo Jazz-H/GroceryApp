@@ -103,13 +103,13 @@ export function RecapCard({
   household,
   receipts,
   forced = false,
-  onOpen,
+  onReport,
 }: {
   kind: 'week' | 'month';
   household: Household;
   receipts: Receipt[];
   forced?: boolean;
-  onOpen: (month: string) => void;
+  onReport: (kind: 'week' | 'month') => void;
 }) {
   const v = (kind === 'week' ? weekView : monthView)(household, receipts, new Date());
   const [hidden, setHidden] = useState(() => !forced && seen(kind) === v.period);
@@ -124,7 +124,6 @@ export function RecapCard({
     setHidden(true);
   }
 
-  const monthName = monthLabel(v.month).split(' ')[0];
   return (
     <div className="card recap" role="region" aria-label={v.title}>
       <div className="recap-head">
@@ -136,8 +135,8 @@ export function RecapCard({
       <div className="recap-big mono">{formatCents(v.cents)}</div>
       <p className="muted">{v.details.join(' · ')}</p>
       <div className="row-actions">
-        <button className="btn ghost" onClick={() => onOpen(v.month)}>
-          See {monthName}
+        <button className="btn primary" onClick={() => onReport(kind)}>
+          Open report
         </button>
       </div>
     </div>
