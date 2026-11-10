@@ -17,6 +17,7 @@ import {
   monthLabel,
   monthTotals,
   receiptStoreName,
+  shortCardName,
   shiftMonth,
   summarizeMonth,
   toCsv,
@@ -198,8 +199,10 @@ export function Spend({
                     <span className="bar-label">
                       {c.key ? (
                         <>
-                          {summary.cardNames[c.key]?.replace(/^Target\s+/, '') || 'Card'}{' '}
-                          <span className="mono">•{c.key}</span>
+                          <span className="bar-name">
+                            {shortCardName(summary.cardNames[c.key])}
+                          </span>
+                          <span className="mono bar-tag">•{c.key}</span>
                         </>
                       ) : (
                         'Other / unknown'

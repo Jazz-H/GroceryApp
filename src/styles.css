@@ -1216,7 +1216,8 @@ code {
 }
 .bars li {
   display: grid;
-  grid-template-columns: minmax(0, 8.5em) 1fr auto;
+  /* Fixed outer columns so every bar starts and ends at the same place. */
+  grid-template-columns: minmax(0, 9.5em) minmax(0, 1fr) 4.9em;
   gap: 10px;
   align-items: center;
   font-size: 0.9rem;
@@ -1229,6 +1230,18 @@ code {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.bars li > .mono:last-child {
+  text-align: right;
+}
+.bar-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bar-tag {
+  flex: none;
 }
 .bar-track {
   height: 12px;

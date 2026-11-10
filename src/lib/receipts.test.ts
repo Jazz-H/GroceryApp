@@ -19,6 +19,7 @@ import {
   monthLabel,
   cardsLabel,
   knownCards,
+  shortCardName,
   singlePayment,
 } from './receipts';
 import { makeItem } from './testItems';
@@ -337,5 +338,16 @@ describe('cards', () => {
       { card: 'Circle', last4: '3979', cents: 1234 },
     ]);
     expect(singlePayment(null, 1234)).toBeUndefined();
+  });
+});
+
+describe('shortCardName', () => {
+  it('drops the store and "card" words', () => {
+    expect(shortCardName('Target Circle Credit Card')).toBe('Circle');
+    expect(shortCardName('Target Mastercard')).toBe('Mastercard');
+    expect(shortCardName('Target GiftCard')).toBe('GiftCard');
+    expect(shortCardName('Visa')).toBe('Visa');
+    expect(shortCardName('Gift card')).toBe('Gift');
+    expect(shortCardName(undefined)).toBe('Card');
   });
 });

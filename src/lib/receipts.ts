@@ -497,3 +497,12 @@ export function singlePayment(
 ): ReceiptPayment[] | undefined {
   return card ? [{ card: card.card, last4: card.last4, cents: totalCents }] : undefined;
 }
+
+/** "Target Circle Credit Card" → "Circle", "Target Mastercard" → "Mastercard": short enough for a bar label. */
+export function shortCardName(name: string | undefined): string {
+  const short = (name ?? '')
+    .replace(/^Target\s+/i, '')
+    .replace(/\s+((credit|debit)\s+)?card$/i, '')
+    .trim();
+  return short || 'Card';
+}
