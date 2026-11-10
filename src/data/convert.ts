@@ -71,8 +71,19 @@ const int = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math.
 export function toReceipt(snap: DocumentSnapshot): Receipt {
   const d = data(snap);
   const lines = Array.isArray(d.lines) ? d.lines : [];
+  const payments = Array.isArray(d.payments) ? d.payments : [];
   return {
     id: snap.id,
+    ...(d.kind === 'tip' ? { kind: 'tip' as const } : {}),
+    ...(payments.length
+      ? {
+          payments: payments.map((p: DocumentData) => ({
+            card: String(p.card ?? ''),
+            last4: String(p.last4 ?? ''),
+            cents: int(p.cents),
+          })),
+        }
+      : {}),
     store: RECEIPT_STORES.includes(d.store) ? d.store : 'other',
     purchasedAt: ms(d.purchasedAt),
     paidBy: String(d.paidBy ?? ''),
