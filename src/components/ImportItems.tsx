@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { addItems } from '../data/items';
+import { ClearImported } from './ClearImported';
 import { decodeImportHash, parseImport, MAX_IMPORT } from '../lib/importList';
 import { formatCents } from '../lib/money';
 import { STORES, storeDef } from '../lib/stores';
@@ -171,6 +172,7 @@ export function ImportItems({
         </button>
       </div>
       {message && <p className="hint">{message}</p>}
+      <ClearImported household={household} uid={uid} items={items} />
     </div>
   );
 }

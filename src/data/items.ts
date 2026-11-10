@@ -2,8 +2,11 @@ import {
   collection,
   deleteField,
   doc,
+  getDocs,
   increment,
+  query,
   serverTimestamp,
+  where,
   writeBatch,
   type WriteBatch,
 } from 'firebase/firestore';
@@ -270,4 +273,23 @@ export async function pickUpOrder(hid: string, uid: string, ordered: Item[], sto
     });
   log(batch, hid, uid, 'pickup', ordered.slice(0, 50), { store });
   await batch.commit();
+}
+
+/**
+ * Ids of items that came in through a bulk add (an import or import link): every "add" in the
+ * activity log whose single write added at least `minBatch` items.
+ */
+export async function bulkAddedIds(hid: string, minBatch = 10): Promise<Set<string>> {
+  const snap = await getDocs(query(activity(hid), where('type', '==', 'add')));
+  const byBatch = new Map<string, string[]>();
+  for (const d of snap.docs) {
+    const e = d.data();
+    const ids: string[] = Array.isArray(e.itemIds) ? e.itemIds : [];
+    // Everything one add wrote shares a server timestamp; batch ids alone also merge separate
+    // adds made within a minute of each other.
+    const at = typeof e.at?.toMillis === 'function' ? e.at.toMillis() : String(e.at);
+    const key = `${e.batchId ?? d.id}|${at}`;
+    byBatch.set(key, [...(byBatch.get(key) ?? []), ...ids]);
+  }
+  return new Set([...byBatch.values()].filter((ids) => ids.length >= minBatch).flat());
 }
