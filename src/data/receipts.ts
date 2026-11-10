@@ -112,6 +112,15 @@ export async function setReceiptPaidBy(hid: string, receipt: Receipt, paidBy: st
   await updateDoc(doc(receipts(hid), receipt.id), { paidBy });
 }
 
+/** Moves many receipts to one payer, in batches of 400 (Firestore allows 500 writes per batch). */
+export async function setPaidByForAll(hid: string, list: Receipt[], paidBy: string) {
+  for (let i = 0; i < list.length; i += 400) {
+    const batch = writeBatch(db);
+    for (const r of list.slice(i, i + 400)) batch.update(doc(receipts(hid), r.id), { paidBy });
+    await batch.commit();
+  }
+}
+
 /** Removes a receipt from spending. Prices it set on items stay. */
 export async function deleteReceipt(hid: string, receipt: Receipt) {
   await deleteDoc(doc(receipts(hid), receipt.id));
