@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useAliases, useReceipts } from '../data/hooks';
+import { useAliases, useReceiptsState } from '../data/hooks';
 import {
   deleteReceipt,
   setBudget,
@@ -36,7 +36,8 @@ export function Spend({
   uid: string;
   items: Item[];
 }) {
-  const receipts = useReceipts(household.id);
+  const receiptsState = useReceiptsState(household.id);
+  const receipts = useMemo(() => receiptsState ?? [], [receiptsState]);
   const aliases = useAliases(household.id);
   const thisMonth = monthKey(Date.now());
   const [month, setMonth] = useState(thisMonth);
@@ -85,7 +86,7 @@ export function Spend({
         household={household}
         uid={uid}
         items={items}
-        receipts={receipts}
+        receipts={receiptsState}
         aliases={aliases}
         onDone={(msg, month) => {
           if (month) setMonth(month);
