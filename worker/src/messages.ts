@@ -159,7 +159,8 @@ export function compose(kind: Kind, d: NotifyData, actor: string, senderUid: str
       return {
         title: 'Stocked notifications work',
         body: 'You’ll hear about your partner’s trips, adds and receipts here.',
-        tag: 'test',
+        // A fresh tag each time, so a new test pops up instead of silently replacing the last.
+        tag: `test-${Date.now().toString(36)}`,
         url: '/',
       };
   }
