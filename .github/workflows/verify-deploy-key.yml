@@ -1,0 +1,63 @@
+# Checks the Firebase deploy key without deploying anything. Run it from the Actions tab
+# (or it runs when this file changes). It never prints the key.
+name: Verify deploy key
+
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/verify-deploy-key.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FIREBASE_PROJECT_ID: fridgeboard-642b9
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Key is present and is for this project
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FRIDGEBOARD_642B9 }}
+        run: |
+          if [ -z "$SERVICE_ACCOUNT" ]; then
+            echo "::error::Secret FIREBASE_SERVICE_ACCOUNT_FRIDGEBOARD_642B9 is missing or empty."
+            exit 1
+          fi
+          printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          node -e '
+            const fs = require("fs");
+            let k;
+            try { k = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); }
+            catch { console.log("::error::The secret is not valid JSON. Paste the whole .json file, including the { and }."); process.exit(1); }
+            const problems = [];
+            if (k.type !== "service_account") problems.push(`type is "${k.type}", expected "service_account"`);
+            if (k.project_id !== process.env.FIREBASE_PROJECT_ID) problems.push(`project_id is "${k.project_id}", expected "${process.env.FIREBASE_PROJECT_ID}"`);
+            if (!k.private_key || !k.private_key.includes("BEGIN PRIVATE KEY")) problems.push("private_key is missing");
+            if (!k.client_email) problems.push("client_email is missing");
+            console.log(`Key account: ${k.client_email ?? "?"}`);
+            console.log(`Key project: ${k.project_id ?? "?"}`);
+            if (problems.length) { problems.forEach(p => console.log(`::error::${p}`)); process.exit(1); }
+            console.log("Key format OK");
+          ' "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+
+      - name: Key can sign in and see the project
+        run: npx --yes firebase-tools@15 projects:list --json | node -e '
+          let s=""; process.stdin.on("data",d=>s+=d).on("end",()=>{
+          const r = JSON.parse(s); const ids = (r.result||[]).map(p=>p.projectId);
+          console.log("Projects visible to the key:", ids.join(", ") || "(none)");
+          if (!ids.includes(process.env.FIREBASE_PROJECT_ID)) { console.log("::error::The key works but cannot see fridgeboard-642b9. Check its roles."); process.exit(1); }
+          console.log("Project access OK");
+          });'
+
+      - name: Key can read Hosting (needed to deploy the app)
+        run: npx --yes firebase-tools@15 hosting:channel:list --project "$FIREBASE_PROJECT_ID"
+
+      - name: Key can read Firestore rules (needed to deploy rules)
+        run: npx --yes firebase-tools@15 firestore:databases:list --project "$FIREBASE_PROJECT_ID"
