@@ -8,7 +8,8 @@ import { Avatar } from './ui';
 
 /**
  * Who's paid more for shared groceries, split equally, and a button to mark it paid back.
- * Counts every receipt ever saved, minus settle-ups already recorded.
+ * Counts every receipt ever saved, minus settle-ups already recorded. Hidden when nobody owes
+ * anything, except right after marking a settle-up, so it can be undone.
  */
 export function SettleUp({
   household,
@@ -26,11 +27,14 @@ export function SettleUp({
   );
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Just marked as paid back here: keep the card up with Undo until dismissed.
+  const [justSettled, setJustSettled] = useState(false);
   const name = (id: string) => household.members[id]?.name?.split(/\s+/)[0] ?? 'Someone';
 
   if (household.memberIds.length < 2) return null;
   const owed = balance.transfers[0];
   const last = settlements[0];
+  if (!owed && !(justSettled && last)) return null;
 
   async function settle() {
     if (!owed) return;
@@ -38,6 +42,7 @@ export function SettleUp({
     try {
       await recordSettlement(household.id, uid, owed.from, owed.to, owed.cents);
       setConfirming(false);
+      setJustSettled(true);
     } finally {
       setBusy(false);
     }
@@ -80,17 +85,22 @@ export function SettleUp({
           )}
         </>
       ) : (
-        <p className="muted">All square. Nobody owes anything.</p>
-      )}
-      {last && (
-        <p className="hint">
-          Last settle-up:{' '}
-          {new Date(last.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} ·{' '}
-          {name(last.from)} paid {name(last.to)} {formatCents(last.cents)}{' '}
-          <button className="btn link small" onClick={() => undoSettlement(household.id, last.id)}>
-            Undo
-          </button>
-        </p>
+        last && (
+          <>
+            <p className="muted">
+              Settled: {name(last.from)} paid {name(last.to)} {formatCents(last.cents)}. You’re all
+              square.
+            </p>
+            <div className="row-actions">
+              <button className="btn ghost" onClick={() => setJustSettled(false)}>
+                Done
+              </button>
+              <button className="btn link" onClick={() => undoSettlement(household.id, last.id)}>
+                Undo
+              </button>
+            </div>
+          </>
+        )
       )}
     </div>
   );
