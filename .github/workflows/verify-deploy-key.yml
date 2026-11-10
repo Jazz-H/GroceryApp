@@ -32,9 +32,19 @@ jobs:
           printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
           node -e '
             const fs = require("fs");
+            const raw = fs.readFileSync(process.argv[1], "utf8").replace(/^\uFEFF/, "").trim();
             let k;
-            try { k = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); }
-            catch { console.log("::error::The secret is not valid JSON. Paste the whole .json file, including the { and }."); process.exit(1); }
+            try { k = JSON.parse(raw); }
+            catch {
+              // Describe the shape only; never print the secret itself.
+              console.log(`Secret length: ${raw.length} characters`);
+              console.log(`Starts with "{": ${raw.startsWith("{")} · ends with "}": ${raw.endsWith("}")}`);
+              if (raw.startsWith("-----BEGIN")) console.log("::error::Only the private key was pasted. Paste the whole .json file instead.");
+              else if (!raw.startsWith("{")) console.log("::error::The secret does not start with {. Paste the whole downloaded .json file, from the first { to the last }.");
+              else if (!raw.endsWith("}")) console.log("::error::The secret is cut off before the final }. Paste the whole file again.");
+              else console.log("::error::The secret looks like JSON but is damaged. Open the .json in Notepad, Ctrl+A, Ctrl+C, and paste it again.");
+              process.exit(1);
+            }
             const problems = [];
             if (k.type !== "service_account") problems.push(`type is "${k.type}", expected "service_account"`);
             if (k.project_id !== process.env.FIREBASE_PROJECT_ID) problems.push(`project_id is "${k.project_id}", expected "${process.env.FIREBASE_PROJECT_ID}"`);
