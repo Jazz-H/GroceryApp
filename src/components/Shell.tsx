@@ -9,6 +9,7 @@ import { Feed } from './Feed';
 import { ListScreen } from './ListScreen';
 import { Settings } from './Settings';
 import { Avatar } from './ui';
+import { AppChrome } from './AppChrome';
 
 type Tab = 'list' | 'us' | 'settings';
 const TABS: { id: Tab; label: string }[] = [
@@ -61,6 +62,7 @@ export function Shell({ user, household }: { user: User; household: Household })
 
   return (
     <div className="shell">
+      <AppChrome />
       {!online && (
         <div className="offline">
           Offline. Changes are saved and will sync when you’re back online.
