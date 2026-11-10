@@ -2039,6 +2039,11 @@ textarea {
   line-height: 1.25;
   padding: 10px 0;
   color: var(--ink);
+  /* Long names wrap onto more lines instead of being cut off with "…". */
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
 }
 .list-card .it.done .nm {
   color: var(--muted);
