@@ -1,0 +1,90 @@
+# One-time notification setup that runs entirely on GitHub, so it can be started from a phone.
+#
+# Needs one repository secret: CLOUDFLARE_API_TOKEN (Cloudflare → My Profile → API Tokens →
+# "Edit Cloudflare Workers" template). Then: Actions → "Set up notifications" → Run workflow.
+#
+# It makes a fresh VAPID key pair, puts the private half straight into the relay as a
+# Cloudflare secret (it is never printed or stored anywhere else), deploys the relay, checks
+# /health, and prints the relay URL and public key. Those two values are public: they go in
+# push-config.json so the app build picks them up.
+name: Set up notifications
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type NEW KEYS to make new keys. Phones that already have notifications on will need to turn them on again.'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Check inputs
+        run: |
+          if [ "${{ inputs.confirm }}" != "NEW KEYS" ]; then echo "::error::Type NEW KEYS to confirm."; exit 1; fi
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::Add the repository secret CLOUDFLARE_API_TOKEN first (see docs/NOTIFICATIONS-FROM-PHONE.md)."
+            exit 1
+          fi
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Make VAPID keys
+        id: keys
+        run: |
+          node -e "
+            const { webcrypto: c } = require('node:crypto');
+            (async () => {
+              const k = await c.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign']);
+              const pub = Buffer.from(await c.subtle.exportKey('raw', k.publicKey)).toString('base64url');
+              const { d } = await c.subtle.exportKey('jwk', k.privateKey);
+              require('fs').writeFileSync(process.env.RUNNER_TEMP + '/vapid_private', d);
+              console.log('::add-mask::' + d);
+              require('fs').appendFileSync(process.env.GITHUB_OUTPUT, 'public=' + pub + '\n');
+            })();
+          "
+      - name: Deploy the relay
+        id: deploy
+        working-directory: worker
+        run: |
+          npx --yes wrangler@4 deploy --var "VAPID_PUBLIC_KEY:${{ steps.keys.outputs.public }}" 2>&1 | tee "$RUNNER_TEMP/deploy.log"
+          url=$(grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' "$RUNNER_TEMP/deploy.log" | head -1)
+          if [ -z "$url" ]; then
+            echo "::error::Deployed, but no workers.dev URL was printed. In Cloudflare, open Workers & Pages once and pick a workers.dev subdomain, then run this again."
+            exit 1
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+      - name: Store the private key in the relay
+        working-directory: worker
+        run: npx --yes wrangler@4 secret put VAPID_PRIVATE_KEY < "$RUNNER_TEMP/vapid_private"
+      - name: Check the relay
+        run: |
+          for i in 1 2 3 4 5 6; do
+            body=$(curl -fsS "${{ steps.deploy.outputs.url }}/health" || true)
+            echo "health: $body"
+            if echo "$body" | grep -q '"configured":true'; then ok=1; break; fi
+            sleep 5
+          done
+          rm -f "$RUNNER_TEMP/vapid_private"
+          if [ -z "$ok" ]; then echo "::error::The relay didn't report configured:true."; exit 1; fi
+      - name: Results
+        run: |
+          {
+            echo "## Notifications relay is ready"
+            echo
+            echo "Put these two public values in \`push-config.json\` (Claude can do this for you):"
+            echo
+            echo '```json'
+            echo "{ \"url\": \"${{ steps.deploy.outputs.url }}\", \"publicKey\": \"${{ steps.keys.outputs.public }}\" }"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "PUSH_CONFIG_URL=${{ steps.deploy.outputs.url }}"
+          echo "PUSH_CONFIG_PUBLIC_KEY=${{ steps.keys.outputs.public }}"
