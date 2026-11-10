@@ -266,9 +266,11 @@ export function shiftMonth(key: string, by: number): string {
   return monthKey(d.getTime());
 }
 
+/** "November 2026", or "Nov ’26" for the short style (chart labels). */
 export function monthLabel(key: string, style: 'long' | 'short' = 'long'): string {
   const [y, m] = key.split('-').map(Number);
-  return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: style });
+  const name = new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: style });
+  return style === 'long' ? `${name} ${y}` : `${name} ’${String(y).slice(-2)}`;
 }
 
 export interface Slice<K extends string> {

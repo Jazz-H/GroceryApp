@@ -86,9 +86,7 @@ export function Spend({
         >
           ‹
         </button>
-        <span>
-          {monthLabel(month)} {month.slice(0, 4) !== thisMonth.slice(0, 4) && month.slice(0, 4)}
-        </span>
+        <span>{monthLabel(month)}</span>
         <button
           className="btn small ghost"
           onClick={() => setMonth(shiftMonth(month, 1))}
