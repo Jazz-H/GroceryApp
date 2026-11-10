@@ -3,7 +3,8 @@ import { useReceipts } from '../data/hooks';
 import { deleteItems, saveItem } from '../data/items';
 import { timeAgo } from '../lib/activity';
 import { formatCents, parsePrice } from '../lib/money';
-import { latestByStore, priceHistory, receiptStoreName } from '../lib/receipts';
+import { latestByStore, priceHistory, priceTrends, receiptStoreName } from '../lib/receipts';
+import { PriceChart } from './PriceChart';
 import { STORES } from '../lib/stores';
 import type { Household, Item, ListId, StoreId, StoreInfo } from '../types';
 import { markerStyle, Sheet } from './ui';
@@ -47,7 +48,9 @@ export function ItemSheet({
   onClose: () => void;
 }) {
   const receipts = useReceipts(household.id);
-  const history = useMemo(() => priceHistory(receipts, item), [receipts, item]);
+  const allPoints = useMemo(() => priceHistory(receipts, item, 60), [receipts, item]);
+  const history = allPoints.slice(0, 8);
+  const trends = useMemo(() => priceTrends(allPoints), [allPoints]);
   const best = latestByStore(history);
   const [name, setName] = useState(item.name);
   const [qty, setQty] = useState(item.qty);
@@ -256,6 +259,7 @@ export function ItemSheet({
               {formatCents(best[1].unitCents)})
             </p>
           )}
+          <PriceChart points={allPoints} trends={trends} />
           <ul>
             {history.map((p, i) => (
               <li key={i}>

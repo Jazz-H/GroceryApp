@@ -110,6 +110,18 @@ export interface Receipt {
   lines: ReceiptLine[];
 }
 
+/** One member paying another back, so shared spending evens out. */
+export interface Settlement {
+  id: string;
+  /** Who paid the money back. */
+  from: string;
+  /** Who received it. */
+  to: string;
+  cents: number;
+  by: string;
+  at: number;
+}
+
 export interface ActivityEvent {
   id: string;
   actorId: string;
@@ -138,6 +150,8 @@ export interface Household {
   zoneOrder: Partial<Record<StoreId, string[]>>;
   /** Monthly grocery budget in cents, or null when none is set. */
   budgetCents: number | null;
+  /** The month ("2026-10") whose recap has been sent, so it goes out once. */
+  recapSentFor?: string;
 }
 
 export type TripMode = 'together' | 'solo';

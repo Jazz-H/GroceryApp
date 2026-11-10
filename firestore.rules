@@ -169,6 +169,29 @@ service cloud.firestore {
               && request.resource.data.count is number));
       }
 
+      // ---- Settle up: one member paid the other back ----
+      match /settlements/{id} {
+        allow read, delete: if isMember(hid);
+        allow create: if isMember(hid)
+          && request.resource.data.by == uid()
+          && request.resource.data.from in household(hid).memberIds
+          && request.resource.data.to in household(hid).memberIds
+          && request.resource.data.from != request.resource.data.to
+          && request.resource.data.cents is int
+          && request.resource.data.cents > 0
+          && request.resource.data.cents < 10000000;
+        allow update: if false;
+      }
+
+      // ---- Remembered barcodes (UPC → item name) ----
+      match /barcodes/{code} {
+        allow read: if isMember(hid);
+        allow write: if isMember(hid)
+          && (request.resource == null
+            || (request.resource.data.name is string
+              && request.resource.data.name.size() <= 120));
+      }
+
       // ---- Remembered receipt matches ("HT ORG SPINACH" → Spinach) ----
       match /aliases/{key} {
         allow read: if isMember(hid);

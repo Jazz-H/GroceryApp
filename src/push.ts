@@ -14,13 +14,19 @@ import { isIOS, isStandalone } from './auth';
 import { auth, db } from './firebase';
 
 /** Switches a phone can turn off. Keep in sync with PREFS in worker/src/messages.ts. */
-export type PushKind = 'adds' | 'trip' | 'receipts' | 'budget';
+export type PushKind = 'adds' | 'trip' | 'receipts' | 'budget' | 'recap';
 export type PushPrefs = Record<PushKind, boolean>;
-export const DEFAULT_PREFS: PushPrefs = { adds: true, trip: true, receipts: true, budget: true };
+export const DEFAULT_PREFS: PushPrefs = {
+  adds: true,
+  trip: true,
+  receipts: true,
+  budget: true,
+  recap: true,
+};
 
 /** What can be sent. The relay writes the text; see worker/src/messages.ts. */
 export type NotifyKind =
-  'adds' | 'trip_start' | 'trip_join' | 'trip_end' | 'receipt' | 'budget' | 'test';
+  'adds' | 'trip_start' | 'trip_join' | 'trip_end' | 'receipt' | 'budget' | 'recap' | 'test';
 
 /** Quiet hours in this phone's time zone, e.g. 22 → 7. */
 export interface QuietHours {
@@ -252,6 +258,9 @@ export interface NotifyData {
   budgetCents?: number;
   pct?: number;
   month?: string;
+  receipts?: number;
+  topStore?: string;
+  topCents?: number;
 }
 
 export type NotifyResult = { ok: true; sent: number } | { ok: false; error: string };

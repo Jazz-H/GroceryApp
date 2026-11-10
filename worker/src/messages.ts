@@ -10,6 +10,7 @@ export const KINDS = [
   'trip_end',
   'receipt',
   'budget',
+  'recap',
   'test',
 ] as const;
 export type Kind = (typeof KINDS)[number];
@@ -22,8 +23,12 @@ export const PREF_FOR: Record<Exclude<Kind, 'test'>, Pref> = {
   trip_end: 'trip',
   receipt: 'receipts',
   budget: 'budget',
+  recap: 'recap',
 };
-export const PREFS = ['adds', 'trip', 'receipts', 'budget'] as const;
+export const PREFS = ['adds', 'trip', 'receipts', 'budget', 'recap'] as const;
+
+/** Kinds that also go to the sender's own phones (news for everyone, not about the sender). */
+export const TO_EVERYONE: readonly Kind[] = ['recap'];
 export type Pref = (typeof PREFS)[number];
 
 const STORES: Record<string, string> = { ht: 'Harris Teeter', target: 'Target', amazon: 'Amazon' };
@@ -43,8 +48,12 @@ export interface NotifyData {
   budgetCents?: number;
   /** Budget threshold crossed, e.g. 80 or 100. */
   pct?: number;
-  /** "November", for budget messages. */
+  /** "November", for budget and recap messages. */
   month?: string;
+  /** Recap: receipts that month and the store spent at most. */
+  receipts?: number;
+  topStore?: string;
+  topCents?: number;
 }
 
 export interface Message {
@@ -86,6 +95,9 @@ export function cleanData(input: unknown): NotifyData {
     pct: int(r.pct, 1000),
     month:
       typeof r.month === 'string' ? r.month.replace(/[^\p{L}\d ]/gu, '').slice(0, 20) : undefined,
+    receipts: int(r.receipts, 10_000),
+    topStore: typeof r.topStore === 'string' && r.topStore in STORES ? r.topStore : undefined,
+    topCents: int(r.topCents, 100_000_00),
   };
 }
 
@@ -152,6 +164,25 @@ export function compose(kind: Kind, d: NotifyData, actor: string, senderUid: str
             ? `${money(d.cents)} of ${money(d.budgetCents)} spent.`
             : '',
         tag: 'budget',
+        url: '/#spend',
+      };
+    }
+    case 'recap': {
+      const month = d.month || 'Last month';
+      const parts: string[] = [];
+      if (d.receipts !== undefined) parts.push(plural(d.receipts, 'receipt'));
+      if (d.topStore && d.topCents !== undefined)
+        parts.push(`most at ${storeName(d.topStore)} (${money(d.topCents)})`);
+      if (d.budgetCents && d.cents !== undefined)
+        parts.push(
+          d.cents > d.budgetCents
+            ? `${money(d.cents - d.budgetCents)} over budget`
+            : `${money(d.budgetCents - d.cents)} under budget`,
+        );
+      return {
+        title: `${month} recap: ${money(d.cents ?? 0)} on groceries`,
+        body: parts.join(' · ') || 'Open Spend for the details.',
+        tag: `recap-${month}`,
         url: '/#spend',
       };
     }

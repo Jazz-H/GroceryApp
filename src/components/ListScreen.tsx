@@ -23,7 +23,10 @@ import { formatCents, lineCents } from '../lib/money';
 import { STORES, storeDef } from '../lib/stores';
 import { parseQuickAdd, type QuickAdd } from '../lib/text';
 import { suggestUsuals, type Usual } from '../lib/usuals';
+import { BarcodeScanner } from './BarcodeScanner';
+import { BarcodeIcon, RecipeIcon } from './icons';
 import { QuickList } from './QuickList';
+import { RecipeSheet } from './RecipeSheet';
 import { notify } from '../push';
 import type {
   ActivityEvent,
@@ -109,6 +112,8 @@ export function ListScreen({
   const [editing, setEditing] = useState<Item | null>(null);
   const [tripSheet, setTripSheet] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [recipeOpen, setRecipeOpen] = useState(false);
   const keyboardProxy = useRef<HTMLInputElement>(null);
 
   /** A tap on a blank line, the empty message or a group heading opens the add pop-up.
@@ -348,19 +353,16 @@ export function ListScreen({
       </header>
 
       <div className="seg" role="tablist" aria-label="List">
-        {(['grocery', 'nice'] as const).map((l) => (
-          <button
-            key={l}
-            role="tab"
-            aria-selected={!quick && list === l}
-            onClick={() => {
-              setQuick(false);
-              setList(l);
-            }}
-          >
-            {l === 'grocery' ? 'Grocery' : 'Nice-to-have'}
-          </button>
-        ))}
+        <button
+          role="tab"
+          aria-selected={!quick && list === 'grocery'}
+          onClick={() => {
+            setQuick(false);
+            setList('grocery');
+          }}
+        >
+          Grocery
+        </button>
         <button
           role="tab"
           aria-selected={quick}
@@ -370,6 +372,16 @@ export function ListScreen({
           }}
         >
           Quick add
+        </button>
+        <button
+          role="tab"
+          aria-selected={!quick && list === 'nice'}
+          onClick={() => {
+            setQuick(false);
+            setList('nice');
+          }}
+        >
+          Nice-to-have
         </button>
       </div>
 
@@ -616,6 +628,32 @@ export function ListScreen({
           usuals={list === 'grocery' ? usuals : []}
           onPickUsual={addUsual}
           onClose={() => setAdding(false)}
+          onScan={() => {
+            setAdding(false);
+            setScanning(true);
+          }}
+          onRecipe={() => {
+            setAdding(false);
+            setRecipeOpen(true);
+          }}
+        />
+      )}
+      {scanning && (
+        <BarcodeScanner
+          hid={household.id}
+          onClose={() => setScanning(false)}
+          onName={(name) => {
+            setScanning(false);
+            void addEntries([{ name, qty: 1 }], store === 'all' ? 'ht' : store);
+          }}
+        />
+      )}
+      {recipeOpen && (
+        <RecipeSheet
+          items={visibleItems}
+          defaultStore={store === 'all' ? 'ht' : store}
+          onAdd={addEntries}
+          onClose={() => setRecipeOpen(false)}
         />
       )}
 
@@ -733,6 +771,8 @@ function AddSheet({
   usuals,
   onPickUsual,
   onClose,
+  onScan,
+  onRecipe,
 }: {
   defaultStore: StoreId;
   list: ListId;
@@ -740,6 +780,8 @@ function AddSheet({
   usuals: Usual[];
   onPickUsual: (u: Usual) => void;
   onClose: () => void;
+  onScan: () => void;
+  onRecipe: () => void;
 }) {
   const [text, setText] = useState('');
   const [target, setTarget] = useState<StoreId>(defaultStore);
@@ -785,6 +827,16 @@ function AddSheet({
         <p className="hint" id="add-sheet-hint">
           Separate items with commas. “2 milk” or “bread x3” sets the quantity.
         </p>
+        <div className="add-extras">
+          <button type="button" className="btn ghost" onClick={onScan}>
+            <BarcodeIcon />
+            Scan barcode
+          </button>
+          <button type="button" className="btn ghost" onClick={onRecipe}>
+            <RecipeIcon />
+            From a recipe
+          </button>
+        </div>
         <UsualsRow usuals={usuals} onPick={onPickUsual} />
         <div className="segmented small" role="group" aria-label="Store">
           {STORES.map((s) => (

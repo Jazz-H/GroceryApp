@@ -465,3 +465,46 @@ describe('usuals catalog and pickup orders', () => {
     );
   });
 });
+
+describe('settle up and barcodes', () => {
+  async function samJoins() {
+    await updateDoc(doc(as('sam'), 'households', HID), {
+      memberIds: arrayUnion('sam'),
+      'members.sam': { name: 'Sam', color: '#d4466a' },
+      joinCode: CODE,
+    });
+  }
+  const settlement = (by: string, from: string, to: string, cents: number) => ({
+    by,
+    from,
+    to,
+    cents,
+    at: serverTimestamp(),
+  });
+
+  it('lets members record a settle-up between members, and undo it', async () => {
+    await samJoins();
+    const ref = doc(as('sam'), 'households', HID, 'settlements', 's1');
+    await assertSucceeds(setDoc(ref, settlement('sam', 'sam', 'alex', 3000)));
+    await assertSucceeds(getDoc(doc(as('alex'), 'households', HID, 'settlements', 's1')));
+    await assertFails(updateDoc(ref, { cents: 1 }));
+    await assertSucceeds(deleteDoc(doc(as('alex'), 'households', HID, 'settlements', 's1')));
+  });
+
+  it('rejects bad settle-ups and outsiders', async () => {
+    await samJoins();
+    const col = (uid: string, id: string) => doc(as(uid), 'households', HID, 'settlements', id);
+    await assertFails(setDoc(col('sam', 'a'), settlement('alex', 'sam', 'alex', 100))); // not by me
+    await assertFails(setDoc(col('sam', 'b'), settlement('sam', 'sam', 'sam', 100))); // to self
+    await assertFails(setDoc(col('sam', 'c'), settlement('sam', 'sam', 'pat', 100))); // non-member
+    await assertFails(setDoc(col('sam', 'd'), settlement('sam', 'sam', 'alex', 0)));
+    await assertFails(setDoc(col('pat', 'e'), settlement('pat', 'sam', 'alex', 100)));
+  });
+
+  it('lets members remember barcodes', async () => {
+    const ref = (uid: string) => doc(as(uid), 'households', HID, 'barcodes', '0123456789012');
+    await assertSucceeds(setDoc(ref('alex'), { name: 'Chobani yogurt' }));
+    await assertFails(setDoc(ref('alex'), { name: 5 }));
+    await assertFails(getDoc(ref('sam')));
+  });
+});
