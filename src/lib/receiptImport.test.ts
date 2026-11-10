@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodeReceiptsHash, encodeReceiptsLink, isDuplicate } from './receiptImport';
+import { decodeReceiptsHash, encodeReceiptsLink, isDuplicate, memberByName } from './receiptImport';
 import { dateToMs } from './receipts';
 import type { Receipt } from '../types';
 
@@ -49,5 +49,29 @@ describe('receipt links', () => {
     expect(isDuplicate(draft, [saved])).toBe(true);
     expect(isDuplicate({ ...draft, totalCents: 100 }, [saved])).toBe(false);
     expect(isDuplicate({ ...draft, store: 'ht' }, [saved])).toBe(false);
+  });
+});
+
+describe('payers in receipt links', () => {
+  const members = {
+    j: { name: 'Jazz H', color: '#89CFF0' },
+    m: { name: 'Madison', color: '#98E5C8' },
+  };
+
+  it('matches a first name, ignoring case', () => {
+    expect(memberByName('madison', members)).toBe('m');
+    expect(memberByName('Jazz', members)).toBe('j');
+    expect(memberByName('Sam', members)).toBeNull();
+  });
+
+  it('sets paidBy from the link and remembers it was given', () => {
+    const link = encodeReceiptsLink('x', [
+      { ...sample, payer: 'Madison' },
+      { ...sample, date: '2026-11-09', payer: 'Nobody' },
+    ]);
+    const [a, b] = decodeReceiptsHash(link.slice(link.indexOf('#')), 'j', members)!;
+    expect(a).toMatchObject({ paidBy: 'm', linkPayer: 'm' });
+    expect(b.paidBy).toBe('j');
+    expect(b.linkPayer).toBeUndefined();
   });
 });
