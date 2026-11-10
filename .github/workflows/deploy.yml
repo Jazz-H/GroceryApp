@@ -64,21 +64,26 @@ jobs:
           npx firebase deploy --only hosting,firestore:rules --project "$FIREBASE_PROJECT_ID" --non-interactive --message "GitHub ${GITHUB_SHA::7}"
 
   push-relay:
-    # Optional: redeploys the notification relay when worker/ changes and a Cloudflare token exists.
+    # Optional: redeploys the notification relay on every deploy when a Cloudflare token exists.
+    # The VAPID public key and subject come from repo variables, so a deploy never blanks them.
     needs: deploy
     runs-on: ubuntu-latest
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      VAPID_PUBLIC_KEY: ${{ vars.VITE_VAPID_PUBLIC_KEY }}
+      VAPID_SUBJECT: ${{ vars.VAPID_SUBJECT }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-      - id: changed
+      - id: vars
         run: |
-          if git diff --quiet HEAD~1 HEAD -- worker/; then echo "worker=false" >> "$GITHUB_OUTPUT"; else echo "worker=true" >> "$GITHUB_OUTPUT"; fi
+          args=""
+          if [ -n "$VAPID_PUBLIC_KEY" ]; then args="$args --var VAPID_PUBLIC_KEY:$VAPID_PUBLIC_KEY"; fi
+          if [ -n "$VAPID_SUBJECT" ]; then args="$args --var VAPID_SUBJECT:$VAPID_SUBJECT"; fi
+          echo "args=$args" >> "$GITHUB_OUTPUT"
       - name: Deploy push relay
-        if: steps.changed.outputs.worker == 'true' && env.CLOUDFLARE_API_TOKEN != ''
+        if: env.CLOUDFLARE_API_TOKEN != ''
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           workingDirectory: worker
+          command: deploy${{ steps.vars.outputs.args }}

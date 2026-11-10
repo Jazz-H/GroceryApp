@@ -17,6 +17,7 @@ import {
   toCsv,
   unitCents,
   monthLabel,
+  budgetCrossed,
   cardsLabel,
   knownCards,
   shortCardName,
@@ -349,5 +350,17 @@ describe('shortCardName', () => {
     expect(shortCardName('Visa')).toBe('Visa');
     expect(shortCardName('Gift card')).toBe('Gift');
     expect(shortCardName(undefined)).toBe('Card');
+  });
+});
+
+describe('budgetCrossed', () => {
+  it('reports the highest line a receipt crossed, once', () => {
+    expect(budgetCrossed(40000, 50000, 60000)).toBe(80);
+    expect(budgetCrossed(50000, 61000, 60000)).toBe(100);
+    expect(budgetCrossed(40000, 61000, 60000)).toBe(100);
+    expect(budgetCrossed(47000, 49000, 60000)).toBe(80);
+    expect(budgetCrossed(50000, 55000, 60000)).toBeNull();
+    expect(budgetCrossed(61000, 70000, 60000)).toBeNull();
+    expect(budgetCrossed(0, 70000, null)).toBeNull();
   });
 });

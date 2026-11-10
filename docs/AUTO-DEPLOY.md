@@ -25,7 +25,7 @@ GitHub needs a key for a Google "service account", a robot account that's only a
    - Name: `FIREBASE_SERVICE_ACCOUNT_FRIDGEBOARD_642B9`
    - Secret: open the downloaded `.json` file in Notepad, copy **all** of it, and paste it here.
    - Click **Add secret**, then **delete the downloaded file** from your computer.
-5. Optional, for notifications: under **Settings → Secrets and variables → Actions → Variables**, add `VITE_VAPID_PUBLIC_KEY` and `VITE_PUSH_URL`, the same values as in your `.env.local`.
+5. Optional, for notifications: under **Settings → Secrets and variables → Actions → Variables**, add `VITE_VAPID_PUBLIC_KEY` and `VITE_PUSH_URL`, the same values as in your `.env.local`. To also redeploy the relay on every merge, add a repository **secret** `CLOUDFLARE_API_TOKEN` (Cloudflare → My Profile → API Tokens → "Edit Cloudflare Workers"). The relay then gets `VITE_VAPID_PUBLIC_KEY` passed in, plus `VAPID_SUBJECT` if you add that variable too.
 
 ### Try it
 

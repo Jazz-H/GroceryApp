@@ -135,6 +135,23 @@ export function ListScreen({
   const [tripStore, setTripStore] = useState<StoreId | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
+  // A notification about a trip opens that store's list (#list/target).
+  useEffect(() => {
+    const apply = () => {
+      const m = /^#list\/(\w+)$/.exec(location.hash);
+      const s = m?.[1] as StoreFilter | undefined;
+      if (!s || !FILTERS.includes(s)) return;
+      setStoreState(s);
+      writePref('fb.store', s);
+      setList('grocery');
+      setQuick(false);
+      history.replaceState(null, '', location.pathname);
+    };
+    apply();
+    window.addEventListener('hashchange', apply);
+    return () => window.removeEventListener('hashchange', apply);
+  }, []);
+
   const setStore = (s: StoreFilter) => {
     setStoreState(s);
     writePref('fb.store', s);
@@ -293,16 +310,7 @@ export function ListScreen({
     else if (added.length > 1) flash(`Added ${added.length} items`);
     if (added.length && list === 'grocery') {
       // The partner's phone merges quick adds into one notification (see public/push-sw.js).
-      const actor = household.members[user.uid]?.name ?? 'Your partner';
-      void notify(household.id, {
-        kind: 'adds',
-        actor,
-        items: added,
-        title:
-          added.length > 1 ? `${actor} added ${added.length} items` : `${actor} added ${added[0]}`,
-        body: added.join(', '),
-        tag: `adds-${user.uid}`,
-      });
+      void notify(household.id, 'adds', { items: added.slice(0, 20), count: added.length });
     }
   }
 
@@ -320,18 +328,8 @@ export function ListScreen({
 
   async function startTripAt(store: StoreId, mode: TripMode) {
     await startTrip(household.id, user.uid, store, mode);
-    const actor = household.members[user.uid]?.name ?? 'Your partner';
     const open = itemsInView(onList, store).filter((i) => i.status === 'open').length;
-    void notify(household.id, {
-      kind: 'trip',
-      actor,
-      title: `${actor} is at ${storeDef(store).name}`,
-      body:
-        mode === 'together'
-          ? `Shopping together. ${open} ${open === 1 ? 'item' : 'items'} on the list.`
-          : `Shopping solo with ${open} ${open === 1 ? 'item' : 'items'}. Add anything you need now.`,
-      tag: `trip-${store}`,
-    });
+    void notify(household.id, 'trip_start', { store, mode, open });
   }
 
   return (

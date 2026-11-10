@@ -10,7 +10,7 @@ import {
 } from '../data/hooks';
 import { endTrip, joinTrip } from '../data/trips';
 import { storeDef } from '../lib/stores';
-import { refreshSubscription } from '../push';
+import { notify, refreshSubscription } from '../push';
 import type { Household, StoreId, Trip } from '../types';
 import { Feed } from './Feed';
 import { ListScreen } from './ListScreen';
@@ -60,11 +60,32 @@ export function Shell({ user, household }: { user: User; household: Household })
   async function finishTrip(trip: Trip) {
     await endTrip(household.id, user.uid, trip);
     setReceiptFor(trip.store);
+    // Items checked off at this store since the trip started.
+    const checked = items.filter(
+      (i) =>
+        i.status === 'checked' &&
+        i.list === 'grocery' &&
+        i.stores.includes(trip.store) &&
+        i.updatedAt >= trip.startedAt,
+    ).length;
+    void notify(household.id, 'trip_end', { store: trip.store, checked });
+  }
+
+  async function join(trip: Trip) {
+    await joinTrip(household.id, user.uid, trip);
+    void notify(household.id, 'trip_join', { store: trip.store });
   }
   const online = useOnline();
 
   useEffect(() => {
     void refreshSubscription(household.id, user.uid).catch(() => undefined);
+    // The service worker renews a subscription the browser rotated; save the new one.
+    const onMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'push-resubscribed')
+        void refreshSubscription(household.id, user.uid).catch(() => undefined);
+    };
+    navigator.serviceWorker?.addEventListener('message', onMessage);
+    return () => navigator.serviceWorker?.removeEventListener('message', onMessage);
   }, [household.id, user.uid]);
 
   // iOS can leave the page shifted up after the keyboard closes. Put it back.
@@ -119,7 +140,7 @@ export function Shell({ user, household }: { user: User; household: Household })
                 End trip
               </button>
             ) : (
-              <button className="btn small" onClick={() => joinTrip(household.id, user.uid, trip)}>
+              <button className="btn small" onClick={() => join(trip)}>
                 Join
               </button>
             )}

@@ -10,6 +10,7 @@ import {
 } from '../data/household';
 import { usingEmulators } from '../firebase';
 import { checkForUpdate } from '../pwa';
+import { disablePush } from '../push';
 import { AISLES_TOKEN, DEFAULT_ZONE_ORDER, MEMBER_COLORS } from '../lib/stores';
 import type { Household, Item } from '../types';
 import { Notifications } from './Notifications';
@@ -48,7 +49,14 @@ export function Settings({
           </p>
         )}
         <div className="row-actions">
-          <button className="btn ghost" onClick={() => signOut()}>
+          <button
+            className="btn ghost"
+            onClick={async () => {
+              // Stop this phone's notifications first, while still signed in to remove them.
+              await disablePush(household.id).catch(() => undefined);
+              await signOut();
+            }}
+          >
             Sign out
           </button>
           <LeaveButton household={household} uid={user.uid} />
@@ -263,7 +271,14 @@ function LeaveButton({ household, uid }: { household: Household; uid: string }) 
       <button className="btn small ghost" onClick={() => setConfirm(false)}>
         Stay
       </button>
-      <button className="btn small danger" onClick={() => leaveHousehold(household, uid)}>
+      <button
+        className="btn small danger"
+        onClick={async () => {
+          // Remove this phone's notifications while still a member (afterwards it can't).
+          await disablePush(household.id).catch(() => undefined);
+          await leaveHousehold(household, uid);
+        }}
+      >
         Leave
       </button>
     </span>

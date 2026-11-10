@@ -124,9 +124,8 @@ const request = (uid: string) =>
     headers: { Authorization: `Bearer ${emulatorToken(uid)}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       householdId: HID,
-      kind: 'trip',
-      title: 'Alex is at Target',
-      body: 'Shopping solo.',
+      kind: 'trip_start',
+      data: { store: 'target', mode: 'solo', open: 2 },
     }),
   });
 
@@ -142,7 +141,10 @@ describe('push relay with the Firestore emulator', () => {
     });
     expect(JSON.parse(plain.toString())).toMatchObject({
       title: 'Alex is at Target',
-      kind: 'trip',
+      body: 'Shopping solo with 2 items. Add anything you need now.',
+      kind: 'trip_start',
+      actor: 'Alex',
+      url: '/#list/target',
     });
   });
 

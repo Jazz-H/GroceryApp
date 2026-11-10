@@ -72,15 +72,9 @@ export function ImportItems({
       );
       if (added.length) {
         setText('');
-        const actor = household.members[uid]?.name ?? 'Your partner';
-        void notify(household.id, {
-          kind: 'adds',
-          actor,
-          items: added.slice(0, 20),
-          title: `${actor} added ${added.length} items`,
-          body: added.slice(0, 20).join(', '),
-          tag: `adds-${uid}`,
-        });
+        // Only the grocery list is worth a heads-up, same as adding from the list.
+        if (list === 'grocery')
+          void notify(household.id, 'adds', { items: added.slice(0, 20), count: added.length });
       }
     } catch (e) {
       setMessage(`Couldn’t import: ${(e as Error).message}`);

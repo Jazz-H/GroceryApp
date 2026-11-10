@@ -4,10 +4,14 @@
 name = "fridgeboard-push"
 main = "src/index.ts"
 compatibility_date = "2026-10-01"
+# Keep variables set in the Cloudflare dashboard. Without this, every deploy would replace them
+# with what's below and wipe the VAPID public key and subject.
+keep_vars = true
 
 [vars]
 FIREBASE_PROJECT_ID = "fridgeboard-642b9"
 ALLOWED_ORIGINS = "https://fridgeboard-642b9.web.app,https://fridgeboard-642b9.firebaseapp.com"
-VAPID_SUBJECT = "mailto:you@example.com"
-# Public half of the key pair from `npm run vapid` (safe to commit).
-VAPID_PUBLIC_KEY = ""
+# VAPID_PUBLIC_KEY and VAPID_SUBJECT are NOT set here on purpose: set them in the dashboard
+# (Workers → fridgeboard-push → Settings → Variables), or let GitHub pass them on deploy from
+# the repo variables VITE_VAPID_PUBLIC_KEY and VAPID_SUBJECT. If VAPID_SUBJECT is missing the
+# relay uses the app's URL, which push services accept.
