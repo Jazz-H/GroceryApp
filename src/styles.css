@@ -1,45 +1,30 @@
-/* Stocked: whiteboard white, marker ink. Handwriting for items, a clean sans for everything else. */
+/* Stocked: calm, dark-first. Friendly rounded cards on a deep ground, one periwinkle accent,
+   prices in a mono column. */
 :root {
-  --bg: #f3f6f8;
-  --surface: #ffffff;
-  --ink: #18222b;
-  --muted: #5b6873;
-  --line: #d9e1e7;
-  --chip: #eaeff3;
-  --accent: #1d5fd0;
-  --accent-ink: #ffffff;
-  --good: #1c8a4a;
-  --danger: #c23a3a;
-  --warn-bg: #fff4dd;
-  --warn-ink: #7a4b00;
-  --shadow: 0 18px 40px -22px rgba(10, 20, 30, 0.45);
+  --bg: #0e1114;
+  --surface: #171b20;
+  --surface-2: #1e242a;
+  --ink: #e9edf1;
+  --muted: #8e9aa6;
+  --line: #232a31;
+  --line-strong: #39434d;
+  --chip: #232a31;
+  --accent: #9dbbff;
+  --accent-ink: #0e1114;
+  --good: #6fd39b;
+  --danger: #ff8a80;
+  --warn-bg: #3a2c10;
+  --warn-ink: #ffd58a;
+  --shadow: 0 18px 40px -22px rgba(0, 0, 0, 0.8);
 
-  --display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
-  --body: 'Figtree', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --hand: 'Kalam', 'Comic Sans MS', 'Chalkboard SE', cursive;
-  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --display: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+  --body: 'Manrope', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --hand: var(--body);
+  --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
 
   --row: 34px;
-  color-scheme: light;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #10171d;
-    --surface: #172129;
-    --ink: #e7edf1;
-    --muted: #9aa8b3;
-    --line: #2a3741;
-    --chip: #22303a;
-    --accent: #6aa0ff;
-    --accent-ink: #0b1420;
-    --good: #4cc47e;
-    --danger: #ff6b6b;
-    --warn-bg: #3a2c10;
-    --warn-ink: #ffd58a;
-    --shadow: 0 18px 40px -22px rgba(0, 0, 0, 0.8);
-    color-scheme: dark;
-  }
+  --radius-card: 22px;
+  color-scheme: dark;
 }
 
 *,
@@ -1593,14 +1578,9 @@ code {
 }
 
 /* ---------- Marker colors ---------- */
-/* Light mode writes with a deeper ink of each pastel; dark mode uses the pastel itself. */
+/* The app is dark, so each person's pastel marker color is used as-is. */
 .marker {
-  color: var(--marker-ink, var(--ink));
-}
-@media (prefers-color-scheme: dark) {
-  .marker {
-    color: var(--marker, var(--ink));
-  }
+  color: var(--marker, var(--ink));
 }
 .color-row {
   display: grid;
@@ -1710,4 +1690,515 @@ code {
 }
 .version-row {
   margin-top: 4px;
+}
+
+/* =====================================================================
+   Redesign: B's friendly layout in C's calm dark theme.
+   Rounded cards on a deep ground, partner initials on every item,
+   a floating tab bar with a center +.
+   ===================================================================== */
+
+body {
+  font-weight: 500;
+}
+.screen-title {
+  font-family: var(--display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+}
+.btn.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.btn.ghost {
+  background: var(--chip);
+  color: var(--ink);
+}
+input,
+select,
+textarea {
+  background: var(--bg);
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+/* ---- Shell + floating tab bar ---- */
+.shell {
+  position: relative;
+}
+.screen {
+  padding-bottom: calc(96px + env(safe-area-inset-bottom));
+}
+.screen.screen-fixed {
+  padding-bottom: 0;
+}
+.tabbar {
+  position: absolute;
+  left: max(14px, env(safe-area-inset-left));
+  right: max(14px, env(safe-area-inset-right));
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  z-index: 15;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
+  height: 66px;
+  padding: 0 6px;
+  border: 1px solid var(--line-strong);
+  border-top-color: var(--line-strong);
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+.tabbar > button {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  min-height: 52px;
+  align-content: center;
+}
+.tabbar > button[aria-current='page'] {
+  color: var(--ink);
+}
+.tab-plus {
+  display: grid;
+  place-items: center;
+}
+.tab-plus button {
+  width: 58px;
+  height: 58px;
+  margin-top: -30px;
+  border-radius: 20px;
+  border: 4px solid var(--bg);
+  background: var(--accent);
+  color: var(--accent-ink);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 10px 24px rgba(157, 187, 255, 0.28);
+}
+.tab-plus button:active {
+  transform: scale(0.96);
+}
+.shell-toast {
+  bottom: calc(96px + env(safe-area-inset-bottom));
+}
+
+/* ---- List: greeting header ---- */
+.hello {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px max(18px, env(safe-area-inset-right)) 12px max(18px, env(safe-area-inset-left));
+}
+.hello .avatar {
+  border-radius: 16px;
+  font-size: 18px;
+}
+.hello-text {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 1px;
+}
+.hello h1 {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.hello p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+.hello .hello-news {
+  color: var(--good);
+}
+.btn.shop {
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: 14px;
+  padding: 11px 16px;
+  font-weight: 800;
+}
+
+.seg {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0 18px 10px;
+  padding: 3px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.seg button {
+  padding: 8px 0;
+  border-radius: 11px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+.seg button[aria-selected='true'] {
+  background: var(--chip);
+  color: var(--ink);
+}
+
+.store-pills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 10px 18px;
+}
+.store-pills .pill-stores {
+  flex: 1;
+  padding-right: 0;
+}
+.store-pills .spill {
+  padding: 9px 13px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font-weight: 800;
+}
+.store-pills .spill .n {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  padding: 1px 7px;
+  border-radius: 8px;
+  background: var(--chip);
+  opacity: 1;
+  color: var(--muted);
+}
+.store-pills .spill[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+.store-pills .spill[aria-pressed='true'] .n {
+  background: color-mix(in srgb, var(--bg) 18%, transparent);
+  color: var(--bg);
+}
+.sort-btn {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  margin-right: 18px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+}
+.sort-btn[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
+/* ---- List: cards ---- */
+.board.cards {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  background-image: none;
+  padding: 2px max(14px, env(safe-area-inset-right)) calc(110px + env(safe-area-inset-bottom))
+    max(14px, env(safe-area-inset-left));
+  gap: 12px;
+}
+.board.cards .empty {
+  font-family: var(--body);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  padding: 28px 8px;
+  text-align: center;
+}
+.store-head {
+  margin: 6px 6px -4px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.list-card {
+  padding: 6px 14px;
+  flex: none;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  min-width: 0;
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0 6px;
+}
+.card-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.card-head .grp {
+  flex: 1;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  font-family: var(--display);
+  font-size: 1.02rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+}
+.card-count {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+  min-width: 24px;
+  text-align: right;
+}
+.list-card .it {
+  height: auto;
+  min-height: 52px;
+  gap: 12px;
+  color: var(--ink);
+  border-top: 1px solid var(--line);
+}
+.list-card .card-head + .it,
+.list-card .it:first-child {
+  border-top-color: var(--line);
+}
+.list-card .it:first-child {
+  border-top: 0;
+}
+.list-card .ck {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  border: 2px solid var(--line-strong);
+  opacity: 1;
+  color: var(--accent-ink);
+}
+.list-card .it.done .ck {
+  background: var(--marker, var(--accent));
+  border-color: var(--marker, var(--accent));
+}
+.list-card .it.done .ck::after {
+  color: var(--accent-ink);
+  font-size: 14px;
+}
+.list-card .nm {
+  font-family: var(--body);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+  padding: 10px 0;
+  color: var(--ink);
+}
+.list-card .it.done .nm {
+  color: var(--muted);
+  opacity: 1;
+}
+.list-card .meta {
+  gap: 8px;
+  color: var(--ink);
+}
+.list-card .who {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--marker, var(--chip));
+  color: var(--accent-ink);
+  font-size: 0.7rem;
+  font-weight: 800;
+  flex: none;
+}
+.list-card .it.done .who {
+  opacity: 0.5;
+}
+.list-card .pr {
+  font-size: 0.88rem;
+  min-width: 56px;
+  color: #c8d0d8;
+}
+.list-card .pr.none {
+  color: var(--line-strong);
+}
+.list-card .mag,
+.list-card .ai {
+  background: var(--chip);
+  border: 0;
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 2px 6px;
+}
+.list-card .it.is-ordered .nm {
+  color: #f0b464;
+}
+
+/* ---- Usuals ---- */
+.board.cards .usuals {
+  display: grid;
+  gap: 8px;
+  padding: 2px 4px 0;
+  margin: 0;
+  overflow: visible;
+}
+.board.cards .usuals-label {
+  font-size: 0.85rem;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 800;
+  color: var(--muted);
+}
+.usuals-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 -4px;
+  padding: 0 4px 2px;
+}
+.usuals-row::-webkit-scrollbar {
+  display: none;
+}
+.usual,
+.board.cards .usual {
+  font-family: var(--body);
+  font-size: 0.92rem;
+  font-weight: 800;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 14px;
+  border: 1.5px dashed var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+}
+.usual span {
+  color: var(--accent);
+  font-weight: 800;
+}
+.board.cards .pickup-bar {
+  margin: 0;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 10px 10px 10px 14px;
+}
+.board.cards .clear-row {
+  justify-content: center;
+}
+
+/* ---- Sheets ---- */
+.sheet {
+  background: var(--surface);
+  border-top: 1px solid var(--line-strong);
+  border-radius: 26px 26px 0 0;
+}
+.sheet-grab {
+  background: var(--line-strong);
+}
+.sheet-backdrop {
+  background: rgba(0, 0, 0, 0.6);
+  /* Above the floating tab bar, so a sheet's buttons are never covered. */
+  z-index: 40;
+}
+.sheet-name {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.4rem;
+}
+.choice {
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: 18px;
+}
+
+/* ---- Item sheet: stores as cards ---- */
+.store-grid {
+  gap: 10px;
+}
+.store-grid-head {
+  display: none;
+}
+.store-line {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas: 'name name' 'price aisle' 'src src';
+  padding: 12px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+}
+.store-line.focus {
+  border-color: var(--accent);
+}
+.store-line .store-name {
+  grid-area: name;
+}
+.store-line > input:nth-of-type(1) {
+  grid-area: price;
+}
+.store-line > input:nth-of-type(2) {
+  grid-area: aisle;
+}
+.store-line .store-src {
+  grid-area: src;
+}
+
+/* ---- Spend: hero card ---- */
+.spend-total {
+  background: linear-gradient(160deg, #1b2230, var(--surface));
+  border-color: #2b3546;
+}
+.spend-total .big {
+  font-family: var(--mono);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+.spend-label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.btn.snap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  border-radius: 16px;
+  font-weight: 800;
+}
+.month-nav span {
+  font-family: var(--display);
+  font-weight: 800;
+}
+
+/* ---- Trip + offline banners ---- */
+.trip-banner {
+  margin: 8px 14px 0;
+  border-radius: 16px;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.trip-banner .btn {
+  background: var(--accent-ink);
+  color: var(--accent);
 }

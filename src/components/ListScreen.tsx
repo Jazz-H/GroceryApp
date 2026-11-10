@@ -17,7 +17,8 @@ import {
   setChecked,
 } from '../data/items';
 import { startTrip } from '../data/trips';
-import { buildBoard, itemsInView, ORDERED } from '../lib/aisles';
+import { aisleLabel, buildBoard, itemsInView } from '../lib/aisles';
+import { cardLook, groupIntoCards, partnerAddsToday } from '../lib/cards';
 import { estimate, formatCents, lineCents } from '../lib/money';
 import { STORES, storeDef } from '../lib/stores';
 import { parseQuickAdd, type QuickAdd } from '../lib/text';
@@ -83,6 +84,8 @@ export function ListScreen({
   trips,
   catalog = [],
   activity = [],
+  addRequested = false,
+  onAddHandled,
 }: {
   user: User;
   household: Household;
@@ -91,6 +94,9 @@ export function ListScreen({
   trips: Trip[];
   catalog?: CatalogEntry[];
   activity?: ActivityEvent[];
+  /** Set by the tab bar's + button; opens the add sheet once. */
+  addRequested?: boolean;
+  onAddHandled?: () => void;
 }) {
   const [list, setList] = useState<ListId>('grocery');
   const [store, setStoreState] = useState<StoreFilter>(() => readPref('fb.store', 'all', FILTERS));
@@ -115,6 +121,13 @@ export function ListScreen({
     keyboardProxy.current?.focus();
     setAdding(true);
   }
+  // The tab bar's + asks for the add sheet (it already focused a field so the keyboard opens).
+  useEffect(() => {
+    if (!addRequested) return;
+    setAdding(true);
+    onAddHandled?.();
+  }, [addRequested, onAddHandled]);
+
   // Store picked inside the trip sheet when it was opened from the All view.
   const [tripStore, setTripStore] = useState<StoreId | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -213,7 +226,18 @@ export function ListScreen({
     () => buildBoard(onList, { store, sortByAisle, zoneOrder: household.zoneOrder }),
     [onList, store, sortByAisle, household.zoneOrder],
   );
+  const blocks = useMemo(() => groupIntoCards(rows), [rows]);
   const total = useMemo(() => estimate(onList, store), [onList, store]);
+  const me = household.members[user.uid];
+  const partnerNews = useMemo(() => {
+    const counts = partnerAddsToday(activity, user.uid);
+    return [...counts.entries()]
+      .map(
+        ([id, n]) =>
+          `${household.members[id]?.name ?? 'Someone'} added ${n} ${n === 1 ? 'thing' : 'things'} today`,
+      )
+      .join(' · ');
+  }, [activity, user.uid, household.members]);
   const checkedInView = itemsInView(onList, store).filter((i) => i.status === 'checked');
   const activeTrip =
     store !== 'all'
@@ -308,40 +332,38 @@ export function ListScreen({
     });
   }
 
+  const where = store === 'all' ? '' : ` at ${storeDef(store).name}`;
+  const summary = loading
+    ? 'Loading…'
+    : `${total.open} ${total.open === 1 ? 'item' : 'items'}${where}` +
+      (total.cents > 0 ? ` · about $${Math.round(total.cents / 100)}` : '') +
+      (total.missing ? ` · ${total.missing} unpriced` : '');
+
   return (
     <section className="list-screen">
-      <header className="list-head">
-        <h1 className="screen-title">{household.name}</h1>
-        <div className="who">
-          {household.memberIds.map((id) => (
-            <Avatar key={id} member={household.members[id]} />
-          ))}
+      <header className="hello">
+        <Avatar member={me} size={44} />
+        <div className="hello-text">
+          <h1>Hi {me?.name ?? 'there'}</h1>
+          <p>{summary}</p>
+          {partnerNews && <p className="hello-news">{partnerNews}</p>}
         </div>
+        {list === 'grocery' && !activeTrip && (
+          <button className="btn shop" onClick={() => setTripSheet(true)}>
+            Shop
+          </button>
+        )}
       </header>
 
-      <div className="tabs" role="tablist" aria-label="List">
+      <div className="seg" role="tablist" aria-label="List">
         {(['grocery', 'nice'] as const).map((l) => (
-          <button
-            key={l}
-            role="tab"
-            aria-selected={list === l}
-            className="tab"
-            onClick={() => setList(l)}
-          >
+          <button key={l} role="tab" aria-selected={list === l} onClick={() => setList(l)}>
             {l === 'grocery' ? 'Grocery' : 'Nice-to-have'}
           </button>
         ))}
       </div>
 
-      <div className="pillrow">
-        <button
-          className="pill-sort"
-          aria-pressed={sortByAisle}
-          onClick={() => setSort(!sortByAisle)}
-        >
-          <SortIcon /> Aisle order
-        </button>
-        <span className="pill-div" aria-hidden="true" />
+      <div className="store-pills">
         <div className="pill-stores" role="group" aria-label="Store">
           {FILTERS.map((s) => (
             <button
@@ -355,157 +377,208 @@ export function ListScreen({
             </button>
           ))}
         </div>
+        <button
+          className="sort-btn"
+          aria-pressed={sortByAisle}
+          aria-label={sortByAisle ? 'Sorted by aisle. Sort by when added' : 'Sort by aisle'}
+          title={sortByAisle ? 'Aisle order' : 'Order added'}
+          onClick={() => setSort(!sortByAisle)}
+        >
+          <SortIcon />
+        </button>
       </div>
 
       {/* iOS only raises the keyboard for a field focused during the tap itself, so the tap
           focuses this hidden field and the add pop-up's field takes over from it. */}
       <input ref={keyboardProxy} className="keyboard-proxy" aria-hidden="true" tabIndex={-1} />
-      {showPickup && (
-        <div className="pickup-bar">
-          {pickupMode ? (
-            <>
-              <span>Find each item on Target, then mark it Added.</span>
-              <button
-                className="btn small primary"
-                disabled={!cartItems.length}
-                onClick={onOrderPlaced}
-              >
-                Order placed ({cartItems.length})
-              </button>
-              <button className="btn small ghost" onClick={() => setPickupMode(false)}>
-                Done
-              </button>
-            </>
-          ) : (
-            <>
-              <span>Ordering for pickup?</span>
-              <button className="btn small ghost" onClick={() => setPickupMode(true)}>
-                Build pickup order
-              </button>
-            </>
-          )}
-        </div>
-      )}
-      <div className="board" aria-live="polite" onClick={onBoardTap}>
-        {rows.length === 0 && (
+
+      <div className="board cards" aria-live="polite" onClick={onBoardTap}>
+        {list === 'grocery' && <UsualsRow usuals={usuals} onPick={addUsual} />}
+
+        {showPickup && (
+          <div className="pickup-bar">
+            {pickupMode ? (
+              <>
+                <span>Find each item on Target, then mark it Added.</span>
+                <button
+                  className="btn small primary"
+                  disabled={!cartItems.length}
+                  onClick={onOrderPlaced}
+                >
+                  Order placed ({cartItems.length})
+                </button>
+                <button className="btn small ghost" onClick={() => setPickupMode(false)}>
+                  Done
+                </button>
+              </>
+            ) : (
+              <>
+                <span>Ordering for pickup?</span>
+                <button className="btn small ghost" onClick={() => setPickupMode(true)}>
+                  Build pickup order
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {blocks.length === 0 && (
           <p className="empty">
             {loading
-              ? 'Loading the board…'
+              ? 'Loading the list…'
               : list === 'grocery'
                 ? store === 'all'
-                  ? 'The board is clear. Tap anywhere to add something.'
-                  : `Nothing for ${storeDef(store).name} yet. Tap to add something.`
-                : 'Nothing on the nice-to-have list yet. Tap to add something.'}
+                  ? 'Nothing on the list. Tap + to add something.'
+                  : `Nothing for ${storeDef(store).name} yet. Tap + to add something.`
+                : 'Nothing on the nice-to-have list yet. Tap + to add something.'}
           </p>
         )}
-        {rows.map((row, idx) => {
-          if (row.type === 'store')
+
+        {blocks.map((block) => {
+          if (block.kind === 'store')
             return (
-              <div className="grp store" key={`s-${row.store}`}>
-                {row.label}
-              </div>
+              <h2 className="store-head" key={block.key}>
+                {block.label}
+              </h2>
             );
-          if (row.type === 'aisle' && row.label === ORDERED)
-            return (
-              <div className="grp ordered-head" key="ordered">
-                <span>{row.label}</span>
-                <button
-                  className="btn small ghost"
-                  onClick={() =>
-                    pickUpOrder(
-                      household.id,
-                      user.uid,
-                      orderedInView,
-                      store === 'all' ? (orderedInView[0]?.stores[0] ?? 'target') : store,
-                    )
-                  }
-                >
-                  Picked up
-                </button>
-              </div>
-            );
-          if (row.type === 'aisle')
-            return (
-              <div className="grp" key={`a-${idx}-${row.label}`}>
-                {row.label}
-              </div>
-            );
-          const { item } = row;
-          const color = household.members[item.createdBy]?.color;
-          const line = lineCents(item, row.store);
-          const aisle = item.storeInfo[row.store]?.aisle?.label;
-          const checker = item.checkedBy ? household.members[item.checkedBy]?.name : undefined;
+          const look = cardLook(block.title);
+          const open = block.rows.filter((r) => r.item.status === 'open').length;
           return (
-            <div
-              className={`it marker${item.status === 'checked' ? ' done' : ''}${item.status === 'ordered' ? ' is-ordered' : ''}`}
-              key={item.id}
-              style={markerStyle(color)}
-            >
-              <button
-                className="ck"
-                aria-label={`${item.status === 'checked' ? 'Uncheck' : 'Check off'} ${item.name}`}
-                aria-pressed={item.status === 'checked'}
-                onClick={() =>
-                  setChecked(
-                    household.id,
-                    user.uid,
-                    item,
-                    item.status !== 'checked',
-                    store === 'all' ? undefined : store,
-                  )
-                }
-                title={checker ? `Checked by ${checker}` : undefined}
-              />
-              <button className="nm" onClick={() => setEditing(item)}>
-                {item.name}
-                {item.qty > 1 && <span className="qty"> ×{item.qty}</span>}
-              </button>
-              <span className="meta">
-                {pickupMode && showPickup && item.status === 'open' && (
-                  <>
-                    <a
-                      className="find"
-                      href={targetSearchUrl(item.name)}
-                      target="_blank"
-                      rel="noreferrer"
-                      aria-label={'Find ' + item.name + ' on Target.com'}
-                    >
-                      Find ↗
-                    </a>
-                    <button
-                      className="cart"
-                      aria-pressed={cart.has(item.id)}
-                      aria-label={item.name + ' added to the Target cart'}
-                      onClick={() => {
-                        const next = new Set(cart);
-                        if (next.has(item.id)) next.delete(item.id);
-                        else next.add(item.id);
-                        setCart(next);
-                      }}
-                    >
-                      {cart.has(item.id) ? '✓ Added' : 'Added?'}
-                    </button>
-                  </>
-                )}
-                {store === 'all' && <span className="mag">{storeDef(item.stores[0]).short}</span>}
-                {aisle && !sortByAisle && <span className="ai">{aisle}</span>}
-                {list === 'nice' && (
-                  <button
-                    className="to-grocery"
-                    onClick={() => moveItem(household.id, user.uid, item, 'grocery')}
-                    aria-label={`Move ${item.name} to Grocery`}
-                    title="Move to Grocery"
+            <section className="card list-card" key={block.key}>
+              {block.title && (
+                <div className="card-head">
+                  <span
+                    className="card-icon"
+                    style={{ background: look.tint, color: look.ink }}
+                    aria-hidden="true"
                   >
-                    → Grocery
-                  </button>
-                )}
-                <span className={`pr${line == null ? ' none' : ''}`}>
-                  {line == null ? '$ –' : formatCents(line)}
-                </span>
-              </span>
-            </div>
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.1"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d={look.icon} />
+                    </svg>
+                  </span>
+                  <h3 className="grp">{block.title}</h3>
+                  {block.ordered ? (
+                    <button
+                      className="btn small ghost"
+                      onClick={() =>
+                        pickUpOrder(
+                          household.id,
+                          user.uid,
+                          orderedInView,
+                          store === 'all' ? (orderedInView[0]?.stores[0] ?? 'target') : store,
+                        )
+                      }
+                    >
+                      Picked up
+                    </button>
+                  ) : (
+                    <span className="card-count">{open || '✓'}</span>
+                  )}
+                </div>
+              )}
+              {block.rows.map((row) => {
+                const { item } = row;
+                const author = household.members[item.createdBy];
+                const line = lineCents(item, row.store);
+                const aisle = item.storeInfo[row.store]?.aisle?.label;
+                const checker = item.checkedBy
+                  ? household.members[item.checkedBy]?.name
+                  : undefined;
+                return (
+                  <div
+                    className={`it marker${item.status === 'checked' ? ' done' : ''}${item.status === 'ordered' ? ' is-ordered' : ''}`}
+                    key={item.id}
+                    style={markerStyle(
+                      (item.checkedBy && household.members[item.checkedBy]?.color) || author?.color,
+                    )}
+                  >
+                    <button
+                      className="ck"
+                      aria-label={`${item.status === 'checked' ? 'Uncheck' : 'Check off'} ${item.name}`}
+                      aria-pressed={item.status === 'checked'}
+                      onClick={() =>
+                        setChecked(
+                          household.id,
+                          user.uid,
+                          item,
+                          item.status !== 'checked',
+                          store === 'all' ? undefined : store,
+                        )
+                      }
+                      title={checker ? `Checked by ${checker}` : undefined}
+                    />
+                    <button className="nm" onClick={() => setEditing(item)}>
+                      {item.name}
+                      {item.qty > 1 && <span className="qty"> ×{item.qty}</span>}
+                    </button>
+                    <span className="meta">
+                      {pickupMode && showPickup && item.status === 'open' && (
+                        <>
+                          <a
+                            className="find"
+                            href={targetSearchUrl(item.name)}
+                            target="_blank"
+                            rel="noreferrer"
+                            aria-label={'Find ' + item.name + ' on Target.com'}
+                          >
+                            Find ↗
+                          </a>
+                          <button
+                            className="cart"
+                            aria-pressed={cart.has(item.id)}
+                            aria-label={item.name + ' added to the Target cart'}
+                            onClick={() => {
+                              const next = new Set(cart);
+                              if (next.has(item.id)) next.delete(item.id);
+                              else next.add(item.id);
+                              setCart(next);
+                            }}
+                          >
+                            {cart.has(item.id) ? '✓ Added' : 'Added?'}
+                          </button>
+                        </>
+                      )}
+                      {store === 'all' && !sortByAisle && (
+                        <span className="mag">{storeDef(item.stores[0]).short}</span>
+                      )}
+                      {aisle && !sortByAisle && <span className="ai">{aisleLabel(aisle)}</span>}
+                      {list === 'nice' && (
+                        <button
+                          className="to-grocery"
+                          onClick={() => moveItem(household.id, user.uid, item, 'grocery')}
+                          aria-label={`Move ${item.name} to Grocery`}
+                          title="Move to Grocery"
+                        >
+                          → Grocery
+                        </button>
+                      )}
+                      <span
+                        className="who"
+                        title={author ? `Added by ${author.name}` : undefined}
+                        aria-label={author ? `Added by ${author.name}` : undefined}
+                      >
+                        {(author?.name ?? '?').charAt(0).toUpperCase()}
+                      </span>
+                      <span className={`pr${line == null ? ' none' : ''}`}>
+                        {line == null ? '–' : formatCents(line)}
+                      </span>
+                    </span>
+                  </div>
+                );
+              })}
+            </section>
           );
         })}
+
         {checkedInView.length > 0 && (
           <div className="clear-row">
             <button className="btn link" onClick={() => removeWithUndo(checkedInView)}>
@@ -514,27 +587,6 @@ export function ListScreen({
           </div>
         )}
       </div>
-
-      <div className="totalbar">
-        <span>
-          Est. {store === 'all' ? 'all stores' : storeDef(store).name}
-          <small>
-            {total.open} open{total.missing ? ` · ${total.missing} without a price` : ''}
-          </small>
-        </span>
-        <span className="total-right">
-          <span className="mono">{formatCents(total.cents)}</span>
-          {list === 'grocery' && !activeTrip && (
-            <button className="btn small invert" onClick={() => setTripSheet(true)}>
-              Start trip
-            </button>
-          )}
-        </span>
-      </div>
-
-      {list === 'grocery' && <UsualsRow usuals={usuals} onPick={addUsual} />}
-
-      <AddBar defaultStore={store === 'all' ? 'ht' : store} list={list} onAdd={onAdd} />
 
       {adding && (
         <AddSheet
@@ -633,22 +685,22 @@ export function ListScreen({
 function UsualsRow({ usuals, onPick }: { usuals: Usual[]; onPick: (u: Usual) => void }) {
   if (!usuals.length) return null;
   return (
-    <div className="usuals" role="group" aria-label="Usuals: tap to add">
-      <span className="usuals-label" aria-hidden="true">
-        Usuals
-      </span>
-      {usuals.map((u) => (
-        <button
-          type="button"
-          key={u.key}
-          className="usual"
-          onClick={() => onPick(u)}
-          aria-label={'Add ' + u.name}
-          title={'Last added ' + u.daysSince + (u.daysSince === 1 ? ' day' : ' days') + ' ago'}
-        >
-          + {u.name}
-        </button>
-      ))}
+    <div className="usuals" role="group" aria-label="You usually buy: tap to add">
+      <span className="usuals-label">You usually buy</span>
+      <div className="usuals-row">
+        {usuals.map((u) => (
+          <button
+            type="button"
+            key={u.key}
+            className="usual"
+            onClick={() => onPick(u)}
+            aria-label={'Add ' + u.name}
+            title={'Last added ' + u.daysSince + (u.daysSince === 1 ? ' day' : ' days') + ' ago'}
+          >
+            <span aria-hidden="true">+</span> {u.name}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -736,59 +788,5 @@ function AddSheet({
         </div>
       </form>
     </Sheet>
-  );
-}
-
-function AddBar({
-  defaultStore,
-  list,
-  onAdd,
-}: {
-  defaultStore: StoreId;
-  list: ListId;
-  onAdd: (text: string, store: StoreId) => Promise<void>;
-}) {
-  const [text, setText] = useState('');
-  const [target, setTarget] = useState<StoreId>(defaultStore);
-  const [lastDefault, setLastDefault] = useState(defaultStore);
-  if (defaultStore !== lastDefault) {
-    setLastDefault(defaultStore);
-    setTarget(defaultStore);
-  }
-
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    const value = text;
-    setText('');
-    await onAdd(value, target);
-  }
-
-  return (
-    <form className="addbar" onSubmit={submit}>
-      <label htmlFor="add-input" className="sr-only">
-        Add to {list === 'grocery' ? 'Grocery' : 'Nice-to-have'}
-      </label>
-      <input
-        id="add-input"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder={list === 'grocery' ? 'Add items… (eggs, 2 milk)' : 'Add a nice-to-have…'}
-        autoComplete="off"
-        enterKeyHint="done"
-      />
-      <label htmlFor="add-store" className="sr-only">
-        Store
-      </label>
-      <select id="add-store" value={target} onChange={(e) => setTarget(e.target.value as StoreId)}>
-        {STORES.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.short}
-          </option>
-        ))}
-      </select>
-      <button className="btn primary add-btn" aria-label="Add" disabled={!text.trim()}>
-        +
-      </button>
-    </form>
   );
 }
