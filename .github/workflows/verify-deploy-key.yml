@@ -17,6 +17,7 @@ jobs:
     env:
       FIREBASE_PROJECT_ID: fridgeboard-642b9
     steps:
+      - uses: actions/checkout@v4 # firebase.json, so the CLI knows the hosting site
       - uses: actions/setup-node@v4
         with:
           node-version: 22
