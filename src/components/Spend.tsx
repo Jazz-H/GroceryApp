@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useAliases, useReceiptsState } from '../data/hooks';
+import { useAliases, useReceiptsState, useSettlements } from '../data/hooks';
 import {
   deleteReceipt,
   setBudget,
@@ -30,7 +30,7 @@ import { ImportReceipts } from './ImportReceipts';
 import { RecapCard } from './RecapCard';
 import { RecapReport } from './RecapReport';
 import { monthPeriod, weekPeriod } from '../lib/recapReport';
-import { SettleUp } from './SettleUp';
+import { SettleHistory, SettleUp } from './SettleUp';
 import { ReceiptFlow } from './ReceiptFlow';
 import { Avatar, Sheet } from './ui';
 
@@ -59,6 +59,8 @@ export function Spend({
   const [adding, setAdding] = useState(false);
   const [open, setOpen] = useState<Receipt | null>(null);
   const [changingPayer, setChangingPayer] = useState(false);
+  const [settleHistory, setSettleHistory] = useState(false);
+  const settlements = useSettlements(household.id);
   const [settingCards, setSettingCards] = useState(false);
   const cards = useMemo(() => knownCards(receipts), [receipts]);
   const unknownCount = receipts.filter((r) => !r.payments?.length).length;
@@ -249,9 +251,16 @@ export function Spend({
                   );
                 })}
               </ul>
-              <button className="btn link" onClick={() => setChangingPayer(true)}>
-                Change who paid…
-              </button>
+              <div className="row-actions">
+                <button className="btn link" onClick={() => setChangingPayer(true)}>
+                  Change who paid…
+                </button>
+                {settlements.length > 0 && (
+                  <button className="btn link" onClick={() => setSettleHistory(true)}>
+                    Settle-up history…
+                  </button>
+                )}
+              </div>
             </>
           )}
           {summary.byCard.some((c) => c.key) && (
@@ -392,6 +401,9 @@ export function Spend({
             showToast(msg);
           }}
         />
+      )}
+      {settleHistory && (
+        <SettleHistory household={household} onClose={() => setSettleHistory(false)} />
       )}
       {changingPayer && (
         <ChangePayer
