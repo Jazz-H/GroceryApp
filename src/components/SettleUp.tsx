@@ -4,7 +4,7 @@ import { recordSettlement, undoSettlement } from '../data/settle';
 import { formatCents } from '../lib/money';
 import { balances } from '../lib/settle';
 import type { Household, Receipt } from '../types';
-import { Avatar } from './ui';
+import { Avatar, Sheet } from './ui';
 
 /**
  * Who's paid more for shared groceries, split equally, and a button to mark it paid back.
@@ -103,5 +103,102 @@ export function SettleUp({
         )
       )}
     </div>
+  );
+}
+
+/** Every settle-up recorded, newest first, each removable (for a mistake or a test). */
+export function SettleHistory({
+  household,
+  onClose,
+}: {
+  household: Household;
+  onClose: () => void;
+}) {
+  const settlements = useSettlements(household.id);
+  const [confirm, setConfirm] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const name = (id: string) => household.members[id]?.name?.split(/\s+/)[0] ?? 'Someone';
+
+  async function remove(id: string) {
+    setBusy(true);
+    try {
+      await undoSettlement(household.id, id);
+      setConfirm(null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Sheet
+      onClose={onClose}
+      labelledBy="settle-history-title"
+      title={
+        <h2 id="settle-history-title" className="sheet-title-plain">
+          Settle-up history
+        </h2>
+      }
+    >
+      {settlements.length === 0 ? (
+        <p className="muted">No settle-ups recorded.</p>
+      ) : (
+        <>
+          <p className="muted">Removing a settle-up puts that amount back into who owes whom.</p>
+          <ul className="report-list settle-history">
+            {settlements.map((s) => (
+              <li key={s.id}>
+                {confirm === s.id ? (
+                  <>
+                    <span>
+                      Remove {name(s.from)} → {name(s.to)} {formatCents(s.cents)}?
+                    </span>
+                    <span className="row-actions">
+                      <button
+                        className="btn small danger"
+                        onClick={() => remove(s.id)}
+                        disabled={busy}
+                      >
+                        {busy ? 'Removing…' : 'Remove'}
+                      </button>
+                      <button className="btn small ghost" onClick={() => setConfirm(null)}>
+                        Keep
+                      </button>
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span>
+                      <b>{name(s.from)}</b> paid <b>{name(s.to)}</b>{' '}
+                      <span className="mono">{formatCents(s.cents)}</span>
+                      <span className="muted">
+                        {' '}
+                        ·{' '}
+                        {new Date(s.at).toLocaleDateString(undefined, {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </span>
+                    </span>
+                    <button
+                      className="btn small link danger-text"
+                      aria-label={`Remove ${name(s.from)} paid ${name(s.to)} ${formatCents(s.cents)}`}
+                      onClick={() => setConfirm(s.id)}
+                    >
+                      Remove
+                    </button>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      <div className="sheet-actions">
+        <button type="button" className="btn ghost" onClick={onClose}>
+          Close
+        </button>
+      </div>
+    </Sheet>
   );
 }
