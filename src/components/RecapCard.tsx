@@ -14,6 +14,7 @@ import {
 } from '../lib/receipts';
 import type { Household, Receipt, ReceiptStore } from '../types';
 import { CloseIcon } from './icons';
+import { Button } from './ui/button';
 
 const KEYS = { month: 'fb.recapSeen', week: 'fb.weekRecapSeen' };
 
@@ -128,16 +129,14 @@ export function RecapCard({
     <div className="card recap" role="region" aria-label={v.title}>
       <div className="recap-head">
         <h2>{v.title}</h2>
-        <button className="btn icon" onClick={dismiss} aria-label={`Dismiss ${v.title}`}>
+        <Button variant="ghost" size="icon" onClick={dismiss} aria-label={`Dismiss ${v.title}`}>
           <CloseIcon />
-        </button>
+        </Button>
       </div>
       <div className="recap-big mono">{formatCents(v.cents)}</div>
       <p className="muted">{v.details.join(' · ')}</p>
       <div className="row-actions">
-        <button className="btn primary" onClick={() => onReport(kind)}>
-          Open report
-        </button>
+        <Button onClick={() => onReport(kind)}>Open report</Button>
       </div>
     </div>
   );

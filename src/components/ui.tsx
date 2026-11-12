@@ -1,4 +1,5 @@
-import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { useRef, type CSSProperties, type ReactNode } from 'react';
+import { Sheet as SheetRoot, SheetContent, SheetTitle } from './ui/sheet';
 import { inkFor, textOn } from '../lib/color';
 import type { Member } from '../types';
 
@@ -28,7 +29,11 @@ export function Avatar({ member, size = 22 }: { member?: Member; size?: number }
   );
 }
 
-/** Bottom sheet. Closes on Escape or a tap on the backdrop. */
+/**
+ * Bottom sheet, built on the shadcn/ui Sheet (Radix Dialog): focus stays inside while it's
+ * open, Escape or a tap outside closes it, and it's announced as a dialog. `labelledBy` names
+ * the element (usually the title) that labels it.
+ */
 export function Sheet({
   title,
   onClose,
@@ -41,29 +46,28 @@ export function Sheet({
   labelledBy?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    // Keep focus on a field inside the sheet that focused itself (e.g. the add box).
-    if (!ref.current?.contains(document.activeElement)) ref.current?.focus();
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
   return (
-    <div className="sheet-backdrop" onClick={onClose}>
-      <div
-        className="sheet"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={labelledBy}
-        tabIndex={-1}
+    <SheetRoot open onOpenChange={(open) => !open && onClose()}>
+      <SheetContent
         ref={ref}
-        onClick={(e) => e.stopPropagation()}
+        className="sheet"
+        overlayClassName="sheet-backdrop"
+        aria-labelledby={labelledBy}
+        aria-describedby={undefined}
+        onOpenAutoFocus={(e) => {
+          // Keep focus on a field inside the sheet that focused itself (e.g. the add box);
+          // otherwise focus the sheet itself rather than its first button.
+          e.preventDefault();
+          if (!ref.current?.contains(document.activeElement)) ref.current?.focus();
+        }}
       >
+        {/* Radix wants a title; the visible one is referenced by labelledBy. */}
+        <SheetTitle className="sr-only" />
         <div className="sheet-grab" aria-hidden="true" />
         {title}
         {children}
-      </div>
-    </div>
+      </SheetContent>
+    </SheetRoot>
   );
 }
 

@@ -29,6 +29,7 @@ import { CardSelect } from './CardSelect';
 import { ImportReceipts } from './ImportReceipts';
 import { RecapCard } from './RecapCard';
 import { RecapReport } from './RecapReport';
+import { Checkbox } from './ui/checkbox';
 import { monthPeriod, weekPeriod } from '../lib/recapReport';
 import { SettleHistory, SettleUp } from './SettleUp';
 import { ReceiptFlow } from './ReceiptFlow';
@@ -840,11 +841,7 @@ function SetCards({
       </label>
       {owner && (
         <label className="check-label">
-          <input
-            type="checkbox"
-            checked={setPayer}
-            onChange={(e) => setSetPayer(e.target.checked)}
-          />{' '}
+          <Checkbox checked={setPayer} onCheckedChange={(on) => setSetPayer(on === true)} />
           Also set who paid to {household.members[owner]?.name ?? 'its owner'}
         </label>
       )}

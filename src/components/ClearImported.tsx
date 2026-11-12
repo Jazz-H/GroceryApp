@@ -3,6 +3,7 @@ import { bulkAddedIds, deleteItems } from '../data/items';
 import { storeDef } from '../lib/stores';
 import type { Household, Item } from '../types';
 import { Sheet } from './ui';
+import { Checkbox } from './ui/checkbox';
 
 /**
  * Removes items that came in through an import from the lists. They stay in the catalog, so
@@ -107,7 +108,7 @@ export function ClearImported({
             {found.map((i) => (
               <li key={i.id}>
                 <label className="check-label">
-                  <input type="checkbox" checked={picked.has(i.id)} onChange={() => toggle(i.id)} />
+                  <Checkbox checked={picked.has(i.id)} onCheckedChange={() => toggle(i.id)} />
                   <span>
                     {i.name}
                     <span className="muted">

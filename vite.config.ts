@@ -1,5 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import { fileURLToPath } from 'node:url';
 import { VitePWA } from 'vite-plugin-pwa';
 
 import pkg from './package.json' with { type: 'json' };
@@ -10,8 +12,10 @@ export default defineConfig({
     // Shown in Settings so you can tell which deploy a phone is running.
     __BUILD_ID__: JSON.stringify(new Date().toISOString().slice(0, 16).replace('T', ' ')),
   },
+  resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   plugins: [
     react(),
+    tailwindcss(),
     VitePWA({
       // We register the service worker ourselves (src/pwa.ts) and ask before reloading.
       registerType: 'prompt',

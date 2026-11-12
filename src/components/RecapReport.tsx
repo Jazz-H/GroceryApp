@@ -5,6 +5,7 @@ import { buildReport, insights, type ReportPeriod } from '../lib/recapReport';
 import type { Household, Receipt } from '../types';
 import { TrendIcon } from './icons';
 import { Avatar, Sheet } from './ui';
+import { Button } from './ui/button';
 
 /** A week's or month's spending as a short report with takeaways. */
 export function RecapReport({
@@ -146,19 +147,19 @@ export function RecapReport({
         )}
 
         <div className="sheet-actions">
-          <button type="button" className="btn ghost" onClick={onClose}>
+          <Button type="button" variant="secondary" onClick={onClose}>
             Close
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="btn primary"
+
             onClick={() => {
               onSeeMonth(period.month);
               onClose();
             }}
           >
             See {monthName} receipts
-          </button>
+          </Button>
         </div>
       </div>
     </Sheet>
