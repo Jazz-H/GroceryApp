@@ -149,6 +149,24 @@ describe('voice add through the relay', () => {
     expect(adds.every((e) => e.actorId === 'alex' && e.type === 'add')).toBe(true);
   });
 
+  it('skips what’s already on the list and says so, even right after a voice add', async () => {
+    // The app keeps this snapshot; here it says only milk is on the list.
+    await setDoc(doc(alex, 'households', HID, 'voiceOpen', sha(KEY)), {
+      names: ['milk'],
+      at: 1,
+    });
+    const first = await say(KEY, 'milk and bread');
+    expect(await first.text()).toBe('Added bread. Milk is already on the list.');
+    // No app has updated the snapshot since, but the add above noted bread on it.
+    const again = await say(KEY, 'breads');
+    expect(again.status).toBe(200);
+    expect(await again.text()).toBe('Breads is already on the list.');
+    const breads = (await getDocs(collection(sam, 'households', HID, 'items'))).docs.filter(
+      (d) => d.data().name === 'Bread',
+    );
+    expect(breads).toHaveLength(1);
+  });
+
   it('turns away a wrong, borrowed or removed key', async () => {
     const wrong = await say(`${HID}.alex.${'x'.repeat(40)}`, 'eggs');
     expect(wrong.status).toBe(403);
@@ -218,5 +236,18 @@ describe('voice add rules', () => {
     ).rejects.toThrow();
     const res = await fetch(`${BASE}/${DOCS}/households/${HID}/voiceKeys`);
     expect(res.status).toBe(403);
+  });
+
+  it('shows the list snapshot signed out only to someone with the key', async () => {
+    await setDoc(doc(alex, 'households', HID, 'voiceOpen', sha(KEY)), { names: ['milk'], at: 1 });
+    const mine = await fetch(`${BASE}/${DOCS}/households/${HID}/voiceOpen/${sha(KEY)}`);
+    expect(mine.status).toBe(200);
+    const guess = await fetch(`${BASE}/${DOCS}/households/${HID}/voiceOpen/${sha('guess')}`);
+    expect(guess.status).toBe(403);
+    const all = await fetch(`${BASE}/${DOCS}/households/${HID}/voiceOpen`);
+    expect(all.status).toBe(403);
+    await expect(
+      setDoc(doc(alex, 'households', HID, 'voiceOpen', sha(KEY)), { names: 'milk', at: 1 }),
+    ).rejects.toThrow();
   });
 });

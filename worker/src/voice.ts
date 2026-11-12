@@ -5,9 +5,12 @@
  * The relay still holds no Google credentials: it writes to Firestore's REST API *signed out*,
  * and the security rules accept the write only if the key's SHA-256 is one the member saved
  * (see voiceAdd in firestore.rules). Answers in plain text, so the Shortcut can speak it.
+ *
+ * Repeats are skipped: the app keeps voiceOpen/{sha256(key)} listing what's on the Grocery list,
+ * the relay reads it first, and each voice add appends its name there in the same commit.
  */
 import { normalizeName } from '../../src/lib/text';
-import { parseSpoken, spokenReply } from '../../src/lib/voice';
+import { parseSpoken, splitDuplicates, spokenReply } from '../../src/lib/voice';
 
 export interface VoiceEnv {
   FIREBASE_PROJECT_ID: string;
@@ -24,6 +27,9 @@ export function resetVoiceLimits() {
   addsAt.clear();
 }
 
+const keyGone = () =>
+  text(403, 'That voice key doesn’t work anymore. Make a new one in Stocked’s settings.');
+
 function text(status: number, body: string) {
   return new Response(body, {
     status,
@@ -39,6 +45,11 @@ type Fs =
 
 const str = (s: string): Fs => ({ stringValue: s });
 const strs = (a: string[]): Fs => ({ arrayValue: { values: a.map(str) } });
+
+async function sha256Hex(text: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
 
 function randomId(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(15));
@@ -79,13 +90,30 @@ export async function handleVoiceAdd(
   recent.push(now);
   addsAt.set(key, recent);
 
-  const items = parseSpoken(body.text.slice(0, 500));
-  if (!items.length) return text(400, spokenReply([], []));
+  const spoken = parseSpoken(body.text.slice(0, 500));
+  if (!spoken.length) return text(400, spokenReply([], []));
 
   const base = env.FIRESTORE_BASE ?? 'https://firestore.googleapis.com/v1';
   const db = `projects/${env.FIREBASE_PROJECT_ID}/databases/(default)/documents`;
   const hh = `${db}/households/${hid}`;
   const batchId = randomId().slice(0, 8);
+  const openPath = `${hh}/voiceOpen/${await sha256Hex(key)}`;
+
+  // What's already on the list. Missing (no app has written it yet) means: add everything.
+  const open = await fetchFn(`${base}/${openPath}`);
+  if (open.status === 401 || open.status === 403) return keyGone();
+  const onList =
+    open.status === 200
+      ? (
+          ((await open.json()) as { fields?: { names?: { arrayValue?: { values?: Fs[] } } } })
+            .fields?.names?.arrayValue?.values ?? []
+        )
+          .map((v) => ('stringValue' in v ? v.stringValue : ''))
+          .filter(Boolean)
+      : [];
+  const { fresh: items, already } = splitDuplicates(spoken, onList);
+  const skipped = already.map((q) => q.name);
+  if (!items.length) return text(200, spokenReply([], skipped));
 
   const results = await Promise.all(
     items.map(async (item) => {
@@ -134,6 +162,15 @@ export async function handleVoiceAdd(
           currentDocument: { exists: false },
           updateTransforms: [{ fieldPath: 'at', setToServerValue: 'REQUEST_TIME' }],
         },
+        {
+          // Note it on the list snapshot, so saying it again before any app opens is caught.
+          update: { name: openPath, fields: {} },
+          updateMask: { fieldPaths: [] },
+          updateTransforms: [
+            { fieldPath: 'names', appendMissingElements: { values: [str(normalizeName(name))] } },
+            { fieldPath: 'at', setToServerValue: 'REQUEST_TIME' },
+          ],
+        },
       ];
       const res = await fetchFn(`${base}/${db}:commit`, {
         method: 'POST',
@@ -147,13 +184,12 @@ export async function handleVoiceAdd(
   const added = results.filter((r) => r.status === 200).map((r) => r.name);
   if (!added.length) {
     const denied = results.some((r) => r.status === 403 || r.status === 401);
-    return denied
-      ? text(403, 'That voice key doesn’t work anymore. Make a new one in Stocked’s settings.')
-      : text(502, 'Couldn’t reach your list. Try again in a minute.');
+    return denied ? keyGone() : text(502, 'Couldn’t reach your list. Try again in a minute.');
   }
   const failed = results.length - added.length;
   return text(
     200,
-    spokenReply(added, []) + (failed ? ` ${failed} more didn’t go through; try them again.` : ''),
+    spokenReply(added, skipped) +
+      (failed ? ` ${failed} more didn’t go through; try them again.` : ''),
   );
 }

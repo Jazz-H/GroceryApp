@@ -40,7 +40,8 @@ export function VoiceAdd({ household, uid }: { household: Household; uid: string
       <h2>Add by voice</h2>
       <p className="muted">
         Say “Hey Siri, Stocked”, then what you need: “milk, eggs and two avocados”. The items go on
-        the Grocery list as added by you.
+        the Grocery list as added by you. Anything already on the list is skipped, and Siri tells
+        you which.
       </p>
 
       {!relay ? (

@@ -23,6 +23,7 @@ import {
   weekStart,
 } from '../lib/receipts';
 import { endTrip, joinTrip } from '../data/trips';
+import { useVoiceOpenSync } from '../data/voice';
 import { storeDef } from '../lib/stores';
 import { notify, refreshSubscription } from '../push';
 import type { Household, StoreId, Trip } from '../types';
@@ -53,6 +54,8 @@ export function Shell({ user, household }: { user: User; household: Household })
   const [tab, setTab] = useState<Tab>(tabFromHash);
   const loadedItems = useItems(household.id);
   const items = loadedItems ?? [];
+  // Lets "Hey Siri, Stocked" know what's already on the list.
+  useVoiceOpenSync(household.id, loadedItems);
   const activity = useActivity(household.id);
   const catalog = useCatalog(household.id);
   const aliases = useAliases(household.id);

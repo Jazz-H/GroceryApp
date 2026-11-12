@@ -235,6 +235,23 @@ service cloud.firestore {
         allow update: if false;
       }
 
+      // ---- What's on the Grocery list, per voice key, so voice add can skip repeats ----
+      // The app keeps it current; the relay reads it and adds to it signed out. Knowing the
+      // path needs the key's hash, which only members (who can list keys) or the key holder have.
+      match /voiceOpen/{hash} {
+        function keyExists() {
+          return exists(/databases/$(database)/documents/households/$(hid)/voiceKeys/$(hash));
+        }
+        function validOpen(d) {
+          return d.keys().hasOnly(['names', 'at'])
+            && d.names is list && d.names.size() <= 500;
+        }
+        allow read, delete: if isMember(hid);
+        allow get: if request.auth == null && keyExists();
+        allow create, update: if validOpen(request.resource.data)
+          && (isMember(hid) || (request.auth == null && keyExists()));
+      }
+
       // ---- Remembered barcodes (UPC → item name) ----
       match /barcodes/{code} {
         allow read: if isMember(hid);

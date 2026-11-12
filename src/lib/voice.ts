@@ -103,3 +103,40 @@ export function spokenReply(added: string[], skipped: string[]): string {
     );
   return parts.join(' ') || 'I didn’t catch any items.';
 }
+
+/** Names to match an item by, so "avocado", "avocados" and "Tomatoes" find their twins. */
+function variants(name: string): string[] {
+  const n = normalizeName(name);
+  if (!n) return [];
+  return [...new Set([n, n.replace(/es$/, ''), n.replace(/s$/, ''), `${n}s`, `${n}es`])];
+}
+
+/**
+ * What the relay keeps per voice key: the normalized names of what's on the Grocery list
+ * (open or ordered). Sorted and unique, so the app can skip writes when nothing changed.
+ */
+export function openGroceryNames(
+  items: { name: string; normalizedName?: string; list: string; status: string }[],
+): string[] {
+  return [
+    ...new Set(
+      items
+        .filter((i) => i.list === 'grocery' && i.status !== 'checked')
+        .map((i) => i.normalizedName || normalizeName(i.name))
+        .filter(Boolean),
+    ),
+  ].sort();
+}
+
+/** Splits spoken items into new ones and ones already on the list. */
+export function splitDuplicates<T extends { name: string }>(
+  items: T[],
+  onList: string[],
+): { fresh: T[]; already: T[] } {
+  const have = new Set(onList);
+  const fresh: T[] = [];
+  const already: T[] = [];
+  for (const item of items)
+    (variants(item.name).some((v) => have.has(v)) ? already : fresh).push(item);
+  return { fresh, already };
+}

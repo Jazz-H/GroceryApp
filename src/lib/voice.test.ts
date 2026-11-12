@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_SPOKEN_ITEMS, parseSpoken, spokenReply } from './voice';
+import {
+  MAX_SPOKEN_ITEMS,
+  openGroceryNames,
+  parseSpoken,
+  splitDuplicates,
+  spokenReply,
+} from './voice';
 
 const names = (text: string) =>
   parseSpoken(text).map((q) => (q.qty > 1 ? `${q.qty} ${q.name}` : q.name));
@@ -45,5 +51,27 @@ describe('spokenReply', () => {
     expect(spokenReply(['Milk'], ['Eggs'])).toBe('Added milk. Eggs is already on the list.');
     expect(spokenReply([], ['Eggs', 'Bread'])).toBe('Eggs and Bread are already on the list.');
     expect(spokenReply([], [])).toBe('I didn’t catch any items.');
+  });
+});
+
+describe('duplicates', () => {
+  const items = [
+    { name: 'Milk', normalizedName: 'milk', list: 'grocery', status: 'open' },
+    { name: 'Avocados', normalizedName: 'avocados', list: 'grocery', status: 'ordered' },
+    { name: 'Tomato', normalizedName: 'tomato', list: 'grocery', status: 'open' },
+    { name: 'Eggs', normalizedName: 'eggs', list: 'grocery', status: 'checked' },
+    { name: 'Candles', normalizedName: 'candles', list: 'nice', status: 'open' },
+  ];
+
+  it('snapshots what’s on the Grocery list, open or ordered', () => {
+    expect(openGroceryNames(items)).toEqual(['avocados', 'milk', 'tomato']);
+  });
+
+  it('finds items already on the list, singular or plural', () => {
+    const spoken = parseSpoken('milk, an avocado, tomatoes, eggs and candles');
+    const { fresh, already } = splitDuplicates(spoken, openGroceryNames(items));
+    expect(already.map((q) => q.name)).toEqual(['Milk', 'Avocado', 'Tomatoes']);
+    // Checked off, or only on Nice-to-have: add them.
+    expect(fresh.map((q) => q.name)).toEqual(['Eggs', 'Candles']);
   });
 });

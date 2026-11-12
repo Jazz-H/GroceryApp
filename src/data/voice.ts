@@ -1,6 +1,8 @@
 import { collection, deleteDoc, doc, onSnapshot, setDoc } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { db } from '../firebase';
+import { openGroceryNames } from '../lib/voice';
+import type { Item } from '../types';
 
 /** A saved voice key. Only its hash is stored; the key itself is shown once, when it's made. */
 export interface VoiceKey {
@@ -49,6 +51,7 @@ export async function createVoiceKey(hid: string, uid: string, label: string): P
 
 export async function removeVoiceKey(hid: string, hash: string) {
   await deleteDoc(doc(keys(hid), hash));
+  await deleteDoc(doc(db, 'households', hid, 'voiceOpen', hash)).catch(() => {});
 }
 
 export function useVoiceKeys(hid: string): VoiceKey[] {
@@ -76,4 +79,30 @@ export function useVoiceKeys(hid: string): VoiceKey[] {
     [hid],
   );
   return list;
+}
+
+/**
+ * Keeps voiceOpen/{hash} (what's on the Grocery list) current for every voice key, so voice
+ * add can skip repeats. Writes only when the names change; null items means still loading.
+ */
+export function useVoiceOpenSync(hid: string, items: Item[] | null) {
+  const keyList = useVoiceKeys(hid);
+  const written = useRef(new Map<string, string>());
+  const names = items ? openGroceryNames(items) : null;
+  const joined = names ? JSON.stringify(names) : null;
+  const hashes = keyList.map((k) => k.hash).join(',');
+  useEffect(() => {
+    if (joined === null || !hashes) return;
+    const timer = window.setTimeout(() => {
+      for (const hash of hashes.split(',')) {
+        if (written.current.get(hash) === joined) continue;
+        written.current.set(hash, joined);
+        setDoc(doc(db, 'households', hid, 'voiceOpen', hash), {
+          names: (JSON.parse(joined) as string[]).slice(0, 500),
+          at: Date.now(),
+        }).catch(() => written.current.delete(hash));
+      }
+    }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [hid, joined, hashes]);
 }
