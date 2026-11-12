@@ -5,6 +5,8 @@ import { normalizeName, type QuickAdd } from '../lib/text';
 import type { Item, StoreId } from '../types';
 import { CameraIcon, CloseIcon } from './icons';
 import { Sheet } from './ui';
+import { Checkbox } from './ui/checkbox';
+import { Button } from './ui/button';
 
 /** A photo as base64 JPEG, at most 1600px on its long side. */
 async function toJpeg(file: File): Promise<string> {
@@ -154,10 +156,10 @@ export function RecipeSheet({
             Works with most recipe sites, a screenshot, or a photo of a recipe card.
           </p>
           <div className="row-actions">
-            <button type="button" className="btn ghost" onClick={() => fileInput.current?.click()}>
+            <Button type="button" variant="secondary" onClick={() => fileInput.current?.click()}>
               <CameraIcon />
               Photo or screenshot
-            </button>
+            </Button>
             <input
               ref={fileInput}
               type="file"
@@ -198,17 +200,17 @@ export function RecipeSheet({
             </p>
           )}
           <div className="sheet-actions">
-            <button type="button" className="btn ghost" onClick={onClose}>
+            <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="btn primary"
+
               onClick={read}
               disabled={busy || (!text.trim() && !photos.length)}
             >
               {busy ? 'Reading…' : 'Get ingredients'}
-            </button>
+            </Button>
           </div>
         </div>
       ) : (
@@ -223,7 +225,7 @@ export function RecipeSheet({
               return (
                 <li key={i}>
                   <label className="check-label">
-                    <input type="checkbox" checked={picked.has(i)} onChange={() => toggle(i)} />
+                    <Checkbox checked={picked.has(i)} onCheckedChange={() => toggle(i)} />
                     <span>
                       {ing.qty > 1 && <span className="mono">{ing.qty}× </span>}
                       {ing.name}
@@ -252,17 +254,17 @@ export function RecipeSheet({
             ))}
           </div>
           <div className="sheet-actions">
-            <button type="button" className="btn ghost" onClick={() => setRecipe(null)}>
+            <Button type="button" variant="secondary" onClick={() => setRecipe(null)}>
               Back
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="btn primary"
+
               onClick={add}
               disabled={busy || picked.size === 0}
             >
               {busy ? 'Adding…' : `Add ${picked.size} to list`}
-            </button>
+            </Button>
           </div>
         </>
       )}

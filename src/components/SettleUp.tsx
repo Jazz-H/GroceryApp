@@ -5,6 +5,7 @@ import { formatCents } from '../lib/money';
 import { balances } from '../lib/settle';
 import type { Household, Receipt } from '../types';
 import { Avatar, Sheet } from './ui';
+import { Button } from './ui/button';
 
 /**
  * Who's paid more for shared groceries, split equally, and a button to mark it paid back.
@@ -69,18 +70,18 @@ export function SettleUp({
               <span className="muted">
                 Did {name(owed.from)} pay {name(owed.to)} {formatCents(owed.cents)}?
               </span>
-              <button className="btn primary" onClick={settle} disabled={busy}>
+              <Button onClick={settle} disabled={busy}>
                 {busy ? 'Saving…' : 'Yes, settled'}
-              </button>
-              <button className="btn ghost" onClick={() => setConfirming(false)} disabled={busy}>
+              </Button>
+              <Button variant="secondary" onClick={() => setConfirming(false)} disabled={busy}>
                 Cancel
-              </button>
+              </Button>
             </div>
           ) : (
             <div className="row-actions">
-              <button className="btn ghost" onClick={() => setConfirming(true)}>
+              <Button variant="secondary" onClick={() => setConfirming(true)}>
                 Mark as paid back
-              </button>
+              </Button>
             </div>
           )}
         </>
@@ -92,12 +93,16 @@ export function SettleUp({
               square.
             </p>
             <div className="row-actions">
-              <button className="btn ghost" onClick={() => setJustSettled(false)}>
+              <Button variant="secondary" onClick={() => setJustSettled(false)}>
                 Done
-              </button>
-              <button className="btn link" onClick={() => undoSettlement(household.id, last.id)}>
+              </Button>
+              <Button
+                variant="link"
+                size="inline"
+                onClick={() => undoSettlement(household.id, last.id)}
+              >
                 Undo
-              </button>
+              </Button>
             </div>
           </>
         )
@@ -153,16 +158,17 @@ export function SettleHistory({
                       Remove {name(s.from)} → {name(s.to)} {formatCents(s.cents)}?
                     </span>
                     <span className="row-actions">
-                      <button
-                        className="btn small danger"
+                      <Button
+                        variant="destructive"
+                        size="sm"
                         onClick={() => remove(s.id)}
                         disabled={busy}
                       >
                         {busy ? 'Removing…' : 'Remove'}
-                      </button>
-                      <button className="btn small ghost" onClick={() => setConfirm(null)}>
+                      </Button>
+                      <Button variant="secondary" size="sm" onClick={() => setConfirm(null)}>
                         Keep
-                      </button>
+                      </Button>
                     </span>
                   </>
                 ) : (
@@ -180,13 +186,14 @@ export function SettleHistory({
                         })}
                       </span>
                     </span>
-                    <button
-                      className="btn small link danger-text"
+                    <Button
+                      variant="destructive-link"
+                      size="sm"
                       aria-label={`Remove ${name(s.from)} paid ${name(s.to)} ${formatCents(s.cents)}`}
                       onClick={() => setConfirm(s.id)}
                     >
                       Remove
-                    </button>
+                    </Button>
                   </>
                 )}
               </li>
@@ -195,9 +202,9 @@ export function SettleHistory({
         </>
       )}
       <div className="sheet-actions">
-        <button type="button" className="btn ghost" onClick={onClose}>
+        <Button type="button" variant="secondary" onClick={onClose}>
           Close
-        </button>
+        </Button>
       </div>
     </Sheet>
   );

@@ -1,0 +1,67 @@
+/*
+ * Entry stylesheet. Tailwind (for the shadcn/ui components in src/components/ui) sits on top
+ * of Stocked's own styles:
+ * - No Tailwind preflight: styles.css already resets the basics, and preflight would restyle
+ *   every existing screen.
+ * - styles.css goes in the `app` layer, below `utilities`, so its element rules (button,
+ *   input…) never override a shadcn component's classes.
+ * - Utilities are generated only from src/components/ui and files that opt in with
+ *   @source, so Stocked's own class names (.card, .hidden…) never turn into utilities.
+ */
+@layer theme, base, app, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import './styles.css' layer(app);
+@import 'tailwindcss/utilities.css' layer(utilities) source(none);
+@import 'tw-animate-css';
+
+@source './components/ui';
+
+/* shadcn's color names, pointed at Stocked's palette so components keep the app's look. */
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--ink);
+  --color-popover: var(--surface-2);
+  --color-popover-foreground: var(--ink);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-ink);
+  --color-secondary: var(--chip);
+  --color-secondary-foreground: var(--ink);
+  --color-muted: var(--surface-2);
+  --color-muted-foreground: var(--muted);
+  --color-accent: var(--surface-2);
+  --color-accent-foreground: var(--ink);
+  --color-destructive: var(--danger);
+  --color-border: var(--line);
+  --color-input: var(--line-strong);
+  --color-ring: var(--accent);
+  --color-good: var(--good);
+
+  /* Same corners as styles.css (--radius-sm/md/card). */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 14px;
+  --radius-xl: 22px;
+
+  --font-sans: var(--body);
+  --font-mono: var(--mono);
+}
+
+/* The few resets shadcn components expect from preflight, scoped to them only. */
+@layer base {
+  [data-slot] {
+    box-sizing: border-box;
+    border-width: 0;
+    border-style: solid;
+    border-color: var(--line);
+  }
+  button[data-slot] {
+    background: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    color: inherit;
+  }
+}

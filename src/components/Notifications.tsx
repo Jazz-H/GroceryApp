@@ -15,6 +15,7 @@ import {
   type PushKind,
 } from '../push';
 import type { Household } from '../types';
+import { Switch } from './ui/switch';
 
 const LABELS: Record<PushKind, string> = {
   adds: 'My partner adds groceries',
@@ -163,12 +164,10 @@ export function Notifications({ household, uid }: { household: Household; uid: s
             {(Object.keys(LABELS) as PushKind[]).map((kind) => (
               <label key={kind} className="toggle" htmlFor={`pref-${kind}`}>
                 <span>{LABELS[kind]}</span>
-                <input
+                <Switch
                   id={`pref-${kind}`}
-                  type="checkbox"
-                  role="switch"
                   checked={phone.prefs[kind]}
-                  onChange={(e) => toggle(kind, e.target.checked)}
+                  onCheckedChange={(on) => toggle(kind, on)}
                 />
               </label>
             ))}
@@ -203,12 +202,10 @@ export function Notifications({ household, uid }: { household: Household; uid: s
           <h3 className="label section-label">Quiet hours</h3>
           <label className="toggle" htmlFor="quiet-on">
             <span>No notifications overnight</span>
-            <input
+            <Switch
               id="quiet-on"
-              type="checkbox"
-              role="switch"
               checked={!!phone.quiet}
-              onChange={(e) => quiet(e.target.checked ? { start: 22, end: 7 } : null)}
+              onCheckedChange={(on) => quiet(on ? { start: 22, end: 7 } : null)}
             />
           </label>
           {phone.quiet && (

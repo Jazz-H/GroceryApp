@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { lookupBarcode, rememberBarcode } from '../data/barcodes';
 import { isProductCode, normalizeCode } from '../lib/barcode';
 import { CloseIcon } from './icons';
+import { Button } from './ui/button';
 
 const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e'];
 
@@ -140,9 +141,9 @@ export function BarcodeScanner({
     <div className="scanner" role="dialog" aria-modal="true" aria-labelledby="scanner-title">
       <div className="scanner-top">
         <h2 id="scanner-title">Scan a barcode</h2>
-        <button className="btn icon" onClick={onClose} aria-label="Close scanner">
+        <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close scanner">
           <CloseIcon />
-        </button>
+        </Button>
       </div>
       {error ? (
         <p className="error scanner-error" role="alert">
@@ -186,12 +187,12 @@ export function BarcodeScanner({
                 placeholder="e.g. Chobani strawberry yogurt"
               />
               <div className="row-actions">
-                <button className="btn primary" onClick={use} disabled={!name.trim()}>
+                <Button onClick={use} disabled={!name.trim()}>
                   Add to list
-                </button>
-                <button className="btn ghost" onClick={scanAgain}>
+                </Button>
+                <Button variant="secondary" onClick={scanAgain}>
                   Scan another
-                </button>
+                </Button>
               </div>
             </>
           )}
