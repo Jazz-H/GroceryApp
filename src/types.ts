@@ -4,6 +4,21 @@ export type ListId = 'grocery' | 'nice';
 export type ItemStatus = 'open' | 'checked' | 'ordered';
 export type PriceKind = 'vic' | 'regular' | 'paid' | 'manual';
 export type AisleSource = 'kroger' | 'learned' | 'manual';
+export type CategoryId =
+  | 'produce'
+  | 'meat'
+  | 'dairy'
+  | 'bakery'
+  | 'deli'
+  | 'frozen'
+  | 'pantry'
+  | 'snacks'
+  | 'drinks'
+  | 'household'
+  | 'personal'
+  | 'baby'
+  | 'pet'
+  | 'other';
 
 export interface StorePrice {
   /** Price for one unit, in cents. */
@@ -34,6 +49,8 @@ export interface Item {
   stores: StoreId[];
   storeInfo: Partial<Record<StoreId, StoreInfo>>;
   status: ItemStatus;
+  /** Set by you. When unset, the category is guessed from the name (see lib/categories). */
+  category?: CategoryId;
   createdBy: string;
   createdAt: number;
   updatedBy: string;
@@ -81,6 +98,8 @@ export interface CatalogEntry {
   addedAt: number[];
   stores: StoreId[];
   storeInfo: Partial<Record<StoreId, StoreInfo>>;
+  /** The category you last set for this name; used for new items and receipt lines. */
+  category?: CategoryId;
 }
 
 /** One way a receipt was paid, e.g. "Target Mastercard" *8759 for $19.50. */

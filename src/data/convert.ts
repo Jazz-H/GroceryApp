@@ -8,6 +8,7 @@ import type {
   Settlement,
   Trip,
 } from '../types';
+import { isCategoryId } from '../lib/categories';
 import { isStoreId } from '../lib/stores';
 
 /** Firestore timestamps (including pending local ones) → epoch ms. */
@@ -35,6 +36,7 @@ export function toItem(snap: DocumentSnapshot): Item {
     stores: stores.length ? stores : ['ht'],
     storeInfo: d.storeInfo ?? {},
     status: d.status === 'checked' || d.status === 'ordered' ? d.status : 'open',
+    ...(isCategoryId(d.category) ? { category: d.category } : {}),
     createdBy: String(d.createdBy ?? ''),
     createdAt: ms(d.createdAt),
     updatedBy: String(d.updatedBy ?? ''),
@@ -126,6 +128,7 @@ export function toCatalog(snap: DocumentSnapshot): CatalogEntry {
       : [],
     stores,
     storeInfo: d.storeInfo ?? {},
+    ...(isCategoryId(d.category) ? { category: d.category } : {}),
   };
 }
 

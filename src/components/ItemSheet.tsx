@@ -2,11 +2,12 @@ import { useMemo, useState } from 'react';
 import { useReceipts } from '../data/hooks';
 import { deleteItems, saveItem } from '../data/items';
 import { timeAgo } from '../lib/activity';
+import { CATEGORIES, categoryName, guessCategory, isCategoryId } from '../lib/categories';
 import { formatCents, parsePrice } from '../lib/money';
 import { latestByStore, priceHistory, priceTrends, receiptStoreName } from '../lib/receipts';
 import { PriceChart } from './PriceChart';
 import { STORES } from '../lib/stores';
-import type { Household, Item, ListId, StoreId, StoreInfo } from '../types';
+import type { CategoryId, Household, Item, ListId, StoreId, StoreInfo } from '../types';
 import { markerStyle, Sheet } from './ui';
 
 interface StoreDraft {
@@ -57,6 +58,8 @@ export function ItemSheet({
   const [note, setNote] = useState(item.note);
   const [list, setList] = useState<ListId>(item.list);
   const [main, setMain] = useState<StoreId>(item.stores[0]);
+  // '' means "let the app guess from the name".
+  const [category, setCategory] = useState<CategoryId | ''>(item.category ?? '');
   const [drafts, setDrafts] = useState<Record<StoreId, StoreDraft>>(
     () =>
       Object.fromEntries(STORES.map((s) => [s.id, draftFor(item, s.id)])) as Record<
@@ -67,7 +70,7 @@ export function ItemSheet({
   const [error, setError] = useState<string | null>(null);
   // An error is about what was on screen when Save was tapped. Any edit clears it.
   const [errorFor, setErrorFor] = useState<unknown[]>([]);
-  const fields = [name, qty, note, list, main, drafts];
+  const fields = [name, qty, note, list, main, drafts, category];
   if (error && fields.some((f, i) => f !== errorFor[i])) {
     setError(null);
   }
@@ -126,6 +129,7 @@ export function ItemSheet({
         stores: ordered,
         storeInfo,
         list,
+        category: category || undefined,
       });
       onClose();
     } catch (e) {
@@ -273,6 +277,22 @@ export function ItemSheet({
           </ul>
         </section>
       )}
+
+      <label htmlFor="item-category" className="note-label">
+        Category
+        <select
+          id="item-category"
+          value={category}
+          onChange={(e) => setCategory(isCategoryId(e.target.value) ? e.target.value : '')}
+        >
+          <option value="">Auto: {categoryName(guessCategory(name))}</option>
+          {CATEGORIES.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <label htmlFor="item-note" className="note-label">
         Note

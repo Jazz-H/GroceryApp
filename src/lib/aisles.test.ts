@@ -72,7 +72,7 @@ describe('buildBoard', () => {
     ]);
   });
 
-  it('filters to one store and groups by aisle with not-placed last', () => {
+  it('filters to one store and groups by aisle, with no-aisle items in their category zone', () => {
     const rows = buildBoard(items, {
       store: 'ht',
       sortByAisle: true,
@@ -83,7 +83,7 @@ describe('buildBoard', () => {
       'Spinach',
       '# Aisle 7',
       'Oat milk',
-      `# ${NOT_PLACED}`,
+      '# Dairy',
       'Greek yogurt',
     ]);
   });
@@ -105,7 +105,7 @@ describe('buildBoard', () => {
       'Spinach',
       'aisle:Aisle 7',
       'Oat milk',
-      `aisle:${NOT_PLACED}`,
+      'aisle:Dairy',
       'Greek yogurt',
       'store:Target',
       'aisle:Aisle G14',
@@ -113,6 +113,47 @@ describe('buildBoard', () => {
       'store:Amazon',
       'Coffee filters',
     ]);
+  });
+
+  it('puts items with no aisle and no matching zone under not-placed, last', () => {
+    const card = makeItem('Birthday card', ['ht']);
+    const rows = buildBoard([card, milk], {
+      store: 'ht',
+      sortByAisle: true,
+      zoneOrder: DEFAULT_ZONE_ORDER,
+    });
+    expect(rows.map((r) => (r.type === 'item' ? r.item.name : `# ${r.label}`))).toEqual([
+      '# Aisle 7',
+      'Oat milk',
+      `# ${NOT_PLACED}`,
+      'Birthday card',
+    ]);
+  });
+
+  it('uses the category you set over the guess, and a typed aisle over both', () => {
+    const mixUp = makeItem('Greek yogurt', ['ht'], {}, { category: 'frozen' });
+    const typed = makeItem('Butter', ['ht'], { ht: { aisle: aisle('12') } });
+    const rows = buildBoard([mixUp, typed], {
+      store: 'ht',
+      sortByAisle: true,
+      zoneOrder: DEFAULT_ZONE_ORDER,
+    });
+    expect(rows.map((r) => (r.type === 'item' ? r.item.name : `# ${r.label}`))).toEqual([
+      '# Aisle 12',
+      'Butter',
+      '# Frozen',
+      'Greek yogurt',
+    ]);
+  });
+
+  it('leaves Target alone: its zone order has no named zones', () => {
+    const eggs = makeItem('Eggs', ['target']);
+    const rows = buildBoard([eggs], {
+      store: 'target',
+      sortByAisle: true,
+      zoneOrder: DEFAULT_ZONE_ORDER,
+    });
+    expect(rows[0]).toEqual({ type: 'aisle', label: NOT_PLACED });
   });
 });
 

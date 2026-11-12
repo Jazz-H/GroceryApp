@@ -7,6 +7,15 @@ import {
   setReceiptPaidBy,
   updateReceipts,
 } from '../data/receipts';
+import { setCategoryFor } from '../data/items';
+import {
+  CATEGORIES,
+  categoryName,
+  isCategoryId,
+  learnedCategories,
+  spendByCategory,
+  type CategorySlice,
+} from '../lib/categories';
 import { formatCents, parsePrice } from '../lib/money';
 import {
   cardsLabel,
@@ -24,7 +33,7 @@ import {
   summarizeMonth,
   toCsv,
 } from '../lib/receipts';
-import type { Household, Item, Receipt } from '../types';
+import type { CatalogEntry, CategoryId, Household, Item, Receipt } from '../types';
 import { CardSelect } from './CardSelect';
 import { ImportReceipts } from './ImportReceipts';
 import { RecapCard } from './RecapCard';
@@ -47,10 +56,12 @@ export function Spend({
   household,
   uid,
   items,
+  catalog = [],
 }: {
   household: Household;
   uid: string;
   items: Item[];
+  catalog?: CatalogEntry[];
 }) {
   const receiptsState = useReceiptsState(household.id);
   const receipts = useMemo(() => receiptsState ?? [], [receiptsState]);
@@ -96,6 +107,18 @@ export function Spend({
   );
   const history = useMemo(() => monthTotals(receipts, month, 6), [receipts, month]);
   const inMonth = receipts.filter((r) => monthKey(r.purchasedAt) === month);
+  const learned = useMemo(() => learnedCategories(catalog), [catalog]);
+  const byCategory = useMemo(
+    () =>
+      spendByCategory(
+        receipts.filter((r) => monthKey(r.purchasedAt) === month),
+        learned,
+        items,
+      ),
+    [receipts, month, learned, items],
+  );
+  const categoryMax = Math.max(1, ...byCategory.slices.map((s) => s.cents));
+  const [openCategory, setOpenCategory] = useState<CategoryId | null>(null);
   // Headroom above the tallest bar (or the budget line) so the line stays visible.
   const peak = Math.max(1, ...history.map((h) => h.cents), household.budgetCents ?? 0) * 1.15;
   const storeMax = Math.max(1, ...summary.byStore.map((s) => s.cents));
@@ -302,6 +325,37 @@ export function Spend({
         </div>
       )}
 
+      {byCategory.slices.length > 0 && (
+        <div className="card">
+          <h2>By category</h2>
+          <ul className="bars">
+            {byCategory.slices.map((s) => (
+              <li key={s.key} className="bar-tap">
+                <button
+                  className="bar-row"
+                  onClick={() => setOpenCategory(s.key)}
+                  aria-label={`${categoryName(s.key)}: ${formatCents(s.cents)}. See items`}
+                >
+                  <span className="bar-label">{categoryName(s.key)}</span>
+                  <span className="bar-track">
+                    <span className="bar" style={{ width: `${(s.cents / categoryMax) * 100}%` }} />
+                  </span>
+                  <span className="mono">{formatCents(s.cents)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <p className="hint">
+            Item prices only
+            {byCategory.otherCents !== 0 &&
+              ` · tax, fees and discounts ${formatCents(byCategory.otherCents)}`}
+            {byCategory.notItemizedCents > 0 &&
+              ` · ${formatCents(byCategory.notItemizedCents)} on receipts with no items listed`}
+            . Tap a category to fix one.
+          </p>
+        </div>
+      )}
+
       <div className="card">
         <h2>Last 6 months</h2>
         <ol className="months" aria-label="Spending by month">
@@ -401,6 +455,23 @@ export function Spend({
             setSettingCards(false);
             showToast(msg);
           }}
+        />
+      )}
+      {openCategory && (
+        <CategorySheet
+          slice={
+            byCategory.slices.find((s) => s.key === openCategory) ?? {
+              key: openCategory,
+              cents: 0,
+              lines: [],
+            }
+          }
+          month={month}
+          onMove={async (name, to) => {
+            await setCategoryFor(household.id, uid, [name], to, items);
+            showToast(`${name} is now in ${categoryName(to)}.`);
+          }}
+          onClose={() => setOpenCategory(null)}
         />
       )}
       {settleHistory && (
@@ -872,6 +943,83 @@ function SetCards({
         </button>
         <button className="btn ghost" onClick={onClose} disabled={busy}>
           Cancel
+        </button>
+      </div>
+    </Sheet>
+  );
+}
+
+function CategorySheet({
+  slice,
+  month,
+  onMove,
+  onClose,
+}: {
+  slice: CategorySlice;
+  month: string;
+  onMove: (name: string, to: CategoryId) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <Sheet
+      onClose={onClose}
+      labelledBy="cat-title"
+      title={
+        <h2 id="cat-title" className="sheet-title-plain">
+          {categoryName(slice.key)} · {monthLabel(month)}
+        </h2>
+      }
+    >
+      {slice.lines.length === 0 ? (
+        <p className="muted">Nothing left in this category.</p>
+      ) : (
+        <>
+          <p className="muted">
+            In the wrong place? Pick where it belongs. Stocked remembers it for next time.
+          </p>
+          <ul className="rd-lines cat-lines">
+            {slice.lines.map((l) => (
+              <li key={l.name}>
+                <span className="cat-name">
+                  {l.name}
+                  {l.count > 1 && <span className="hint"> · {l.count}×</span>}
+                </span>
+                <select
+                  className="cat-move"
+                  aria-label={`Category for ${l.name}`}
+                  value={slice.key}
+                  onChange={async (e) => {
+                    if (!isCategoryId(e.target.value)) return;
+                    setError(null);
+                    try {
+                      await onMove(l.name, e.target.value);
+                    } catch {
+                      setError('Couldn’t move it. Check your connection and try again.');
+                    }
+                  }}
+                >
+                  {CATEGORIES.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+                <span className="mono">{formatCents(l.cents)}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="sheet-actions">
+        <span className="spacer" />
+        <button className="btn ghost" onClick={onClose}>
+          Done
         </button>
       </div>
     </Sheet>

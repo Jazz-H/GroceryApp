@@ -227,7 +227,9 @@ export function Shell({ user, household }: { user: User; household: Household })
             onAddHandled={onAddHandled}
           />
         )}
-        {tab === 'spend' && <Spend household={household} uid={user.uid} items={items} />}
+        {tab === 'spend' && (
+          <Spend household={household} uid={user.uid} items={items} catalog={catalog} />
+        )}
         {tab === 'us' && <Feed household={household} events={activity} />}
         {tab === 'settings' && <Settings user={user} household={household} items={items} />}
       </div>

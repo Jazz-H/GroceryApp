@@ -1,4 +1,5 @@
 import type { Item, StoreId } from '../types';
+import { categoryOf, zoneForCategory } from './categories';
 import { AISLES_TOKEN, STORES } from './stores';
 
 /** Sort key for items whose aisle is a named zone that isn't in the zone order. */
@@ -70,9 +71,19 @@ function byCreated(a: Item, b: Item) {
   return a.createdAt - b.createdAt || a.name.localeCompare(b.name);
 }
 
+/**
+ * The aisle an item sorts under at a store: the one typed in, else the zone its category is
+ * shelved in when the store has that zone (spinach → Produce), else none.
+ */
+export function placedAisle(item: Item, store: StoreId, zoneOrder: string[]): string | undefined {
+  return (
+    item.storeInfo[store]?.aisle?.label || zoneForCategory(categoryOf(item), zoneOrder) || undefined
+  );
+}
+
 function aisleRows(items: Item[], store: StoreId, zoneOrder: string[]): BoardRow[] {
   const keyed = items.map((item) => {
-    const label = item.storeInfo[store]?.aisle?.label;
+    const label = placedAisle(item, store, zoneOrder);
     return { item, label, key: aisleSortKey(label, zoneOrder) };
   });
   keyed.sort(

@@ -418,6 +418,23 @@ describe('usuals catalog and pickup orders', () => {
     await assertFails(setDoc(doc(as('alex'), 'households', HID, 'catalog', 'y'), { name: 'Y' }));
   });
 
+  it('remembers a category on items and catalog entries, and rejects junk', async () => {
+    const db = as('alex');
+    const itemRef = doc(db, 'households', HID, 'items', 'yog');
+    await assertSucceeds(setDoc(itemRef, { ...item('alex'), name: 'Yogurt', category: 'dairy' }));
+    await assertSucceeds(updateDoc(itemRef, { category: 'snacks', updatedBy: 'alex' }));
+    await assertFails(updateDoc(itemRef, { category: 42, updatedBy: 'alex' }));
+    await assertFails(updateDoc(itemRef, { category: 'x'.repeat(40), updatedBy: 'alex' }));
+
+    const entry = doc(db, 'households', HID, 'catalog', 'yogurt');
+    await assertSucceeds(
+      setDoc(entry, { name: 'Yogurt', count: increment(0), category: 'dairy' }, { merge: true }),
+    );
+    await assertFails(
+      setDoc(entry, { name: 'Yogurt', count: increment(0), category: ['dairy'] }, { merge: true }),
+    );
+  });
+
   it('allows placing and picking up a pickup order, with feed entries', async () => {
     const db = as('alex');
     const order = writeBatch(db);

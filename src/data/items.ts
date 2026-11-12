@@ -14,7 +14,15 @@ import { db } from '../firebase';
 import { createBatcher } from '../lib/activity';
 import { normalizeName, type QuickAdd } from '../lib/text';
 import { catalogKey, nextAddedAt } from '../lib/usuals';
-import type { ActivityType, CatalogEntry, Item, ListId, StoreId, StoreInfo } from '../types';
+import type {
+  ActivityType,
+  CatalogEntry,
+  CategoryId,
+  Item,
+  ListId,
+  StoreId,
+  StoreInfo,
+} from '../types';
 
 const nextBatchId = createBatcher(
   () => Date.now(),
@@ -44,6 +52,51 @@ function rememberItem(
     },
     { merge: true },
   );
+}
+
+/** Remembers (or with null, forgets) the category you chose for a name, in the catalog. */
+function rememberCategory(
+  batch: WriteBatch,
+  hid: string,
+  name: string,
+  category: CategoryId | null,
+) {
+  const key = catalogKey(name);
+  if (!key) return;
+  batch.set(
+    doc(catalog(hid), key),
+    { name: name.trim().slice(0, 120), count: increment(0), category: category ?? deleteField() },
+    { merge: true },
+  );
+}
+
+/**
+ * Sets the category for names seen on receipts (and any items on the lists with those names), so the
+ * spending breakdown and the list both learn it.
+ */
+export async function setCategoryFor(
+  hid: string,
+  uid: string,
+  names: string[],
+  category: CategoryId | null,
+  listItems: Item[],
+) {
+  const batch = writeBatch(db);
+  const keys = new Set<string>();
+  for (const name of names) {
+    const key = catalogKey(name);
+    if (!key || keys.has(key)) continue;
+    keys.add(key);
+    rememberCategory(batch, hid, name, category);
+  }
+  for (const item of listItems)
+    if (keys.has(catalogKey(item.name)))
+      batch.update(doc(items(hid), item.id), {
+        category: category ?? deleteField(),
+        updatedBy: uid,
+        updatedAt: serverTimestamp(),
+      });
+  await batch.commit();
 }
 
 /** Every change writes its activity entry in the same atomic batch, so the log can't miss anything. */
@@ -123,6 +176,7 @@ export async function addItems(
       note: (entry.note ?? '').slice(0, 300),
       stores,
       storeInfo,
+      ...(before?.category ? { category: before.category } : {}),
       status: 'open',
       createdBy: uid,
       createdAt: serverTimestamp(),
@@ -185,6 +239,8 @@ export interface ItemEdit {
   stores: StoreId[];
   storeInfo: Partial<Record<StoreId, StoreInfo>>;
   list: ListId;
+  /** undefined: let the app guess from the name. */
+  category?: CategoryId;
 }
 
 /** Short description of what changed, for the activity log ("price, aisle"). */
@@ -194,6 +250,7 @@ export function describeEdit(before: Item, after: ItemEdit): string {
   if (before.qty !== after.qty) parts.push('quantity');
   if (before.note !== after.note) parts.push('note');
   if (before.stores.join() !== after.stores.join()) parts.push('stores');
+  if ((before.category ?? null) !== (after.category ?? null)) parts.push('category');
   const prices = (i: Partial<Record<StoreId, StoreInfo>>) =>
     JSON.stringify(
       Object.entries(i)
@@ -224,9 +281,13 @@ export async function saveItem(hid: string, uid: string, item: Item, edit: ItemE
     stores: edit.stores,
     storeInfo: edit.storeInfo,
     list: edit.list,
+    category: edit.category ?? deleteField(),
     updatedBy: uid,
     updatedAt: serverTimestamp(),
   });
+  // Remember the category for this name, so it comes back next time and labels receipt lines.
+  if ((item.category ?? null) !== (edit.category ?? null))
+    rememberCategory(batch, hid, edit.name, edit.category ?? null);
   if (changes)
     log(batch, hid, uid, 'edit', [{ id: item.id, name: edit.name }], { detail: changes });
   if (moved)

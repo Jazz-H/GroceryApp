@@ -84,7 +84,8 @@ service cloud.firestore {
             && d.list in ['grocery', 'nice']
             && d.status in ['open', 'checked', 'ordered']
             && d.stores is list && d.stores.size() > 0 && d.stores.size() <= 3
-            && d.qty is number && d.qty >= 1 && d.qty <= 999;
+            && d.qty is number && d.qty >= 1 && d.qty <= 999
+            && (!('category' in d) || (d.category is string && d.category.size() <= 20));
         }
 
         allow read: if isMember(hid);
@@ -166,7 +167,10 @@ service cloud.firestore {
           && (request.resource == null
             || (request.resource.data.name is string
               && request.resource.data.name.size() <= 120
-              && request.resource.data.count is number));
+              && request.resource.data.count is number
+              && (!('category' in request.resource.data)
+                || (request.resource.data.category is string
+                  && request.resource.data.category.size() <= 20))));
       }
 
       // ---- Settle up: one member paid the other back ----
