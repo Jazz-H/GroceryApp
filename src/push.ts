@@ -54,6 +54,11 @@ export interface PhoneSettings {
 
 const env = import.meta.env;
 const RELAY_URL = (env.VITE_PUSH_URL ?? '').replace(/\/$/, '');
+
+/** The relay's base URL, or '' when the app was built without one. */
+export function relayUrl(): string {
+  return RELAY_URL;
+}
 const VAPID_PUBLIC_KEY = env.VITE_VAPID_PUBLIC_KEY ?? '';
 
 export type PushSupport =

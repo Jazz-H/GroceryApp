@@ -27,6 +27,26 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys();
     }
 
+    // ---- Voice add ----
+    // A Siri Shortcut (through the relay) adds items with no sign-in, carrying a voice key
+    // "<householdId>.<uid>.<secret>". Only its SHA-256 is stored, in voiceKeys/{hash}, by the
+    // member it belongs to. A write is accepted only if that hash exists in this household and
+    // belongs to the member the write is credited to.
+    function voiceKeyPath(hid, key) {
+      return /databases/$(database)/documents/households/$(hid)/voiceKeys/$(hashing.sha256(key).toHexString().lower());
+    }
+
+    function voiceAdd(hid, d, who) {
+      return request.auth == null
+        && d.voiceKey is string
+        && d.voiceKey.size() >= 40 && d.voiceKey.size() <= 200
+        && d.voiceKey.split('[.]')[0] == hid
+        && d.voiceKey.split('[.]')[1] == who
+        && exists(voiceKeyPath(hid, d.voiceKey))
+        && get(voiceKeyPath(hid, d.voiceKey)).data.uid == who
+        && who in household(hid).memberIds;
+    }
+
     // ---- Users: your own profile only ----
     match /users/{userId} {
       allow read, write: if signedIn() && uid() == userId;
@@ -93,6 +113,14 @@ service cloud.firestore {
           && validItem(request.resource.data)
           && request.resource.data.createdBy == uid()
           && request.resource.data.updatedBy == uid();
+        // Added by voice: an open grocery item credited to the voice key's owner.
+        allow create: if validItem(request.resource.data)
+          && voiceAdd(hid, request.resource.data, request.resource.data.createdBy)
+          && request.resource.data.via == 'voice'
+          && request.resource.data.updatedBy == request.resource.data.createdBy
+          && request.resource.data.status == 'open'
+          && request.resource.data.list == 'grocery'
+          && request.resource.data.createdAt == request.time;
         allow update: if isMember(hid)
           && validItem(request.resource.data)
           && request.resource.data.updatedBy == uid()
@@ -110,6 +138,14 @@ service cloud.firestore {
           && request.resource.data.type in ['add', 'edit', 'check', 'uncheck', 'move', 'delete', 'trip_start', 'trip_join', 'trip_end', 'receipt', 'order', 'pickup']
           && request.resource.data.itemNames is list
           && request.resource.data.itemNames.size() <= 50;
+        // The matching log entry for a voice add, created in the same commit as the item.
+        allow create: if voiceAdd(hid, request.resource.data, request.resource.data.actorId)
+          && request.resource.data.at == request.time
+          && request.resource.data.type == 'add'
+          && request.resource.data.detail == 'voice'
+          && request.resource.data.itemIds.size() == 1
+          && request.resource.data.itemNames.size() == 1
+          && getAfter(/databases/$(database)/documents/households/$(hid)/items/$(request.resource.data.itemIds[0])).data.voiceKey == request.resource.data.voiceKey;
         allow update, delete: if false;
       }
 
@@ -184,6 +220,18 @@ service cloud.firestore {
           && request.resource.data.cents is int
           && request.resource.data.cents > 0
           && request.resource.data.cents < 10000000;
+        allow update: if false;
+      }
+
+      // ---- Voice keys: SHA-256 of each member's Siri Shortcut key (see voiceAdd) ----
+      match /voiceKeys/{hash} {
+        allow read, delete: if isMember(hid);
+        allow create: if isMember(hid)
+          && hash.matches('[0-9a-f]{64}')
+          && request.resource.data.keys().hasOnly(['uid', 'label', 'createdAt'])
+          && request.resource.data.uid == uid()
+          && request.resource.data.label is string
+          && request.resource.data.label.size() <= 40;
         allow update: if false;
       }
 

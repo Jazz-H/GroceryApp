@@ -72,7 +72,7 @@ export function describe(group: FeedGroup, member: Member | undefined): string {
   const store = group.store ? storeDef(group.store).name : '';
   switch (group.type) {
     case 'add':
-      return `${who} added ${what}`;
+      return `${who} added ${what}${group.detail === 'voice' ? ' by voice' : ''}`;
     case 'check':
       return `${who} checked off ${what}`;
     case 'uncheck':

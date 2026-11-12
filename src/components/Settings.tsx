@@ -15,6 +15,7 @@ import { AISLES_TOKEN, DEFAULT_ZONE_ORDER, MEMBER_COLORS } from '../lib/stores';
 import type { Household, Item } from '../types';
 import { Notifications } from './Notifications';
 import { ImportItems } from './ImportItems';
+import { VoiceAdd } from './VoiceAdd';
 import { Avatar } from './ui';
 
 export function Settings({
@@ -34,6 +35,7 @@ export function Settings({
       <Household_ household={household} />
       <You household={household} uid={user.uid} />
       <Notifications household={household} uid={user.uid} />
+      <VoiceAdd household={household} uid={user.uid} />
       <ImportItems household={household} uid={user.uid} items={items} />
       <ZoneOrder household={household} />
       <div className="card">

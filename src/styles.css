@@ -1262,6 +1262,42 @@ code {
 .bar-tag {
   flex: none;
 }
+.voice-setup {
+  display: grid;
+  gap: 10px;
+}
+.copy-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.copy-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+}
+.steps {
+  margin: 0;
+  padding-left: 1.3em;
+  display: grid;
+  gap: 6px;
+  font-size: 0.92rem;
+}
+.voice-keys {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+.voice-keys li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  border-bottom: 1px solid var(--line);
+}
 .bars li.bar-tap {
   display: block;
 }

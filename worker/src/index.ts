@@ -8,6 +8,8 @@
  * from Firestore's REST API *with the sender's own ID token*, so Firestore security rules decide
  * whether the sender is a member. It writes the notification text itself (see messages.ts) and
  * sends Web Push to the other current members' phones, skipping snoozed phones and quiet hours.
+ *
+ * POST /add { key, text } — voice add from a Siri Shortcut; see voice.ts.
  */
 import {
   cleanData,
@@ -20,6 +22,7 @@ import {
   type Pref,
 } from './messages';
 import { allowedRecipeUrl, parseRecipePage } from './recipe';
+import { handleVoiceAdd } from './voice';
 import { importVapidPrivateKey, sendPush, type PushTarget, type Vapid } from './webpush';
 
 export { KINDS };
@@ -230,6 +233,10 @@ export async function handle(
   const url = new URL(request.url);
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
   if (url.pathname === '/health') return json(200, { ok: configured, configured }, cors);
+  // Voice add needs no VAPID keys or sign-in (a voice key instead), and no CORS: it's called
+  // by a Shortcut, not the web app.
+  if (url.pathname === '/add' && request.method === 'POST')
+    return handleVoiceAdd(request, env, fetchFn, now);
   if (url.pathname === '/recipe' && request.method === 'POST')
     return handleRecipe(request, env, fetchFn, cors, now);
   if (url.pathname !== '/notify' || request.method !== 'POST')

@@ -88,3 +88,19 @@ describe('timeAgo', () => {
     expect(timeAgo(0, 3 * 3_600_000)).toBe('3h ago');
   });
 });
+
+it('marks adds made by voice', () => {
+  const group = groupFeed([
+    {
+      id: 'v1',
+      actorId: 'a',
+      type: 'add',
+      itemIds: ['i'],
+      itemNames: ['Milk'],
+      batchId: 'b',
+      detail: 'voice',
+      at: 1,
+    },
+  ])[0];
+  expect(describeGroup(group, { name: 'Alex', color: '#000' })).toBe('Alex added Milk by voice');
+});
