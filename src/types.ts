@@ -203,3 +203,32 @@ export interface Trip {
 export interface UserProfile {
   householdId: string | null;
 }
+
+export interface RecipeIngredient {
+  name: string;
+  qty: number;
+  /** Most kitchens already have it (salt, oil…), so it starts unticked when shopping. */
+  staple: boolean;
+}
+
+/** A saved recipe in the recipe box. */
+export interface Recipe {
+  id: string;
+  title: string;
+  /** Where it came from: a link, or '' for pasted text and photos. */
+  source: string;
+  ingredients: RecipeIngredient[];
+  createdBy: string;
+  createdAt: number;
+}
+
+/** One planned meal on one day: a saved recipe, or just a note like "Leftovers". */
+export interface Meal {
+  id: string;
+  /** "2026-11-16" */
+  date: string;
+  title: string;
+  recipeId: string | null;
+  by: string;
+  createdAt: number;
+}

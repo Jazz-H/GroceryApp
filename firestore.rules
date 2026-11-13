@@ -255,6 +255,36 @@ service cloud.firestore {
           && (isMember(hid) || (request.auth == null && keyExists()));
       }
 
+      // ---- Recipe box ----
+      match /recipes/{id} {
+        function validRecipe(d) {
+          return d.title is string && d.title.size() > 0 && d.title.size() <= 120
+            && d.source is string && d.source.size() <= 500
+            && d.ingredients is list && d.ingredients.size() <= 60;
+        }
+        allow read, delete: if isMember(hid);
+        allow create: if isMember(hid)
+          && validRecipe(request.resource.data)
+          && request.resource.data.createdBy == uid();
+        allow update: if isMember(hid)
+          && validRecipe(request.resource.data)
+          && request.resource.data.createdBy == resource.data.createdBy;
+      }
+
+      // ---- Meal plan: one doc per planned meal ----
+      match /meals/{id} {
+        allow read, delete: if isMember(hid);
+        allow create: if isMember(hid)
+          && request.resource.data.by == uid()
+          && request.resource.data.date is string
+          && request.resource.data.date.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}')
+          && request.resource.data.title is string
+          && request.resource.data.title.size() > 0
+          && request.resource.data.title.size() <= 80
+          && (request.resource.data.recipeId == null || request.resource.data.recipeId is string);
+        allow update: if false;
+      }
+
       // ---- Remembered barcodes (UPC → item name) ----
       match /barcodes/{code} {
         allow read: if isMember(hid);

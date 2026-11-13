@@ -1163,7 +1163,8 @@ code {
 }
 
 /* ---------- Spending ---------- */
-.spend {
+.spend,
+.meals {
   max-width: 640px;
   margin: 0 auto;
   padding: 16px max(16px, env(safe-area-inset-right)) 24px max(16px, env(safe-area-inset-left));
@@ -1416,7 +1417,8 @@ code {
   min-width: 0;
   display: grid;
 }
-.spend .toast {
+.spend .toast,
+.meals .toast {
   position: fixed;
   bottom: calc(84px + env(safe-area-inset-bottom));
   z-index: 15;
@@ -1815,7 +1817,7 @@ textarea {
   bottom: calc(14px + env(safe-area-inset-bottom));
   z-index: 15;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   align-items: center;
   height: 66px;
   padding: 0 6px;
@@ -2774,4 +2776,101 @@ textarea {
 }
 .report .section-label {
   margin-top: 22px;
+}
+
+/* ---- Meals ---- */
+.meal-days {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: grid;
+}
+.meal-days li {
+  display: grid;
+  grid-template-columns: 4.2em minmax(0, 1fr) 40px;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  border-bottom: 1px solid var(--line);
+}
+.meal-days li.today .meal-day {
+  color: var(--accent);
+}
+.meal-day {
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.meal-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 0;
+}
+.meal-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  border-radius: 999px;
+  background: var(--chip);
+  padding-left: 10px;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+.meal-chip.has-recipe {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.meal-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+  font: inherit;
+  padding: 6px 0;
+}
+.meal-remove {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  color: inherit;
+  opacity: 0.7;
+}
+.meal-add {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--chip);
+  color: var(--ink);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+.recipe-box {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  display: grid;
+}
+.recipe-box button {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  color: inherit;
+}
+.plan-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.plan-row select {
+  flex: 1;
+  min-height: 44px;
 }

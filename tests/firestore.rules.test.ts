@@ -418,6 +418,43 @@ describe('usuals catalog and pickup orders', () => {
     await assertFails(setDoc(doc(as('alex'), 'households', HID, 'catalog', 'y'), { name: 'Y' }));
   });
 
+  it('keeps recipes and planned meals to members, well-formed', async () => {
+    const db = as('alex');
+    const recipe = {
+      title: 'Tacos',
+      source: '',
+      ingredients: [{ name: 'Ground beef', qty: 1, staple: false }],
+      createdBy: 'alex',
+      createdAt: 1,
+    };
+    await assertSucceeds(setDoc(doc(db, 'households', HID, 'recipes', 'tacos'), recipe));
+    await assertFails(setDoc(doc(db, 'households', HID, 'recipes', 'x'), { ...recipe, title: '' }));
+    await assertFails(
+      setDoc(doc(db, 'households', HID, 'recipes', 'y'), { ...recipe, createdBy: 'sam' }),
+    );
+    await assertFails(getDocs(collection(as('sam'), 'households', HID, 'recipes')));
+
+    const meal = {
+      date: '2026-11-16',
+      title: 'Tacos',
+      recipeId: 'tacos',
+      by: 'alex',
+      createdAt: 1,
+    };
+    await assertSucceeds(setDoc(doc(db, 'households', HID, 'meals', 'm1'), meal));
+    await assertSucceeds(
+      setDoc(doc(db, 'households', HID, 'meals', 'm2'), {
+        ...meal,
+        recipeId: null,
+        title: 'Leftovers',
+      }),
+    );
+    await assertFails(
+      setDoc(doc(db, 'households', HID, 'meals', 'm3'), { ...meal, date: 'Monday' }),
+    );
+    await assertFails(setDoc(doc(db, 'households', HID, 'meals', 'm4'), { ...meal, by: 'sam' }));
+  });
+
   it('puts items on custom lists, and keeps the household’s lists short', async () => {
     const db = as('alex');
     const ref = doc(db, 'households', HID, 'items', 'tp');

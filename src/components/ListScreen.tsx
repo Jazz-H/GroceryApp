@@ -16,6 +16,7 @@ import {
   placeOrder,
   setChecked,
 } from '../data/items';
+import { saveRecipe } from '../data/meals';
 import { startTrip } from '../data/trips';
 import { aisleLabel, buildBoard, itemsInView } from '../lib/aisles';
 import { cardLook, groupIntoCards, partnerAddsToday } from '../lib/cards';
@@ -642,6 +643,13 @@ export function ListScreen({
           items={visibleItems}
           defaultStore={store === 'all' ? 'ht' : store}
           onAdd={addEntries}
+          onSave={(r, source) =>
+            saveRecipe(household.id, user.uid, {
+              title: r.title,
+              source,
+              ingredients: r.ingredients,
+            }).then(() => undefined)
+          }
           onClose={() => setRecipeOpen(false)}
         />
       )}

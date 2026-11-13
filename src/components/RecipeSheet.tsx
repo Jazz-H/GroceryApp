@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
-import { parseRecipe, RecipeError, type ParsedRecipe } from '../data/recipeParser';
+import { isLink, parseRecipe, RecipeError, type ParsedRecipe } from '../data/recipeParser';
 import { STORES } from '../lib/stores';
 import { normalizeName, type QuickAdd } from '../lib/text';
 import type { Item, StoreId } from '../types';
@@ -28,11 +28,17 @@ export function RecipeSheet({
   items,
   defaultStore,
   onAdd,
+  onSave,
+  saveOnly = false,
   onClose,
 }: {
   items: Item[];
   defaultStore: StoreId;
   onAdd: (entries: QuickAdd[], store: StoreId) => Promise<void>;
+  /** Saves the recipe to the recipe box (source: the link, or ''). */
+  onSave?: (recipe: ParsedRecipe, source: string) => Promise<void>;
+  /** From the recipe box: only save, don't offer adding to the list. */
+  saveOnly?: boolean;
   onClose: () => void;
 }) {
   const [text, setText] = useState('');
@@ -43,6 +49,22 @@ export function RecipeSheet({
   const [picked, setPicked] = useState<Set<number>>(() => new Set());
   const [store, setStore] = useState<StoreId>(defaultStore);
   const [dragging, setDragging] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  async function save() {
+    if (!recipe || !onSave) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await onSave(recipe, isLink(text) ? text.trim() : '');
+      setSaved(true);
+      if (saveOnly) onClose();
+    } catch {
+      setError('Couldn’t save the recipe. Check your connection and try again.');
+    } finally {
+      setBusy(false);
+    }
+  }
   const fileInput = useRef<HTMLInputElement>(null);
 
   const onList = useMemo(
@@ -215,17 +237,21 @@ export function RecipeSheet({
         </div>
       ) : (
         <>
-          <p className="muted">
-            Untick anything you already have. Pantry staples and things already on the list start
-            unticked.
-          </p>
+          {!saveOnly && (
+            <p className="muted">
+              Untick anything you already have. Pantry staples and things already on the list start
+              unticked.
+            </p>
+          )}
           <ul className="clear-list">
             {recipe.ingredients.map((ing, i) => {
               const already = onList.has(normalizeName(ing.name));
               return (
                 <li key={i}>
                   <label className="check-label">
-                    <Checkbox checked={picked.has(i)} onCheckedChange={() => toggle(i)} />
+                    {!saveOnly && (
+                      <Checkbox checked={picked.has(i)} onCheckedChange={() => toggle(i)} />
+                    )}
                     <span>
                       {ing.qty > 1 && <span className="mono">{ing.qty}× </span>}
                       {ing.name}
@@ -241,30 +267,49 @@ export function RecipeSheet({
               );
             })}
           </ul>
-          <div className="segmented small" role="group" aria-label="Store">
-            {STORES.map((s) => (
-              <button
-                type="button"
-                key={s.id}
-                aria-pressed={store === s.id}
-                onClick={() => setStore(s.id)}
-              >
-                {s.name}
-              </button>
-            ))}
-          </div>
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
+          {!saveOnly && (
+            <div className="segmented small" role="group" aria-label="Store">
+              {STORES.map((s) => (
+                <button
+                  type="button"
+                  key={s.id}
+                  aria-pressed={store === s.id}
+                  onClick={() => setStore(s.id)}
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="sheet-actions">
             <Button type="button" variant="secondary" onClick={() => setRecipe(null)}>
               Back
             </Button>
-            <Button
-              type="button"
+            {onSave && (
+              <Button
+                type="button"
+                variant={saveOnly ? undefined : 'secondary'}
+                onClick={save}
+                disabled={busy || saved}
+              >
+                {saved ? 'Saved ✓' : saveOnly ? 'Save to recipe box' : 'Save recipe'}
+              </Button>
+            )}
+            {!saveOnly && (
+              <Button
+                type="button"
 
-              onClick={add}
-              disabled={busy || picked.size === 0}
-            >
-              {busy ? 'Adding…' : `Add ${picked.size} to list`}
-            </Button>
+                onClick={add}
+                disabled={busy || picked.size === 0}
+              >
+                {busy ? 'Adding…' : `Add ${picked.size} to list`}
+              </Button>
+            )}
           </div>
         </>
       )}

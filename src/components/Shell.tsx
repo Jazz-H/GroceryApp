@@ -32,12 +32,14 @@ import { ListScreen } from './ListScreen';
 import { ReceiptFlow } from './ReceiptFlow';
 import { Settings } from './Settings';
 import { Spend } from './Spend';
+import { Meals } from './Meals';
 import { Avatar } from './ui';
 import { AppChrome } from './AppChrome';
 
-type Tab = 'list' | 'spend' | 'us' | 'settings';
+type Tab = 'list' | 'meals' | 'spend' | 'us' | 'settings';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'list', label: 'List' },
+  { id: 'meals', label: 'Meals' },
   { id: 'spend', label: 'Spend' },
   { id: 'us', label: 'Us' },
   { id: 'settings', label: 'Settings' },
@@ -47,7 +49,7 @@ function tabFromHash(): Tab {
   const h = location.hash.replace('#', '');
   if (h.startsWith('import=')) return 'settings';
   if (h.startsWith('receipts=') || h.startsWith('recap-')) return 'spend';
-  return h === 'us' || h === 'settings' || h === 'spend' ? h : 'list';
+  return h === 'us' || h === 'settings' || h === 'spend' || h === 'meals' ? h : 'list';
 }
 
 export function Shell({ user, household }: { user: User; household: Household }) {
@@ -233,6 +235,9 @@ export function Shell({ user, household }: { user: User; household: Household })
         {tab === 'spend' && (
           <Spend household={household} uid={user.uid} items={items} catalog={catalog} />
         )}
+        {tab === 'meals' && (
+          <Meals household={household} uid={user.uid} items={items} catalog={catalog} />
+        )}
         {tab === 'us' && <Feed household={household} events={activity} />}
         {tab === 'settings' && <Settings user={user} household={household} items={items} />}
       </div>
@@ -319,6 +324,13 @@ function TabIcon({ id }: { id: Tab }) {
       <svg {...common}>
         <rect x="4" y="3" width="16" height="18" rx="2.5" />
         <path d="M8 8h8M8 12h8M8 16h5" />
+      </svg>
+    );
+  if (id === 'meals')
+    return (
+      <svg {...common}>
+        <path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10" />
+        <path d="M17 21V3c-2 0-3.5 2.5-3.5 6.5S15 14 17 14" />
       </svg>
     );
   if (id === 'spend')
