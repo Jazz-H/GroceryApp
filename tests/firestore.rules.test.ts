@@ -418,6 +418,16 @@ describe('usuals catalog and pickup orders', () => {
     await assertFails(setDoc(doc(as('alex'), 'households', HID, 'catalog', 'y'), { name: 'Y' }));
   });
 
+  it('keeps a short substitute on an item', async () => {
+    const db = as('alex');
+    const ref = doc(db, 'households', HID, 'items', 'oat');
+    await assertSucceeds(
+      setDoc(ref, { ...item('alex'), name: 'Oat milk', substitute: 'almond milk' }),
+    );
+    await assertFails(updateDoc(ref, { substitute: 'x'.repeat(81), updatedBy: 'alex' }));
+    await assertFails(updateDoc(ref, { substitute: 7, updatedBy: 'alex' }));
+  });
+
   it('remembers a category on items and catalog entries, and rejects junk', async () => {
     const db = as('alex');
     const itemRef = doc(db, 'households', HID, 'items', 'yog');

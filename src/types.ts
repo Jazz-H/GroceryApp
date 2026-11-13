@@ -51,6 +51,8 @@ export interface Item {
   status: ItemStatus;
   /** Set by you. When unset, the category is guessed from the name (see lib/categories). */
   category?: CategoryId;
+  /** What to get instead if it's out, e.g. "almond milk". */
+  substitute?: string;
   createdBy: string;
   createdAt: number;
   updatedBy: string;

@@ -2084,6 +2084,14 @@ textarea {
   text-overflow: clip;
   overflow-wrap: anywhere;
 }
+.nm .sub {
+  display: block;
+  font-family: var(--body);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted);
+  margin-top: 1px;
+}
 .list-card .it.done .nm {
   color: var(--muted);
   opacity: 1;

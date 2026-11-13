@@ -105,7 +105,8 @@ service cloud.firestore {
             && d.status in ['open', 'checked', 'ordered']
             && d.stores is list && d.stores.size() > 0 && d.stores.size() <= 3
             && d.qty is number && d.qty >= 1 && d.qty <= 999
-            && (!('category' in d) || (d.category is string && d.category.size() <= 20));
+            && (!('category' in d) || (d.category is string && d.category.size() <= 20))
+            && (!('substitute' in d) || (d.substitute is string && d.substitute.size() <= 80));
         }
 
         allow read: if isMember(hid);

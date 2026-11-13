@@ -550,6 +550,9 @@ export function ListScreen({
                       <button className="nm" onClick={() => setEditing(item)}>
                         {item.name}
                         {item.qty > 1 && <span className="qty"> ×{item.qty}</span>}
+                        {item.substitute && item.status !== 'checked' && (
+                          <span className="sub">or {item.substitute}</span>
+                        )}
                       </button>
                       <span className="meta">
                         {pickupMode && showPickup && item.status === 'open' && (

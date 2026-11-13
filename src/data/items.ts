@@ -241,6 +241,8 @@ export interface ItemEdit {
   list: ListId;
   /** undefined: let the app guess from the name. */
   category?: CategoryId;
+  /** '' or undefined: none. */
+  substitute?: string;
 }
 
 /** Short description of what changed, for the activity log ("price, aisle"). */
@@ -251,6 +253,7 @@ export function describeEdit(before: Item, after: ItemEdit): string {
   if (before.note !== after.note) parts.push('note');
   if (before.stores.join() !== after.stores.join()) parts.push('stores');
   if ((before.category ?? null) !== (after.category ?? null)) parts.push('category');
+  if ((before.substitute ?? '') !== (after.substitute ?? '').trim()) parts.push('substitute');
   const prices = (i: Partial<Record<StoreId, StoreInfo>>) =>
     JSON.stringify(
       Object.entries(i)
@@ -282,6 +285,7 @@ export async function saveItem(hid: string, uid: string, item: Item, edit: ItemE
     storeInfo: edit.storeInfo,
     list: edit.list,
     category: edit.category ?? deleteField(),
+    substitute: edit.substitute?.trim() ? edit.substitute.trim().slice(0, 80) : deleteField(),
     updatedBy: uid,
     updatedAt: serverTimestamp(),
   });

@@ -37,6 +37,9 @@ export function toItem(snap: DocumentSnapshot): Item {
     storeInfo: d.storeInfo ?? {},
     status: d.status === 'checked' || d.status === 'ordered' ? d.status : 'open',
     ...(isCategoryId(d.category) ? { category: d.category } : {}),
+    ...(typeof d.substitute === 'string' && d.substitute.trim()
+      ? { substitute: d.substitute }
+      : {}),
     createdBy: String(d.createdBy ?? ''),
     createdAt: ms(d.createdAt),
     updatedBy: String(d.updatedBy ?? ''),

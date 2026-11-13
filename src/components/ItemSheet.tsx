@@ -60,6 +60,7 @@ export function ItemSheet({
   const [main, setMain] = useState<StoreId>(item.stores[0]);
   // '' means "let the app guess from the name".
   const [category, setCategory] = useState<CategoryId | ''>(item.category ?? '');
+  const [substitute, setSubstitute] = useState(item.substitute ?? '');
   const [drafts, setDrafts] = useState<Record<StoreId, StoreDraft>>(
     () =>
       Object.fromEntries(STORES.map((s) => [s.id, draftFor(item, s.id)])) as Record<
@@ -70,7 +71,7 @@ export function ItemSheet({
   const [error, setError] = useState<string | null>(null);
   // An error is about what was on screen when Save was tapped. Any edit clears it.
   const [errorFor, setErrorFor] = useState<unknown[]>([]);
-  const fields = [name, qty, note, list, main, drafts, category];
+  const fields = [name, qty, note, list, main, drafts, category, substitute];
   if (error && fields.some((f, i) => f !== errorFor[i])) {
     setError(null);
   }
@@ -130,6 +131,7 @@ export function ItemSheet({
         storeInfo,
         list,
         category: category || undefined,
+        substitute,
       });
       onClose();
     } catch (e) {
@@ -277,6 +279,17 @@ export function ItemSheet({
           </ul>
         </section>
       )}
+
+      <label htmlFor="item-sub" className="note-label">
+        If it’s out, get
+        <input
+          id="item-sub"
+          value={substitute}
+          onChange={(e) => setSubstitute(e.target.value)}
+          placeholder="e.g. almond milk, or “skip it”"
+          maxLength={80}
+        />
+      </label>
 
       <label htmlFor="item-category" className="note-label">
         Category
