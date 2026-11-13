@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { listName } from '../lib/lists';
 import { bulkAddedIds, deleteItems } from '../data/items';
 import { storeDef } from '../lib/stores';
 import type { Household, Item } from '../types';
@@ -113,7 +114,7 @@ export function ClearImported({
                     {i.name}
                     <span className="muted">
                       {' '}
-                      · {i.list === 'nice' ? 'Nice-to-have' : 'Grocery'}
+                      · {listName(i.list, household)}
                       {i.stores[0] ? ` · ${storeDef(i.stores[0]).name}` : ''}
                       {i.status === 'checked' ? ' · checked' : ''}
                     </span>

@@ -243,6 +243,8 @@ export interface ItemEdit {
   category?: CategoryId;
   /** '' or undefined: none. */
   substitute?: string;
+  /** The list's name, for the activity log when the item moves to a custom list. */
+  listName?: string;
 }
 
 /** Short description of what changed, for the activity log ("price, aisle"). */
@@ -295,7 +297,12 @@ export async function saveItem(hid: string, uid: string, item: Item, edit: ItemE
   if (changes)
     log(batch, hid, uid, 'edit', [{ id: item.id, name: edit.name }], { detail: changes });
   if (moved)
-    log(batch, hid, uid, 'move', [{ id: item.id, name: edit.name }], { detail: edit.list });
+    log(batch, hid, uid, 'move', [{ id: item.id, name: edit.name }], {
+      detail:
+        edit.list === 'grocery' || edit.list === 'nice'
+          ? edit.list
+          : (edit.listName ?? 'another list'),
+    });
   await batch.commit();
 }
 

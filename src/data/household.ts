@@ -12,7 +12,8 @@ import type { User } from 'firebase/auth';
 import { db } from '../firebase';
 import { DEFAULT_ZONE_ORDER, MEMBER_COLORS } from '../lib/stores';
 import { cleanInviteCode, makeInviteCode } from '../lib/text';
-import type { Household, Member, StoreId, UserProfile } from '../types';
+import { newListId } from '../lib/lists';
+import type { Household, ListDef, ListId, Member, StoreId, UserProfile } from '../types';
 
 function memberFor(user: User, color: string): Member {
   const name = (user.displayName ?? user.email ?? 'Me').split(' ')[0];
@@ -83,6 +84,25 @@ export async function updateMember(household: Household, uid: string, patch: Par
 
 export async function updateZoneOrder(household: Household, store: StoreId, order: string[]) {
   await updateDoc(doc(db, 'households', household.id), { [`zoneOrder.${store}`]: order });
+}
+
+/** Adds a list after the others; returns its id. The name should already be cleaned. */
+export async function addList(household: Household, name: string): Promise<ListId> {
+  const id = newListId();
+  const lists: ListDef[] = [...(household.lists ?? []), { id, name }];
+  await updateDoc(doc(db, 'households', household.id), { lists });
+  return id;
+}
+
+export async function renameList(household: Household, id: ListId, name: string) {
+  const lists = (household.lists ?? []).map((l) => (l.id === id ? { ...l, name } : l));
+  await updateDoc(doc(db, 'households', household.id), { lists });
+}
+
+/** Removes a list from the tabs. Its items should be removed first (see deleteItems). */
+export async function removeList(household: Household, id: ListId) {
+  const lists = (household.lists ?? []).filter((l) => l.id !== id);
+  await updateDoc(doc(db, 'households', household.id), { lists });
 }
 
 export async function renameHousehold(household: Household, name: string) {

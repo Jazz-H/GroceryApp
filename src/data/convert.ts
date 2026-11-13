@@ -9,6 +9,7 @@ import type {
   Trip,
 } from '../types';
 import { isCategoryId } from '../lib/categories';
+import { isCustomListId, MAX_LISTS } from '../lib/lists';
 import { isStoreId } from '../lib/stores';
 
 /** Firestore timestamps (including pending local ones) → epoch ms. */
@@ -29,7 +30,7 @@ export function toItem(snap: DocumentSnapshot): Item {
     id: snap.id,
     name: String(d.name ?? ''),
     normalizedName: String(d.normalizedName ?? ''),
-    list: d.list === 'nice' ? 'nice' : 'grocery',
+    list: d.list === 'nice' ? 'nice' : isCustomListId(d.list) ? d.list : 'grocery',
     qty: typeof d.qty === 'number' ? d.qty : 1,
     unit: String(d.unit ?? ''),
     note: String(d.note ?? ''),
@@ -76,6 +77,16 @@ export function toHousehold(snap: DocumentSnapshot): Household {
     budgetCents: typeof d.budgetCents === 'number' && d.budgetCents > 0 ? d.budgetCents : null,
     ...(typeof d.recapSentFor === 'string' ? { recapSentFor: d.recapSentFor } : {}),
     ...(typeof d.weekRecapSentFor === 'string' ? { weekRecapSentFor: d.weekRecapSentFor } : {}),
+    ...(Array.isArray(d.lists)
+      ? {
+          lists: d.lists
+            .filter(
+              (l: DocumentData) => isCustomListId(l?.id) && typeof l?.name === 'string' && l.name,
+            )
+            .slice(0, MAX_LISTS)
+            .map((l: DocumentData) => ({ id: l.id, name: String(l.name).slice(0, 30) })),
+        }
+      : {}),
   };
 }
 

@@ -1,5 +1,12 @@
 export type StoreId = 'ht' | 'target' | 'amazon';
-export type ListId = 'grocery' | 'nice';
+/** 'grocery', 'nice', or a custom list's id ('l_' + letters/digits, see lib/lists). */
+export type ListId = 'grocery' | 'nice' | `l_${string}`;
+
+/** A list the household made, e.g. Costco or Party. */
+export interface ListDef {
+  id: ListId;
+  name: string;
+}
 /** "ordered": in a placed pickup order (Target), waiting to be picked up. */
 export type ItemStatus = 'open' | 'checked' | 'ordered';
 export type PriceKind = 'vic' | 'regular' | 'paid' | 'manual';
@@ -175,6 +182,8 @@ export interface Household {
   recapSentFor?: string;
   /** The week (its Monday, "2026-11-02") whose weekly recap has been sent. */
   weekRecapSentFor?: string;
+  /** Lists the household made, after Grocery and Nice-to-have. */
+  lists?: ListDef[];
 }
 
 export type TripMode = 'together' | 'solo';

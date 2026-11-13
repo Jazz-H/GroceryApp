@@ -418,6 +418,18 @@ describe('usuals catalog and pickup orders', () => {
     await assertFails(setDoc(doc(as('alex'), 'households', HID, 'catalog', 'y'), { name: 'Y' }));
   });
 
+  it('puts items on custom lists, and keeps the household’s lists short', async () => {
+    const db = as('alex');
+    const ref = doc(db, 'households', HID, 'items', 'tp');
+    await assertSucceeds(setDoc(ref, { ...item('alex'), name: 'TP', list: 'l_costco01' }));
+    await assertFails(updateDoc(ref, { list: 'costco', updatedBy: 'alex' }));
+    await assertSucceeds(
+      updateDoc(doc(db, 'households', HID), { lists: [{ id: 'l_costco01', name: 'Costco' }] }),
+    );
+    const many = Array.from({ length: 13 }, (_, i) => ({ id: `l_list0000${i}`, name: `L${i}` }));
+    await assertFails(updateDoc(doc(db, 'households', HID), { lists: many }));
+  });
+
   it('keeps a short substitute on an item', async () => {
     const db = as('alex');
     const ref = doc(db, 'households', HID, 'items', 'oat');

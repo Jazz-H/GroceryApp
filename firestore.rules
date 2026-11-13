@@ -93,7 +93,9 @@ service cloud.firestore {
           || request.resource.data.memberIds.toSet() == resource.data.memberIds.toSet().difference([uid()].toSet())
         )
         && request.resource.data.name is string
-        && request.resource.data.name.size() <= 60;
+        && request.resource.data.name.size() <= 60
+        && (!('lists' in request.resource.data)
+          || (request.resource.data.lists is list && request.resource.data.lists.size() <= 12));
 
       allow delete: if false;
 
@@ -101,7 +103,7 @@ service cloud.firestore {
       match /items/{itemId} {
         function validItem(d) {
           return d.name is string && d.name.size() > 0 && d.name.size() <= 120
-            && d.list in ['grocery', 'nice']
+            && (d.list in ['grocery', 'nice'] || (d.list is string && d.list.matches('l_[A-Za-z0-9]{6,20}')))
             && d.status in ['open', 'checked', 'ordered']
             && d.stores is list && d.stores.size() > 0 && d.stores.size() <= 3
             && d.qty is number && d.qty >= 1 && d.qty <= 999

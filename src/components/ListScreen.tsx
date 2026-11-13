@@ -39,6 +39,8 @@ import type {
   TripMode,
 } from '../types';
 import { ItemSheet } from './ItemSheet';
+import { ListTabs } from './ListTabs';
+import { listName } from '../lib/lists';
 import { Avatar, markerStyle, Sheet, SortIcon } from './ui';
 
 type StoreFilter = StoreId | 'all';
@@ -103,6 +105,10 @@ export function ListScreen({
   onAddHandled?: () => void;
 }) {
   const [list, setList] = useState<ListId>('grocery');
+  // If the list being shown is deleted (here or on the other phone), go back to Grocery.
+  const listGone =
+    list !== 'grocery' && list !== 'nice' && !household.lists?.some((l) => l.id === list);
+  if (listGone) setList('grocery');
   // The quick list adds to Grocery, so it keeps `list` on 'grocery' while it's showing.
   const [quick, setQuick] = useState(false);
   const [store, setStoreState] = useState<StoreFilter>(() => readPref('fb.store', 'all', FILTERS));
@@ -352,38 +358,17 @@ export function ListScreen({
         )}
       </header>
 
-      <div className="seg" role="tablist" aria-label="List">
-        <button
-          role="tab"
-          aria-selected={!quick && list === 'grocery'}
-          onClick={() => {
-            setQuick(false);
-            setList('grocery');
-          }}
-        >
-          Grocery
-        </button>
-        <button
-          role="tab"
-          aria-selected={quick}
-          onClick={() => {
-            setQuick(true);
-            setList('grocery');
-          }}
-        >
-          Quick add
-        </button>
-        <button
-          role="tab"
-          aria-selected={!quick && list === 'nice'}
-          onClick={() => {
-            setQuick(false);
-            setList('nice');
-          }}
-        >
-          Nice-to-have
-        </button>
-      </div>
+      <ListTabs
+        household={household}
+        uid={user.uid}
+        items={items}
+        list={list}
+        quick={quick}
+        onPick={(next, isQuick) => {
+          setQuick(isQuick);
+          setList(next);
+        }}
+      />
 
       <div className="store-pills">
         <div className="pill-stores" role="group" aria-label="Store">
@@ -460,7 +445,7 @@ export function ListScreen({
                   ? store === 'all'
                     ? 'Nothing on the list. Tap + to add something.'
                     : `Nothing for ${storeDef(store).name} yet. Tap + to add something.`
-                  : 'Nothing on the nice-to-have list yet. Tap + to add something.'}
+                  : `Nothing on ${listName(list, household)} yet. Tap + to add something.`}
             </p>
           )}
 
@@ -585,7 +570,7 @@ export function ListScreen({
                           <span className="mag">{storeDef(item.stores[0]).short}</span>
                         )}
                         {aisle && !sortByAisle && <span className="ai">{aisleLabel(aisle)}</span>}
-                        {list === 'nice' && (
+                        {list !== 'grocery' && (
                           <button
                             className="to-grocery"
                             onClick={() => moveItem(household.id, user.uid, item, 'grocery')}
@@ -627,6 +612,7 @@ export function ListScreen({
         <AddSheet
           defaultStore={store === 'all' ? 'ht' : store}
           list={list}
+          lists={household.lists}
           onAdd={onAdd}
           usuals={list === 'grocery' ? usuals : []}
           onPickUsual={addUsual}
@@ -770,6 +756,7 @@ function UsualsRow({ usuals, onPick }: { usuals: Usual[]; onPick: (u: Usual) => 
 function AddSheet({
   defaultStore,
   list,
+  lists,
   onAdd,
   usuals,
   onPickUsual,
@@ -779,6 +766,7 @@ function AddSheet({
 }: {
   defaultStore: StoreId;
   list: ListId;
+  lists: Household['lists'];
   onAdd: (text: string, store: StoreId) => Promise<void>;
   usuals: Usual[];
   onPickUsual: (u: Usual) => void;
@@ -801,7 +789,7 @@ function AddSheet({
     await onAdd(value, target);
   }
 
-  const where = list === 'grocery' ? 'Grocery' : 'Nice-to-have';
+  const where = listName(list, { lists });
   return (
     <Sheet
       onClose={onClose}

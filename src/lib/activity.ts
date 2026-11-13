@@ -80,7 +80,13 @@ export function describe(group: FeedGroup, member: Member | undefined): string {
     case 'delete':
       return `${who} removed ${what}`;
     case 'move':
-      return `${who} moved ${one} to ${group.detail === 'nice' ? 'Nice-to-have' : 'Grocery'}`;
+      return `${who} moved ${one} to ${
+        group.detail === 'nice'
+          ? 'Nice-to-have'
+          : group.detail === 'grocery' || !group.detail
+            ? 'Grocery'
+            : group.detail
+      }`;
     case 'edit':
       return `${who} edited ${one}${group.detail ? ` (${group.detail})` : ''}`;
     case 'trip_start':

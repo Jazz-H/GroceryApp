@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useReceipts } from '../data/hooks';
 import { deleteItems, saveItem } from '../data/items';
 import { timeAgo } from '../lib/activity';
+import { allLists, listName } from '../lib/lists';
 import { CATEGORIES, categoryName, guessCategory, isCategoryId } from '../lib/categories';
 import { formatCents, parsePrice } from '../lib/money';
 import { latestByStore, priceHistory, priceTrends, receiptStoreName } from '../lib/receipts';
@@ -132,6 +133,7 @@ export function ItemSheet({
         list,
         category: category || undefined,
         substitute,
+        listName: listName(list, household),
       });
       onClose();
     } catch (e) {
@@ -179,14 +181,29 @@ export function ItemSheet({
             +
           </button>
         </div>
-        <div className="segmented small" role="group" aria-label="List">
-          <button aria-pressed={list === 'grocery'} onClick={() => setList('grocery')}>
-            Grocery
-          </button>
-          <button aria-pressed={list === 'nice'} onClick={() => setList('nice')}>
-            Nice-to-have
-          </button>
-        </div>
+        {household.lists?.length ? (
+          <select
+            className="list-pick"
+            aria-label="List"
+            value={list}
+            onChange={(e) => setList(e.target.value as ListId)}
+          >
+            {allLists(household).map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <div className="segmented small" role="group" aria-label="List">
+            <button aria-pressed={list === 'grocery'} onClick={() => setList('grocery')}>
+              Grocery
+            </button>
+            <button aria-pressed={list === 'nice'} onClick={() => setList('nice')}>
+              Nice-to-have
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="store-grid">

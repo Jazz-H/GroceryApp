@@ -1921,6 +1921,41 @@ textarea {
   color: var(--ink);
 }
 
+/* List tabs: as many as fit, then they scroll sideways. */
+.seg.list-tabs {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  gap: 2px;
+}
+.seg.list-tabs::-webkit-scrollbar {
+  display: none;
+}
+.seg.list-tabs button {
+  flex: 1 0 auto;
+  padding: 8px 12px;
+  min-height: 40px;
+  white-space: nowrap;
+}
+.seg.list-tabs .list-new {
+  flex: 0 0 40px;
+  padding: 0;
+  font-size: 1.2rem;
+}
+.list-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 18px 8px;
+}
+.list-confirm {
+  flex: 1 1 100%;
+}
+.list-pick {
+  min-height: 40px;
+  max-width: 50%;
+}
 .store-pills {
   display: flex;
   align-items: center;
