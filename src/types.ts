@@ -42,6 +42,8 @@ export interface StoreAisle {
 export interface StoreInfo {
   aisle?: StoreAisle;
   price?: StorePrice;
+  /** Package size as written, e.g. "64 oz" or "12 ct" (see lib/units). */
+  size?: string;
 }
 
 export interface Item {

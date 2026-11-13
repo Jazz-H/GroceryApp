@@ -2256,8 +2256,8 @@ textarea {
   display: none;
 }
 .store-line {
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  grid-template-areas: 'name name' 'price aisle' 'src src';
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas: 'name name name' 'price size aisle' 'src src src';
   padding: 12px;
   border-radius: 18px;
   border: 1px solid var(--line);
@@ -2273,7 +2273,18 @@ textarea {
   grid-area: price;
 }
 .store-line > input:nth-of-type(2) {
+  grid-area: size;
+}
+.store-line > input:nth-of-type(3) {
   grid-area: aisle;
+}
+.unit-price {
+  font-family: var(--mono);
+  color: var(--ink);
+}
+.unit-best {
+  margin: 8px 0 0;
+  font-size: 0.88rem;
 }
 .store-line .store-src {
   grid-area: src;

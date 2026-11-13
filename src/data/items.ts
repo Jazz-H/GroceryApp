@@ -269,6 +269,13 @@ export function describeEdit(before: Item, after: ItemEdit): string {
         .sort(),
     );
   if (prices(before.storeInfo) !== prices(after.storeInfo)) parts.push('price');
+  const sizes = (i: Partial<Record<StoreId, StoreInfo>>) =>
+    JSON.stringify(
+      Object.entries(i)
+        .map(([k, v]) => [k, v?.size ?? null])
+        .sort(),
+    );
+  if (sizes(before.storeInfo) !== sizes(after.storeInfo)) parts.push('size');
   if (aisles(before.storeInfo) !== aisles(after.storeInfo)) parts.push('aisle');
   return parts.join(', ');
 }

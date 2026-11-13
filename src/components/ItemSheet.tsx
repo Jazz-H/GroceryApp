@@ -7,7 +7,15 @@ import { CATEGORIES, categoryName, guessCategory, isCategoryId } from '../lib/ca
 import { formatCents, parsePrice } from '../lib/money';
 import { latestByStore, priceHistory, priceTrends, receiptStoreName } from '../lib/receipts';
 import { PriceChart } from './PriceChart';
-import { STORES } from '../lib/stores';
+import { STORES, storeDef } from '../lib/stores';
+import {
+  cheapestPerUnit,
+  formatSize,
+  formatUnitPrice,
+  parseSize,
+  unitPrice,
+  type UnitPrice,
+} from '../lib/units';
 import type { CategoryId, Household, Item, ListId, StoreId, StoreInfo } from '../types';
 import { markerStyle, Sheet } from './ui';
 
@@ -15,6 +23,7 @@ interface StoreDraft {
   on: boolean;
   price: string;
   aisle: string;
+  size: string;
 }
 
 const KIND_LABEL: Record<string, string> = {
@@ -30,6 +39,7 @@ function draftFor(item: Item, store: StoreId): StoreDraft {
     on: item.stores.includes(store),
     price: info?.price ? (info.price.cents / 100).toFixed(2) : '',
     aisle: info?.aisle?.label ?? '',
+    size: info?.size ?? '',
   };
 }
 
@@ -83,6 +93,17 @@ export function ItemSheet({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  // Unit prices from what's typed now, so they update as you fill in prices and sizes.
+  const units: Partial<Record<StoreId, UnitPrice>> = {};
+  for (const s of STORES) {
+    const d = drafts[s.id];
+    const u = d.on ? unitPrice(parsePrice(d.price) ?? undefined, parseSize(d.size)) : null;
+    if (u) units[s.id] = u;
+  }
+  const cheapest = cheapestPerUnit(
+    STORES.filter((s) => units[s.id]).map((s) => ({ store: s.id, unit: units[s.id]! })),
+  );
+
   const author = household.members[item.createdBy];
   const color = author?.color;
 
@@ -90,7 +111,7 @@ export function ItemSheet({
     setDrafts((d) => {
       const next = { ...d, [store]: { ...d[store], ...p } };
       // Typing a price or aisle for a store adds the item to that store.
-      if ((p.price || p.aisle) && !d[store].on) next[store].on = true;
+      if ((p.price || p.aisle || p.size) && !d[store].on) next[store].on = true;
       return next;
     });
   }
@@ -115,6 +136,14 @@ export function ItemSheet({
           );
         info.price =
           before?.price?.cents === cents ? before.price : { cents, kind: 'manual', at: Date.now() };
+      }
+      if (d.size.trim()) {
+        const size = parseSize(d.size);
+        if (!size)
+          return fail(
+            `Check the ${STORES.find((s) => s.id === id)!.name} size. Use something like 64 oz, 1 gal or 12 ct.`,
+          );
+        info.size = formatSize(size);
       }
       if (d.aisle.trim()) {
         const label = d.aisle.trim().slice(0, 30);
@@ -238,9 +267,16 @@ export function ItemSheet({
                 onChange={(e) => patch(s.id, { price: e.target.value })}
               />
               <input
+                id={`size-${s.id}`}
+                aria-label={`${s.name} size`}
+                placeholder="Size"
+                value={d.size}
+                onChange={(e) => patch(s.id, { size: e.target.value })}
+              />
+              <input
                 id={`aisle-${s.id}`}
                 aria-label={`${s.name} aisle`}
-                placeholder={s.hasAisles ? 'Aisle (e.g. 7)' : 'No aisles'}
+                placeholder={s.hasAisles ? 'Aisle' : 'No aisles'}
                 disabled={!s.hasAisles}
                 value={d.aisle}
                 onChange={(e) => patch(s.id, { aisle: e.target.value })}
@@ -264,11 +300,20 @@ export function ItemSheet({
                     {timeAgo(info.price.at)}
                   </span>
                 )}
+                {units[s.id] && <span className="unit-price">{formatUnitPrice(units[s.id]!)}</span>}
               </span>
             </div>
           );
         })}
       </div>
+
+      {cheapest && (
+        <p className="unit-best">
+          <b>{storeDef(cheapest.store).name}</b> is {cheapest.pctCheaper}% cheaper per{' '}
+          {units[cheapest.store]!.per === 'each' ? 'item' : 'ounce'} than{' '}
+          {storeDef(cheapest.runnerUp).name}.
+        </p>
+      )}
 
       {history.length > 0 && (
         <section className="history" aria-labelledby="history-title">
